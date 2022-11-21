@@ -123,9 +123,23 @@ namespace CJT
 		for (auto cityObject = cityObjects->begin(); cityObject != cityObjects->end(); ++cityObject)
 		{
 			std::string objectName = cityObject.key();
- 
-			CityObject CCityObject(objectName, cityObject.value()["type"]);
-			auto geoObjects = cityObject.value()["geometry"];
+			json attributes = {};
+			std::vector<std::string> parents = {};
+			std::vector<std::string> children = {};
+
+			json objectValue = cityObject.value();
+			if (objectValue.contains("attributes")) { attributes = objectValue["attributes"]; }
+			if (objectValue.contains("parents")) { parents = objectValue["parents"]; }
+			if (objectValue.contains("children")) { children = objectValue["children"]; }
+
+			CityObject CCityObject(
+				objectName, 
+				objectValue["type"],
+				attributes,
+				parents,
+				children
+			);
+			auto geoObjects = objectValue["geometry"];
 
 			if (geoObjects.size() == 0)
 			{
@@ -167,12 +181,13 @@ namespace CJT
 
 				}
 				
-				CCityObject.addGeoObject(lod, GeoObject(
-					boundaries,
-					lod,
-					surfaceData,
-					semanticValues,
-					geoType
+				CCityObject.addGeoObject(
+					lod, GeoObject(
+						boundaries,
+						lod,
+						surfaceData,
+						semanticValues,
+						geoType
 				));
 			}
 
