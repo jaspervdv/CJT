@@ -4,6 +4,27 @@ namespace CJT
 {
 	using json = nlohmann::json;
 	
+	double* CJTPoint::getCoordinates()
+	{
+		static double coord[3] = { x_ , y_, z_ };
+		return coord;
+	}
+
+	double CJTPoint::getX()
+	{
+		return x_;
+	}
+
+	double CJTPoint::getY()
+	{
+		return y_;
+	}
+
+	double CJTPoint::getZ()
+	{
+		return z_;
+	}
+
 	void CJTPoint::print()
 	{
 		std::cout << "{" << x_ << ", " << y_ << ", " << z_ << "}" << std::endl;
@@ -103,6 +124,28 @@ namespace CJT
 		}
 	}
 
+	std::vector<float> CityObject::getLoD()
+	{
+		if (geometry_.size() < 1)
+		{
+			return {};
+		}
+
+		std::vector<float> loDList = {};
+		for (size_t i = 0; i < geometry_.size(); i++)
+		{
+			float lod = geometry_[i].getLoD();
+
+			if (!std::count(loDList.begin(), loDList.end(), lod))
+			{
+				loDList.emplace_back(lod);
+			}
+		}
+		std::sort(loDList.begin(), loDList.end());
+
+		return loDList;
+	}
+
 	std::vector<CJTPoint> CityCollection::fetchPoints(json* pointJson)
 	{
 		std::vector<CJTPoint> vertList;
@@ -180,9 +223,9 @@ namespace CJT
 					if (semanticData.contains("surfaces")) { surfaceData = semanticData["surfaces"]; }
 
 				}
-				
+
 				CCityObject.addGeoObject(
-					lod, GeoObject(
+					GeoObject(
 						boundaries,
 						lod,
 						surfaceData,
@@ -249,6 +292,39 @@ namespace CJT
 
 		return success;
 	}
+	CityObject* CityCollection::getCityObject(std::string obName)
+	{
+		if (cityObjects_.find(obName) == cityObjects_.end())
+		{
+			std::cout << "Object Name not found" << std::endl;
+			return nullptr;
+		}
+
+		return &cityObjects_[obName];
+	}
+	
+
+	std::vector<CityObject*> CityCollection::getCityObject(std::vector<std::string> obNameList)
+	{
+		std::vector<CityObject*> cityObjectList;
+		for (size_t i = 0; i < obNameList.size(); i++)
+		{
+			auto tempCityObject = getCityObject(obNameList[i]);
+
+			if (tempCityObject == nullptr)
+			{
+				std::cout << obNameList[i] + " not found" << std::endl;
+				continue;
+			}
+			cityObjectList.emplace_back(tempCityObject);
+		}
+
+		return cityObjectList;
+	}
+
+
+	std::vector<CJTPoint> CityCollection::getVerices()
+	{
+		return vertices_;
+	}
 }
-
-

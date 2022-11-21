@@ -3,8 +3,9 @@
 #include <map>
 #include <fstream>
 #include <string>
-
+#include <variant>
 #include <vector>
+
 #include <nlohmann/json.hpp>
 
 namespace CJT {
@@ -67,6 +68,8 @@ namespace CJT {
 			json surfaceTypeValues,
 			std::string type
 		);
+
+		float getLoD() { return lod_; }
 	};
 
 
@@ -76,7 +79,7 @@ namespace CJT {
 		std::string name_;
 		std::string type_;
 
-		std::map<float, GeoObject> geometry_;
+		std::vector<GeoObject> geometry_;
 
 		bool isParent_ = false;
 		bool isChild_ = false;
@@ -87,12 +90,16 @@ namespace CJT {
 		std::vector<std::string> childList_ = {};
 
 	public:
+		CityObject() {}
+
+		/// @brief construct a simple cityobject
 		CityObject
 		(
 			std::string name,
 			std::string type
 		);
 
+		/// @brief construct a cityobject 
 		CityObject
 		(
 			std::string name,
@@ -102,7 +109,41 @@ namespace CJT {
 			std::vector<std::string> childList
 		);
 
-		void addGeoObject(float lod, GeoObject geom) { geometry_.emplace(lod, geom); }
+		/// @brief get cityObject's name
+		std::string getName() { return name_; }
+		/// @brief get cityObject's type
+		std::string getType() { return type_; }
+
+		/// @brief returns true if the cityobject has one or more attributes
+		bool hasAttributes() { return hasAttributes_; }
+		/// @brief returns the attributes of the cityobject in a json format
+		json getAttributes() { return attributes_; }
+
+		/// @brief returns the LoD 
+		std::vector<float> getLoD();
+		
+		/// @brief add an attribute to the cityObject
+		void addAttribute(std::string key, std::string value);
+		/// @brief add an attribute to the cityObject
+		void addAttribute(std::string key, int value);
+		/// @brief add an attribute to the cityObject
+		void addAttribute(std::string key, float value);
+		/// @brief add multiple attributes of the same type to the cityObject
+		void addAttributes(std::map<std::string, std::string>);
+		/// @brief add multiple attributes of the same type to the cityObject
+		void addAttributes(std::map<std::string, int>);
+		/// @brief add multiple attributes of the same type to the cityObject
+		void addAttributes(std::map<std::string, float>);
+
+		// @brief add geo object to the cityObject
+		void addGeoObject(GeoObject geom) { geometry_.emplace_back(geom); }
+
+		// @brief add a parent relationship to the CityObject
+		void addParent(std::string parentName);
+		// @brief add a child reationship to the CityObject
+		void addChild(std::string childName);
+
+
 	};
 
 
@@ -111,24 +152,36 @@ namespace CJT {
 	private:
 		std::map<std::string, CityObject> cityObjects_;
 		std::vector<CJTPoint> vertices_;
+		std::string version = "";
+		json metaData = {};
+
 		ObjectTransformation objectTransformation_;
 
 		bool isSilent_ = true;
 
 		bool isValid(json jsonData);
+
 		ObjectTransformation fetchTransformation(json* transJson);
 		std::vector<CJTPoint> fetchPoints(json* pointJson);
 		std::map<std::string, CityObject> fetchCityObjects(json* cityObjects);
 
 	public:
-		// read file
+		/// @brief read a cityJSON file
 		bool parseJSON(std::string filePath, bool silent);
 
-		// dump to file
+		/// @brief dump to a cityJSON file
 		bool dumpJson(std::string filePath, bool silent);
 
-		// get city objects
-		CityObject getCityObject(std::string obName);
-		std::vector<CityObject> getCityObject(std::vector<std::string> obNameList);
+		/// @brief get cityObject based on name
+		CityObject* getCityObject(std::string obName);
+		/// @brief get cityObjects based on name
+		std::vector<CityObject*> getCityObject(std::vector<std::string> obNameList);
+		/// @brief get cityObjects based on type
+		//std::vector<CityObject> getCityObject(std::string typeName);
+
+		// @brief returns all the vertsices that are in the collection
+		std::vector<CJTPoint> getVerices();
+
+
 	};
 }
