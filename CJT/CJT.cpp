@@ -35,6 +35,16 @@ namespace CJT
 		return scaler;
 	}
 
+	GeoObject::GeoObject(json boundaries, float lod, json surfaceData, json surfaceTypeValues, std::string type)
+	{
+		boundaries_ = boundaries;
+		lod_ = lod;
+		surfaceData_ = surfaceData;
+		surfaceTypeValues_ = surfaceTypeValues;
+		type_ = type;
+	}	
+
+
 	bool CityCollection::isValid(json jsonData) {
 		// TODO add validator library
 		if (!jsonData.contains("CityObjects") || !jsonData.contains("version") || !jsonData.contains("transform") || !jsonData.contains("vertices"))
@@ -63,6 +73,36 @@ namespace CJT
 		return transformation;
 	}
 
+	CityObject::CityObject(std::string name, std::string type)
+	{
+		name_ = name;
+		type_ = type;
+	}
+
+	CityObject::CityObject(std::string name, std::string type, json attributes, std::vector<std::string> parentList, std::vector<std::string> childList)
+	{
+		name_ = name;
+		type_ = type;
+
+		if (attributes.size() > 0)
+		{
+			hasAttributes_ = true;
+			attributes_ = attributes;
+		}
+
+		if (parentList.size() > 0)
+		{
+			isChild_ = true;
+			parentList_ = parentList;
+		}
+
+		if (childList.size() > 0)
+		{
+			isParent_ = true;
+			childList_ = childList;
+		}
+	}
+
 	std::vector<CJTPoint> CityCollection::fetchPoints(json* pointJson)
 	{
 		std::vector<CJTPoint> vertList;
@@ -74,6 +114,71 @@ namespace CJT
 			vertList.emplace_back(CJTPoint(coord[0] * scaler[0], coord[1] * scaler[1], coord[2] * scaler[2]));
 		}
 		return vertList;
+	}
+
+	std::map<std::string, CityObject> CityCollection::fetchCityObjects(json* cityObjects)
+	{
+		std::map<std::string, CityObject> collection;
+
+		for (auto cityObject = cityObjects->begin(); cityObject != cityObjects->end(); ++cityObject)
+		{
+			std::string objectName = cityObject.key();
+ 
+			CityObject CCityObject(objectName, cityObject.value()["type"]);
+			auto geoObjects = cityObject.value()["geometry"];
+
+			if (geoObjects.size() == 0)
+			{
+				continue;
+			}
+
+			for (auto geoObject = geoObjects.begin(); geoObject != geoObjects.end(); ++geoObject)
+			{
+				auto geoValue = geoObject.value();
+
+				std::string geoType = "";
+				json boundaries = {};
+				float lod = -1 ;
+				json semanticValues = {};
+				json surfaceData = {};
+				std::vector<std::string> parentList = {};
+				std::vector<std::string> childList = {};
+				
+				if (geoValue.contains("type")) { geoType = geoValue["type"]; }
+				if (geoValue.contains("boundaries")) { boundaries = geoValue["boundaries"]; }
+				
+				if (geoValue.contains("lod")) 
+				{ 
+					if (geoValue["lod"].type() == json::value_t::string)
+					{
+						std::string stringLod = geoValue["lod"];
+						lod = stof(stringLod);
+					}
+					else
+					{
+						lod = geoValue["lod"];
+					}
+				}
+				if (geoValue.contains("semantics")) 
+				{ 
+					json semanticData = geoValue["semantics"];
+					if (semanticData.contains("values")) { semanticValues = semanticData["values"]; }
+					if (semanticData.contains("surfaces")) { surfaceData = semanticData["surfaces"]; }
+
+				}
+				
+				CCityObject.addGeoObject(lod, GeoObject(
+					boundaries,
+					lod,
+					surfaceData,
+					semanticValues,
+					geoType
+				));
+			}
+
+			collection.emplace(objectName, CCityObject);
+		}
+		return collection;
 	}
 
 	bool CityCollection::parseJSON(std::string filePath, bool silent)
@@ -95,7 +200,7 @@ namespace CJT
 			}
 			return false;
 		}
-		else if (isSilent_)
+		else if (!isSilent_)
 		{
 			std::cout << "File: '" + filePath + "' is valid!" << std::endl;
 		}
@@ -104,45 +209,31 @@ namespace CJT
 		objectTransformation_ = fetchTransformation(&completeData["transform"]);
 		vertices_ = fetchPoints(&completeData["vertices"]);
 
-		// generate geo
-		auto cityObjects = completeData["CityObjects"];
-
-		for (auto cityObject = cityObjects.begin(); cityObject != cityObjects.end(); ++cityObject)
+		if (!isSilent_)
 		{
-			CityObject CCityObject(cityObject.key(), cityObject.value()["type"]);
+			std::cout << "Loaded " << vertices_.size() << " vertices" << std::endl;
+		}
 
-			auto geoObjects = cityObject.value()["geometry"];
-			
-			if (geoObjects.size() == 0)
+		cityObjects_ = fetchCityObjects(&completeData["CityObjects"]);
+
+		if (!isSilent_)
+		{
+			std::cout << "Loaded " << cityObjects_.size() << " City Objects" << std::endl;
+		}
+
+		if (!isSilent_)
+		{
+			if (vertices_.size() != 0 && cityObjects_.size() != 0)
 			{
-				continue;
+				std::cout << "JSON Loaded succesfully" << std::endl;
 			}
-
-
-			for (auto geoObject = geoObjects.begin(); geoObject != geoObjects.end(); ++geoObject)
-			{
-				auto geoType = geoObject.value()["type"];
-				std::string lod = geoObject.value()["lod"];
-				
-				if (geoType == "MultiSurface")
-				{
-					
-				}
-				else if (geoType == "Solid")
-				{
-
-				}
-				else if (geoType == "CompositeSolid")
-				{
-
-				}
-
-				
+			else {
+				std::cout << "JSON has not been loaded succesfully" << std::endl;
 			}
 		}
+
 		return success;
 	}
-
 }
 
 
