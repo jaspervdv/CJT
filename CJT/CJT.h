@@ -21,7 +21,7 @@ namespace CJT {
 	public:
 		CJTPoint(double x, double y, double z) { x_ = x; y_ = y; z_ = z; }
 		
-		double* getCoordinates();
+		std::array<double, 3> getCoordinates();
 		double getX();
 		double getY();
 		double getZ();
@@ -55,7 +55,7 @@ namespace CJT {
 	{
 	private:
 		json boundaries_;
-		float lod_;
+		std::string lod_;
 		json surfaceData_;
 		json surfaceTypeValues_;
 		std::string type_;
@@ -63,13 +63,18 @@ namespace CJT {
 	public:
 		GeoObject(
 			json boundaries,
-			float lod,
+			std::string lod,
 			json surfaceData,
 			json surfaceTypeValues,
 			std::string type
 		);
 
-		float getLoD() { return lod_; }
+		std::string getLoD() { return lod_; }
+		std::string getType() { return type_; }
+
+		json getBoundaries() { return boundaries_; };
+		json getSurfaceData() { return surfaceData_; }
+		json getSurfaceTypeValues() { return surfaceTypeValues_; }
 	};
 
 
@@ -135,12 +140,15 @@ namespace CJT {
 		/// @brief add multiple attributes of the same type to the cityObject
 		void addAttributes(std::map<std::string, float>);
 
-		// @brief add geo object to the cityObject
+		/// @brief add geo object to the cityObject
 		void addGeoObject(GeoObject geom) { geometry_.emplace_back(geom); }
 
-		// @brief add a parent relationship to the CityObject
+		/// @brief get all geoObjects
+		std::vector< GeoObject> getGeoObjects() { return geometry_; }
+
+		/// @brief add a parent relationship to the CityObject
 		void addParent(std::string parentName);
-		// @brief add a child reationship to the CityObject
+		/// @brief add a child reationship to the CityObject
 		void addChild(std::string childName);
 
 
@@ -152,8 +160,8 @@ namespace CJT {
 	private:
 		std::map<std::string, CityObject> cityObjects_;
 		std::vector<CJTPoint> vertices_;
-		std::string version = "";
-		json metaData = {};
+		std::string version_ = "";
+		json metaData_ = {};
 
 		ObjectTransformation objectTransformation_;
 
@@ -172,6 +180,8 @@ namespace CJT {
 		/// @brief dump to a cityJSON file
 		bool dumpJson(std::string filePath, bool silent);
 
+		/// @brief get all cityObjects
+		std::vector<CityObject*> getCityObject();
 		/// @brief get cityObject based on name
 		CityObject* getCityObject(std::string obName);
 		/// @brief get cityObjects based on name

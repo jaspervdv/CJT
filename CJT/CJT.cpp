@@ -4,10 +4,9 @@ namespace CJT
 {
 	using json = nlohmann::json;
 	
-	double* CJTPoint::getCoordinates()
+	std::array<double, 3> CJTPoint::getCoordinates()
 	{
-		static double coord[3] = { x_ , y_, z_ };
-		return coord;
+		return { x_ , y_, z_ };
 	}
 
 	double CJTPoint::getX()
@@ -56,7 +55,7 @@ namespace CJT
 		return scaler;
 	}
 
-	GeoObject::GeoObject(json boundaries, float lod, json surfaceData, json surfaceTypeValues, std::string type)
+	GeoObject::GeoObject(json boundaries, std::string lod, json surfaceData, json surfaceTypeValues, std::string type)
 	{
 		boundaries_ = boundaries;
 		lod_ = lod;
@@ -134,7 +133,7 @@ namespace CJT
 		std::vector<float> loDList = {};
 		for (size_t i = 0; i < geometry_.size(); i++)
 		{
-			float lod = geometry_[i].getLoD();
+			float lod = std::stof(geometry_[i].getLoD());
 
 			if (!std::count(loDList.begin(), loDList.end(), lod))
 			{
@@ -195,7 +194,7 @@ namespace CJT
 
 				std::string geoType = "";
 				json boundaries = {};
-				float lod = -1 ;
+				std::string lod = "" ;
 				json semanticValues = {};
 				json surfaceData = {};
 				std::vector<std::string> parentList = {};
@@ -209,7 +208,7 @@ namespace CJT
 					if (geoValue["lod"].type() == json::value_t::string)
 					{
 						std::string stringLod = geoValue["lod"];
-						lod = stof(stringLod);
+						lod = stringLod;
 					}
 					else
 					{
@@ -290,7 +289,120 @@ namespace CJT
 			}
 		}
 
+		version_ = completeData["version"];
+		metaData_ = completeData["metadata"];
+
 		return success;
+	}
+
+
+	bool CityCollection::dumpJson(std::string filePath, bool silent)
+	{
+		json newFile;
+
+		// metdata collection
+		std::pair fileType = { "type", "CityJSON" };
+		std::pair version = { "version", version_ };
+
+		newFile.emplace(fileType);
+		newFile.emplace(version);
+
+		if (metaData_.size() != 0)
+		{
+			newFile.emplace("metadata", metaData_);
+		}
+
+		// transformation data collection
+		double* scalingdata = objectTransformation_.getScale();
+		double* translatordata = objectTransformation_.getTranslation();
+		std::pair scaler { "scale", std::vector<double>(
+			{
+				scalingdata[0],
+				scalingdata[1],
+				scalingdata[2]
+			}
+		) };
+
+		std::pair translator{ "translate", std::vector<double>(
+			{
+				translatordata[0],
+				translatordata[1],
+				translatordata[2]
+			}
+		) };
+
+		std::map transform {scaler, translator};
+		std::pair transformer{ "transform", transform };
+		newFile.emplace(transformer);
+
+		// offload vertices
+		std::vector<std::array<double, 3>> vertList;
+
+		for (size_t i = 0; i < vertices_.size(); i++)
+		{
+			auto unscaledCoords = vertices_[i].getCoordinates();
+
+			for (size_t j = 0; j < 3; j++)
+			{
+				unscaledCoords[j] = unscaledCoords[j] / scalingdata[j];
+			}
+
+			vertList.emplace_back(unscaledCoords);
+		}
+		newFile.emplace("vertices", vertList);
+
+		// offload cityobjects
+
+		json cityGeoCollection;
+		std::map<std::string, json> test;
+		for (std::pair<std::string, CityObject> cityObject : cityObjects_)
+		{
+			auto currentObject = cityObject.second;
+			std::string objectName = currentObject.getName();
+			std::string objectType = currentObject.getType();
+			std::vector<GeoObject> geoObjectList = currentObject.getGeoObjects();
+			std::list<json> geoGroup;
+			json geoCollection;
+
+			std::map<std::string, json> test2;
+
+
+			for (size_t i = 0; i < geoObjectList.size(); i++)
+			{
+				std::pair boundariesPair { "boundaries", geoObjectList[i].getBoundaries() };
+				std::pair lodPair{ "lod",geoObjectList[i].getLoD()};
+				std::pair geoTypePair{ "type", geoObjectList[i].getType() };
+
+				std::pair surfaceTypePair{ "surfaces", geoObjectList[i].getSurfaceData() };
+				std::pair surfaceValuePair{ "values", geoObjectList[i].getSurfaceTypeValues() };
+
+				std::pair semanticPair{ "semantics", std::pair{surfaceTypePair, surfaceValuePair} };
+
+				geoGroup.emplace_back(json{ boundariesPair , lodPair, semanticPair ,geoTypePair });
+			}
+
+			test2.emplace("type", objectType);
+			test2.emplace("geometry", geoGroup);
+			test.emplace(objectName, test2);
+		}
+		newFile.emplace("CityObjects", test);
+
+		std::ofstream fileLoc;
+
+		fileLoc.open(filePath);
+		fileLoc << newFile;
+		fileLoc.close();
+
+		return true;
+	}
+	std::vector<CityObject*> CityCollection::getCityObject()
+	{
+		std::vector<CityObject*> outputList;
+		for (std::pair<std::string, CityObject> data : cityObjects_)
+		{
+			outputList.emplace_back(&data.second);
+		}
+		return outputList;
 	}
 	CityObject* CityCollection::getCityObject(std::string obName)
 	{
