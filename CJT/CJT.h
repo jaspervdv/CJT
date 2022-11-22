@@ -129,17 +129,15 @@ namespace CJT {
 		std::vector<float> getLoD();
 		
 		/// @brief add an attribute to the cityObject
-		void addAttribute(std::string key, std::string value);
-		/// @brief add an attribute to the cityObject
-		void addAttribute(std::string key, int value);
-		/// @brief add an attribute to the cityObject
-		void addAttribute(std::string key, float value);
+		template <typename T>
+		void addAttribute(std::string key, T value);
 		/// @brief add multiple attributes of the same type to the cityObject
-		void addAttributes(std::map<std::string, std::string>);
-		/// @brief add multiple attributes of the same type to the cityObject
-		void addAttributes(std::map<std::string, int>);
-		/// @brief add multiple attributes of the same type to the cityObject
-		void addAttributes(std::map<std::string, float>);
+		template <typename T>
+		void addAttributes(std::map<std::string, T> keyValueList);
+		/// @brief removes attribute with given keyName, if no keyName is given, all attributes are removed
+		void removeAttribute(std::string keyName = "");
+		/// @brief removes attribute with given keyName, if no keyName is given, all attributes are removed
+		void removeAttribute(std::vector<std::string> keyName = {});
 
 		/// @brief returns true if object has geometry
 		bool hasGeo() { return hasGeo_; }
@@ -198,4 +196,24 @@ namespace CJT {
 
 
 	};
+
+	template<typename T>
+	inline void CityObject::addAttribute(std::string key, T value)
+	{
+		if (attributes_.contains(key))
+		{
+			std::cout << "key: " + key << " already in attributes of object " + name_ << std::endl;
+			return;
+		}
+		attributes_.emplace(key, value);
+		hasAttributes_ = true;
+	}
+	template<typename T>
+	inline void CityObject::addAttributes(std::map<std::string, T> keyValueList)
+	{
+		for (auto pair = keyValueList.begin(); pair != keyValueList.end(); ++pair)
+		{			
+			addAttribute(pair->first, pair->second);
+		}
+	}
 }

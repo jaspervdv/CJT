@@ -312,11 +312,16 @@ namespace CJT
 
 	bool CityCollection::dumpJson(std::string filePath, bool silent)
 	{
-		json newFile;
+		if (version_ != "1.1" && version_ != "1.0") { std::cout << "only cityJSON 1.0 and 1.1 supported" << std::endl; }
 
+		json newFile;
 		// metdata collection
 		std::pair fileType = { "type", "CityJSON" };
 		std::pair version = { "version", version_ };
+
+		bool stringLoD = true;
+
+		if (version_ == "1.0") { stringLoD = false; }
 
 		newFile.emplace(fileType);
 		newFile.emplace(version);
@@ -378,6 +383,11 @@ namespace CJT
 
 			cityObject.emplace("type", objectType);
 
+			if (currentObject.hasAttributes())
+			{
+				cityObject.emplace("attributes", currentObject.getAttributes());
+			}
+
 			// get geometry
 			if (currentObject.hasGeo())
 			{
@@ -387,7 +397,17 @@ namespace CJT
 				{
 					std::map<std::string, json> geoCollection;
 					geoCollection.emplace("boundaries", geoObjectList[i].getBoundaries());
-					geoCollection.emplace("lod", geoObjectList[i].getLoD());
+
+					if (stringLoD)
+					{
+						geoCollection.emplace("lod", geoObjectList[i].getLoD());
+					}
+					else
+					{
+						geoCollection.emplace("lod", std::stod(geoObjectList[i].getLoD()));
+					}
+
+
 					geoCollection.emplace("type", geoObjectList[i].getType());
 
 					auto surfaceSemData = geoObjectList[i].getSurfaceData();
