@@ -203,17 +203,31 @@ namespace CJT
 				
 				if (geoValue.contains("type")) { geoType = geoValue["type"]; }
 				if (geoValue.contains("boundaries")) { boundaries = geoValue["boundaries"]; }
-				
 				if (geoValue.contains("lod")) 
 				{ 
 					if (geoValue["lod"].type() == json::value_t::string)
 					{
-						std::string stringLod = geoValue["lod"];
-						lod = stringLod;
+						lod = geoValue["lod"];
 					}
 					else
 					{
-						lod = geoValue["lod"];
+						double doubleLoD = geoValue["lod"];
+
+						if (doubleLoD == 0) { lod = "0"; }
+						else if (doubleLoD == 0.1) { lod = "0.1"; }
+						else if (doubleLoD == 0.2) { lod = "0.2"; }
+						else if (doubleLoD == 0.3) { lod = "0.3"; }
+						else if (doubleLoD == 0.4) { lod = "0.4"; }
+						else if (doubleLoD == 1) { lod = "1"; }
+						else if (doubleLoD == 1.1) { lod = "1.1"; }
+						else if (doubleLoD == 1.2) { lod = "1.2"; }
+						else if (doubleLoD == 1.3) { lod = "1.3"; }
+						else if (doubleLoD == 1.4) { lod = "1.4"; }
+						else if (doubleLoD == 2) { lod = "2"; }
+						else if (doubleLoD == 2.1) { lod = "2.1"; }
+						else if (doubleLoD == 2.2) { lod = "2.2"; }
+						else if (doubleLoD == 2.3) { lod = "2.3"; }
+						else if (doubleLoD == 2.4) { lod = "2.4"; }
 					}
 				}
 				if (geoValue.contains("semantics")) 
@@ -387,7 +401,6 @@ namespace CJT
 				}
 				cityObject.emplace("geometry", geoGroup);
 			}
-
 
 			// get parents/children
 			std::vector<std::string> parentList = currentObject.getParents();
