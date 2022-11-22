@@ -86,6 +86,7 @@ namespace CJT {
 
 		std::vector<GeoObject> geometry_;
 
+		bool hasGeo_ = false;
 		bool isParent_ = false;
 		bool isChild_ = false;
 		bool hasAttributes_ = false;
@@ -140,18 +141,21 @@ namespace CJT {
 		/// @brief add multiple attributes of the same type to the cityObject
 		void addAttributes(std::map<std::string, float>);
 
+		/// @brief returns true if object has geometry
+		bool hasGeo() { return hasGeo_; }
 		/// @brief add geo object to the cityObject
-		void addGeoObject(GeoObject geom) { geometry_.emplace_back(geom); }
-
+		void addGeoObject(GeoObject geom) { geometry_.emplace_back(geom); hasGeo_ = true; }
 		/// @brief get all geoObjects
 		std::vector< GeoObject> getGeoObjects() { return geometry_; }
 
 		/// @brief add a parent relationship to the CityObject
 		void addParent(std::string parentName);
+		/// @brief get a list of all the parents
+		std::vector<std::string> getParents() { return parentList_; }
 		/// @brief add a child reationship to the CityObject
 		void addChild(std::string childName);
-
-
+		/// @brief get a list of all the children
+		std::vector<std::string> getChildren() { return childList_; }
 	};
 
 

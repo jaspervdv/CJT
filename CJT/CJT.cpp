@@ -185,6 +185,7 @@ namespace CJT
 
 			if (geoObjects.size() == 0)
 			{
+				collection.emplace(objectName, CCityObject);
 				continue;
 			}
 
@@ -232,7 +233,6 @@ namespace CJT
 						geoType
 				));
 			}
-
 			collection.emplace(objectName, CCityObject);
 		}
 		return collection;
@@ -352,40 +352,59 @@ namespace CJT
 		newFile.emplace("vertices", vertList);
 
 		// offload cityobjects
-
 		json cityGeoCollection;
-		std::map<std::string, json> test;
+		std::map<std::string, json> objectCollection;
 		for (std::pair<std::string, CityObject> cityObject : cityObjects_)
 		{
 			auto currentObject = cityObject.second;
 			std::string objectName = currentObject.getName();
 			std::string objectType = currentObject.getType();
 			std::vector<GeoObject> geoObjectList = currentObject.getGeoObjects();
-			std::list<json> geoGroup;
-			json geoCollection;
+			std::map<std::string, json> cityObject;
 
-			std::map<std::string, json> test2;
+			cityObject.emplace("type", objectType);
 
-
-			for (size_t i = 0; i < geoObjectList.size(); i++)
+			// get geometry
+			if (currentObject.hasGeo())
 			{
-				std::pair boundariesPair { "boundaries", geoObjectList[i].getBoundaries() };
-				std::pair lodPair{ "lod",geoObjectList[i].getLoD()};
-				std::pair geoTypePair{ "type", geoObjectList[i].getType() };
+				std::list<json> geoGroup;
 
-				std::pair surfaceTypePair{ "surfaces", geoObjectList[i].getSurfaceData() };
-				std::pair surfaceValuePair{ "values", geoObjectList[i].getSurfaceTypeValues() };
+				for (size_t i = 0; i < geoObjectList.size(); i++)
+				{
+					std::map<std::string, json> geoCollection;
+					geoCollection.emplace("boundaries", geoObjectList[i].getBoundaries());
+					geoCollection.emplace("lod", geoObjectList[i].getLoD());
+					geoCollection.emplace("type", geoObjectList[i].getType());
 
-				std::pair semanticPair{ "semantics", std::pair{surfaceTypePair, surfaceValuePair} };
-
-				geoGroup.emplace_back(json{ boundariesPair , lodPair, semanticPair ,geoTypePair });
+					auto surfaceSemData = geoObjectList[i].getSurfaceData();
+					if (!surfaceSemData.is_null()) // if no surface semantic data is supplied
+					{
+						std::pair surfaceTypePair{ "surfaces", surfaceSemData };
+						std::pair surfaceValuePair{ "values", geoObjectList[i].getSurfaceTypeValues() };
+						geoCollection.emplace("semantics", std::pair{ surfaceTypePair, surfaceValuePair });
+					}
+					geoGroup.emplace_back(geoCollection);
+				}
+				cityObject.emplace("geometry", geoGroup);
 			}
 
-			test2.emplace("type", objectType);
-			test2.emplace("geometry", geoGroup);
-			test.emplace(objectName, test2);
+
+			// get parents/children
+			std::vector<std::string> parentList = currentObject.getParents();
+			std::vector<std::string> childList = currentObject.getChildren();
+
+			if (parentList.size())
+			{
+				cityObject.emplace("parents", parentList);
+			}
+			if (childList.size())
+			{
+				cityObject.emplace("children", childList);
+			}
+
+			objectCollection.emplace(objectName, cityObject);
 		}
-		newFile.emplace("CityObjects", test);
+		newFile.emplace("CityObjects", objectCollection);
 
 		std::ofstream fileLoc;
 
