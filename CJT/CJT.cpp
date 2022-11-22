@@ -145,6 +145,86 @@ namespace CJT
 		return loDList;
 	}
 
+	void CityObject::removeAttribute(std::string keyName)
+	{
+		if (!attributes_.contains(keyName))
+		{
+			std::cout << "key: " + keyName << " cannot be found in object " + name_ << std::endl;
+			return;
+		}
+		attributes_.erase(keyName);
+	}
+
+	void CityObject::removeAttribute(std::vector<std::string> keyNames)
+	{		
+		for (size_t i = 0; i < keyNames.size(); i++)
+		{
+			removeAttribute(keyNames[i]);
+		}
+	}
+
+	void CityObject::clearAttributes()
+	{
+		attributes_ = {}; 
+		hasAttributes_ = false;
+	}
+
+	void CityObject::addParent(std::string parentName, CityCollection* citycoll)
+	{
+		bool found = true;
+		if (citycoll != nullptr)
+		{
+			found = false;
+			std::vector<CityObject*> cityObjectCollection = citycoll->getCityObject();
+
+			for (size_t i = 0; i < cityObjectCollection.size(); i++)
+			{
+				if (parentName == cityObjectCollection[i]->getName())
+				{
+					found = true;
+					break;
+				}
+			}
+		}
+
+		if (found)
+		{
+			parentList_.emplace_back(parentName);
+		}
+		else 
+		{
+			std::cout << "No object present with name: " + parentName << std::endl;
+		}
+	}
+
+	void CityObject::addChild(std::string childName, CityCollection* citycoll)
+	{
+		bool found = true;
+		if (citycoll != nullptr)
+		{
+			found = false;
+			std::vector<CityObject*> cityObjectCollection = citycoll->getCityObject();
+
+			for (size_t i = 0; i < cityObjectCollection.size(); i++)
+			{
+				if (childName == cityObjectCollection[i]->getName())
+				{
+					found = true;
+					break;
+				}
+			}
+		}
+
+		if (found)
+		{
+			childList_.emplace_back(childName);
+		}
+		else
+		{
+			std::cout << "No object present with name: " + childName << std::endl;
+		}
+	}
+
 	std::vector<CJTPoint> CityCollection::fetchPoints(json* pointJson)
 	{
 		std::vector<CJTPoint> vertList;
@@ -481,6 +561,20 @@ namespace CJT
 				continue;
 			}
 			cityObjectList.emplace_back(tempCityObject);
+		}
+
+		return cityObjectList;
+	}
+
+	std::vector<CityObject*> CityCollection::getCityObjectTyped(std::string typeName)
+	{
+		std::vector<CityObject*> cityObjectList;
+		for (auto obb = cityObjects_.begin(); obb != cityObjects_.end(); ++obb)
+		{
+			if (obb->second.getType() == typeName)
+			{
+				cityObjectList.emplace_back(&obb->second);
+			}
 		}
 
 		return cityObjectList;

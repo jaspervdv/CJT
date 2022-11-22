@@ -11,6 +11,10 @@
 namespace CJT {
 
 	using json = nlohmann::json;
+	
+	// Forward Declaration
+	class CityCollection;
+
 	class CJTPoint
 	{
 	private:
@@ -133,11 +137,13 @@ namespace CJT {
 		void addAttribute(std::string key, T value);
 		/// @brief add multiple attributes of the same type to the cityObject
 		template <typename T>
-		void addAttributes(std::map<std::string, T> keyValueList);
-		/// @brief removes attribute with given keyName, if no keyName is given, all attributes are removed
-		void removeAttribute(std::string keyName = "");
-		/// @brief removes attribute with given keyName, if no keyName is given, all attributes are removed
-		void removeAttribute(std::vector<std::string> keyName = {});
+		void addAttribute(std::map<std::string, T> keyValueList);
+		/// @brief removes attribute with given keyName
+		void removeAttribute(std::string keyName);
+		/// @brief removes attribute with given keyName
+		void removeAttribute(std::vector<std::string> keyNames);
+		/// @brief removes all attributes
+		void clearAttributes();
 
 		/// @brief returns true if object has geometry
 		bool hasGeo() { return hasGeo_; }
@@ -146,12 +152,12 @@ namespace CJT {
 		/// @brief get all geoObjects
 		std::vector< GeoObject> getGeoObjects() { return geometry_; }
 
-		/// @brief add a parent relationship to the CityObject
-		void addParent(std::string parentName);
+		/// @brief add a parent relationship to the CityObject, second input is optional validation of name
+		void addParent(std::string parentName, CityCollection* citycoll = nullptr);
 		/// @brief get a list of all the parents
 		std::vector<std::string> getParents() { return parentList_; }
-		/// @brief add a child reationship to the CityObject
-		void addChild(std::string childName);
+		/// @brief add a child reationship to the CityObject, second input is optional validation of name
+		void addChild(std::string childName, CityCollection* citycoll = nullptr);
 		/// @brief get a list of all the children
 		std::vector<std::string> getChildren() { return childList_; }
 	};
@@ -189,7 +195,7 @@ namespace CJT {
 		/// @brief get cityObjects based on name
 		std::vector<CityObject*> getCityObject(std::vector<std::string> obNameList);
 		/// @brief get cityObjects based on type
-		//std::vector<CityObject> getCityObject(std::string typeName);
+		std::vector<CityObject*> getCityObjectTyped(std::string typeName);
 
 		// @brief returns all the vertsices that are in the collection
 		std::vector<CJTPoint> getVerices();
@@ -209,7 +215,7 @@ namespace CJT {
 		hasAttributes_ = true;
 	}
 	template<typename T>
-	inline void CityObject::addAttributes(std::map<std::string, T> keyValueList)
+	inline void CityObject::addAttribute(std::map<std::string, T> keyValueList)
 	{
 		for (auto pair = keyValueList.begin(); pair != keyValueList.end(); ++pair)
 		{			
