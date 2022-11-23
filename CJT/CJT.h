@@ -31,6 +31,9 @@ namespace CJT {
 		double getZ();
 
 		void print();
+
+		bool operator== (CJTPoint other);
+		bool operator!= (CJTPoint other);
 	};
 
 	class ObjectTransformation
@@ -52,6 +55,99 @@ namespace CJT {
 
 		double* getTranslation();
 		double* getScale();
+	};
+
+
+	class PointOfContactObject
+	{
+	private:
+		std::string contactName_ = "";
+		std::string contactType_ = "";
+		std::string role_ = "";
+		std::string phone_ = "";
+		std::string website_ = "";
+		std::string address_ = "";
+		json additionalData_ = {};
+	public:
+		PointOfContactObject() {};
+
+		PointOfContactObject(
+			std::string contactName,
+			std::string contactType,
+			std::string role,
+			std::string phone,
+			std::string website,
+			std::string address
+			);
+
+		PointOfContactObject(json pointOfContact);
+
+		/// @brief get data in CityJSON format
+		json getData();
+		/// @brief get contactName data
+		std::string getContactName() { return contactName_; }
+		/// @brief get contactType data
+		std::string getContactType() { return contactType_; }
+		/// @brief get role data
+		std::string getRole() { return role_; }
+		/// @brief get phone data
+		std::string getPhone() { return phone_; }
+		/// @brief get website data
+		std::string getWebsite() { return website_; }
+		/// @brief get address data
+		std::string getAddress() { return address_; }
+		/// @brief get additional stored data
+		json getAdditionalData() { return additionalData_; }
+	};
+
+
+	class metaDataObject 
+	{
+	private:
+		std::tuple<CJTPoint, CJTPoint> geographicalExtent_ = { CJTPoint(0,0,0), CJTPoint(0,0,0) };
+		std::string identifier_ = "";
+		PointOfContactObject pointOfContact_ ;
+		std::string referenceDate_ = "";
+		std::string referenceSystem_ = "";
+		std::string title_ = "";
+		json additionalData_ = {};
+
+	public:
+		metaDataObject() {};
+
+		metaDataObject(
+			std::tuple<CJTPoint, CJTPoint> geographicalExtent,
+			std::string identifier,
+			PointOfContactObject* pointOfContact,
+			std::string referenceDate,
+			std::string referenceSystem,
+			std::string title,
+			std::map<std::string, std::string> additionalData = {}
+		);
+
+		metaDataObject(json metaData);
+
+		/// @brief get data in CityJSON format
+		json getData();
+
+		/// @brief get geographicalExtent data
+		std::tuple<CJTPoint, CJTPoint> getExtend() { return geographicalExtent_; }
+		/// @brief get point of geographicalExtent, 0 == lll, 1 == rrr
+		CJTPoint getExtend(int idx);
+		/// @brief get identifier data
+		std::string getIdentifier() { return identifier_; }
+		/// @brief get contact information object
+		PointOfContactObject* getPointOfContact() { return &pointOfContact_; }
+		/// @brief get referenceDate information
+		std::string getReferenceDate() { return referenceDate_; }
+		/// @brief get referenceSystem information
+		std::string getReferenceSystem() { return referenceSystem_; }
+		/// @brief get title information
+		std::string getTitle() { return title_; }
+		/// @brief get additional stored data
+		json getAdditionalData() { return additionalData_; }
+		/// @brief returns true if data is stored in object
+		bool checkInfo();
 	};
 
 
@@ -169,7 +265,8 @@ namespace CJT {
 		std::map<std::string, CityObject> cityObjects_;
 		std::vector<CJTPoint> vertices_;
 		std::string version_ = "";
-		json metaData_ = {};
+
+		metaDataObject metaData_;
 
 		ObjectTransformation objectTransformation_;
 
@@ -197,9 +294,19 @@ namespace CJT {
 		/// @brief get cityObjects based on type
 		std::vector<CityObject*> getCityObjectTyped(std::string typeName);
 
-		// @brief returns all the vertsices that are in the collection
+		/// @brief returns all the vertsices that are in the collection
 		std::vector<CJTPoint> getVerices();
+		/// @brief remove duplicate vertices in collection
+		void cullDuplicatedVerices();
+		/// @brief remove unreferenced vertices in collection
+		void cullUnreferencedVerices();
+		/// @brief clean the vertex list in collection
+		void CleanVertices();
 
+		/// @brief get the full metadata
+		metaDataObject* getMetaData() { return &metaData_; }
+			
+		bool setMetaData();
 
 	};
 

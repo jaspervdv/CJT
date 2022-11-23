@@ -55,6 +55,153 @@ namespace CJT
 		return scaler;
 	}
 
+	bool CJTPoint::operator==(CJTPoint other)
+	{
+		if (x_ == other.x_ && y_ == other.y_ && z_ == other.z_)
+		{
+			return true;
+		}
+
+		return false;
+	}
+
+	bool CJTPoint::operator!=(CJTPoint other)
+	{
+		if (x_ == other.x_ && y_ == other.y_ && z_ == other.z_)
+		{
+			return false;
+		}
+		return true;
+	}
+
+
+	PointOfContactObject::PointOfContactObject(json pointOfContact)
+	{
+		for (auto obb = pointOfContact.begin(); obb != pointOfContact.end(); ++obb)
+		{
+			std::string k = obb.key();
+
+			if (k == "contactName") { contactName_ = obb.value(); }
+			else if (k == "contactType") { contactType_ = obb.value(); }
+			else if (k == "phone") { phone_ = obb.value(); }
+			else if (k == "website") { website_ = obb.value(); }
+			else if (k == "address") { address_ = obb.value(); }
+			else { additionalData_.emplace(k, obb.value()); }
+		}
+	}
+
+	json PointOfContactObject::getData()
+	{
+		json outputJson;
+		if (contactName_.size() != 0) { outputJson.emplace("contactName", contactName_); }
+		if (contactType_.size() != 0) { outputJson.emplace("contactType", contactType_); }
+		if (role_.size() != 0) { outputJson.emplace("role", role_); }
+		if (phone_.size() != 0) { outputJson.emplace("phone", phone_); }
+		if (website_.size() != 0) { outputJson.emplace("website", website_); }
+		if (address_.size() != 0) { outputJson.emplace("address", address_); }
+		if (additionalData_.size() != 0) {
+			for (auto obb = additionalData_.begin(); obb != additionalData_.end(); ++obb)
+			{
+				outputJson.emplace(obb.key(), obb.value());
+			}
+		}
+
+		return outputJson;
+	}
+
+
+	metaDataObject::metaDataObject(json metaData)
+	{
+		for (auto obb = metaData.begin(); obb != metaData.end(); ++obb)
+		{
+			std::string k = obb.key();
+
+			if (k == "geographicalExtent")
+			{
+				auto geoExtend = obb.value();
+				geographicalExtent_ = {
+					CJTPoint(
+						geoExtend[0],
+						geoExtend[1],
+						geoExtend[2]),
+					CJTPoint(
+						geoExtend[3],
+						geoExtend[4],
+						geoExtend[5]) };
+			}
+			else if (k == "identifier") { identifier_ = obb.value(); }
+			else if (k == "referenceSystem") { referenceSystem_ = obb.value(); }
+			else if (k == "referenceDate") { referenceDate_ = obb.value(); }
+			else if (k == "referenceSystem") { referenceSystem_ = obb.value(); }
+			else if (k == "title") { title_ = obb.value(); }
+			else if (k == "datasetPointOfContact") { 
+				PointOfContactObject pointofcontact(obb.value());
+				pointOfContact_ = pointofcontact;
+			}
+			else { additionalData_.emplace(k, obb.value()); }
+		}
+	}
+
+	json metaDataObject::getData()
+	{
+		json outputJson;
+
+		if (std::get<0>(geographicalExtent_) != std::get<1>(geographicalExtent_))
+		{
+			std::vector<double> formExtent;
+			CJTPoint p1 = std::get<0>(geographicalExtent_);
+			CJTPoint p2 = std::get<1>(geographicalExtent_);
+
+			formExtent.emplace_back(p1.getX());
+			formExtent.emplace_back(p1.getY());
+			formExtent.emplace_back(p1.getZ());
+
+			formExtent.emplace_back(p2.getX());
+			formExtent.emplace_back(p2.getY());
+			formExtent.emplace_back(p2.getZ());
+
+			outputJson.emplace("geographicalExtent", formExtent);
+		}
+		if (identifier_.size() != 0) { outputJson.emplace("identifier", identifier_); }
+		if (referenceDate_.size() != 0) { outputJson.emplace("referenceDate", referenceDate_); }
+		if (referenceSystem_.size() != 0) { outputJson.emplace("referenceSystem", referenceSystem_); }
+		if (title_.size() != 0) { outputJson.emplace("title", title_); }
+		if (additionalData_.size() != 0) { 
+			for (auto obb = additionalData_.begin(); obb != additionalData_.end(); ++obb)
+			{
+				outputJson.emplace(obb.key(), obb.value());
+			}
+		}
+		
+		json pJson = pointOfContact_.getData();
+		if (pJson.size() != 0)
+		{
+			outputJson.emplace("pointOfContact", pJson);
+		}
+
+		return outputJson;
+	}
+
+	CJTPoint metaDataObject::getExtend(int idx)
+	{
+		if (idx != 0 && idx != 1) { std::cout << "no point available with idx: " << idx << std::endl; }
+		else if (idx == 0) { return std::get<0>(geographicalExtent_); }
+		else if (idx == 1) { return std::get<1>(geographicalExtent_); }
+	}
+
+	bool metaDataObject::checkInfo()
+	{
+		if (std::get<0>(geographicalExtent_) != std::get<1>(geographicalExtent_)) { return true; }
+		if (identifier_.size() > 0) { return true; };
+		if (referenceDate_.size() > 0) { return true; };
+		if (referenceSystem_.size() > 0) { return true; };
+		if (title_.size() > 0) { return true; };
+		if (additionalData_.size() > 0) { return true; };
+		if (getPointOfContact() != nullptr) { return true; }
+
+		return false;
+	}
+
 	GeoObject::GeoObject(json boundaries, std::string lod, json surfaceData, json surfaceTypeValues, std::string type)
 	{
 		boundaries_ = boundaries;
@@ -384,7 +531,7 @@ namespace CJT
 		}
 
 		version_ = completeData["version"];
-		metaData_ = completeData["metadata"];
+		metaData_ = metaDataObject(completeData["metadata"]);
 
 		return success;
 	}
@@ -406,9 +553,9 @@ namespace CJT
 		newFile.emplace(fileType);
 		newFile.emplace(version);
 
-		if (metaData_.size() != 0)
+		if (metaData_.checkInfo())
 		{
-			newFile.emplace("metadata", metaData_);
+			newFile.emplace("metadata", metaData_.getData());
 		}
 
 		// transformation data collection
