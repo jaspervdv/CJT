@@ -3,6 +3,22 @@
 namespace CJT
 {
 	using json = nlohmann::json;
+
+	json updateVerts(json* boundaries, std::map<int, int>* correctingIdxMap, int depth) {
+		if (depth != 0) { 
+			for (json::iterator obb = boundaries->begin(); obb != boundaries->end(); ++obb)
+			{
+				json* subvalue = &obb.value();
+				updateVerts(subvalue, correctingIdxMap, depth - 1);
+			}
+			return *boundaries;
+		}
+		else {
+				*boundaries = json(correctingIdxMap->at((int)*boundaries));
+				return *boundaries;
+		}
+		return {};
+	}
 	
 	std::array<double, 3> CJTPoint::getCoordinates()
 	{
@@ -75,6 +91,16 @@ namespace CJT
 	}
 
 
+	PointOfContactObject::PointOfContactObject(std::string contactName, std::string contactType, std::string role, std::string phone, std::string website, std::string address)
+	{
+		contactName_ = contactName;
+		contactType_ = contactType;
+		role_ = role;
+		phone_ = phone;
+		website_ = website;
+		address_ = address;
+	}
+
 	PointOfContactObject::PointOfContactObject(json pointOfContact)
 	{
 		for (auto obb = pointOfContact.begin(); obb != pointOfContact.end(); ++obb)
@@ -108,7 +134,24 @@ namespace CJT
 
 		return outputJson;
 	}
-
+	metaDataObject::metaDataObject(
+		std::tuple<CJTPoint, CJTPoint> geographicalExtent,
+		std::string identifier,
+		PointOfContactObject pointOfContact,
+		std::string referenceDate,
+		std::string referenceSystem,
+		std::string title,
+		std::map<std::string, std::string> additionalData
+	)
+	{
+		geographicalExtent_ = geographicalExtent;
+		identifier_ = identifier;
+		pointOfContact_ = pointOfContact;
+		referenceDate_ = referenceDate;
+		referenceSystem_ = referenceSystem;
+		title_ = title;
+		additionalData_ = additionalData;
+	}
 
 	metaDataObject::metaDataObject(json metaData)
 	{
@@ -731,5 +774,85 @@ namespace CJT
 	std::vector<CJTPoint> CityCollection::getVerices()
 	{
 		return vertices_;
+	}
+
+	void CityCollection::cullDuplicatedVerices() 
+	{
+		// remove dups and make map that maps the correcting locations
+		std::map<int, int> correctingIdxMap;
+		std::vector<CJTPoint> correctedvertices;
+		int correctionAmount = 0;
+		for (size_t i = 0; i < vertices_.size(); i++)
+		{
+			int doubleIdx = -1;
+			bool found = false;
+			CJTPoint currentPoint = vertices_[i];
+
+			for (size_t j = 0; j < correctedvertices.size(); j++)
+			{
+				if (currentPoint == correctedvertices[j])
+				{
+					found = true;
+					doubleIdx = j;
+					break;
+				}
+			}
+			if (!found)
+			{
+				correctedvertices.emplace_back(currentPoint);
+				correctingIdxMap.emplace(i, i - correctionAmount);
+				
+			}
+			else {
+				
+				correctingIdxMap.emplace(i, doubleIdx);
+				correctionAmount++;
+			}
+		}
+
+		// correct geo references
+		if (correctedvertices.size() == vertices_.size()) { return; }
+
+		vertices_ = correctedvertices;
+
+		for (auto obb = cityObjects_.begin(); obb != cityObjects_.end(); ++obb)
+		{
+			CityObject currentCityObject = obb->second;
+
+			if (!currentCityObject.hasGeo()) { continue; }
+
+			std::vector< GeoObject> curentGeoObjects = currentCityObject.getGeoObjects();
+
+			for (size_t i = 0; i < curentGeoObjects.size(); i++)
+			{
+				GeoObject* currentGeoObject = &curentGeoObjects[i];
+				json boundaries = currentGeoObject->getBoundaries();
+
+				std::string geoType = currentGeoObject->getType();
+
+				if (geoType == "MultiSurface")
+				{
+					currentGeoObject->setBoundaries(updateVerts(&boundaries, &correctingIdxMap, 3));
+				}	
+
+				if (geoType == "Solid")
+				{
+					currentGeoObject->setBoundaries(updateVerts(&boundaries, &correctingIdxMap, 4));
+				}
+			}
+			currentCityObject.setGeo(curentGeoObjects);
+			cityObjects_[obb->first] = currentCityObject;
+		}
+	}
+
+	void CityCollection::cullUnreferencedVerices()
+	{
+
+	}
+
+	void CityCollection::CleanVertices()
+	{
+		cullDuplicatedVerices();
+		cullUnreferencedVerices();
 	}
 }

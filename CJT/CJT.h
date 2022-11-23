@@ -118,7 +118,7 @@ namespace CJT {
 		metaDataObject(
 			std::tuple<CJTPoint, CJTPoint> geographicalExtent,
 			std::string identifier,
-			PointOfContactObject* pointOfContact,
+			PointOfContactObject pointOfContact,
 			std::string referenceDate,
 			std::string referenceSystem,
 			std::string title,
@@ -173,6 +173,7 @@ namespace CJT {
 		std::string getType() { return type_; }
 
 		json getBoundaries() { return boundaries_; };
+		void setBoundaries(json boundaries) { boundaries_ = boundaries; }
 		json getSurfaceData() { return surfaceData_; }
 		json getSurfaceTypeValues() { return surfaceTypeValues_; }
 	};
@@ -256,6 +257,8 @@ namespace CJT {
 		void addChild(std::string childName, CityCollection* citycoll = nullptr);
 		/// @brief get a list of all the children
 		std::vector<std::string> getChildren() { return childList_; }
+		/// @brief set object geometry
+		void setGeo(std::vector<GeoObject> geometry) { geometry_ = geometry; }
 	};
 
 
@@ -296,18 +299,17 @@ namespace CJT {
 
 		/// @brief returns all the vertsices that are in the collection
 		std::vector<CJTPoint> getVerices();
-		/// @brief remove duplicate vertices in collection
+		/// @brief remove duplicate vertices in collection, only use this completely before or completely after geometry altering
 		void cullDuplicatedVerices();
-		/// @brief remove unreferenced vertices in collection
+		/// @brief remove unreferenced vertices in collection, only use this completely before or completely after geometry altering
 		void cullUnreferencedVerices();
-		/// @brief clean the vertex list in collection
+		/// @brief clean the vertex list in collection, only use this completely before or completely after geometry altering
 		void CleanVertices();
 
 		/// @brief get the full metadata
 		metaDataObject* getMetaData() { return &metaData_; }
 			
-		bool setMetaData();
-
+		bool setMetaData(metaDataObject metaData) { metaData_ = metaData; }
 	};
 
 	template<typename T>
