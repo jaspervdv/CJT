@@ -58,6 +58,129 @@ namespace CJT {
 	};
 
 
+	class MaterialObject 
+	{
+	private:
+		std::string name_ = "";
+		float ambientIntensity_ = -1;
+		std::array<float, 3> diffuseColor_ = { -1, -1, -1 };
+		std::array<float, 3> emissiveColor_ = { -1, -1, -1 };
+		std::array<float, 3> specularColor_ = { -1, -1, -1 };
+		float shininess_ = -1;
+		float transparency_ = -1;
+		bool isSmooth_ = false;
+		int idx_ = -1;
+
+		bool checkArrayValidity(std::array<float, 3> a);
+
+	public:
+		MaterialObject() {};
+
+		MaterialObject(json materialJson);
+
+		MaterialObject(
+			std::string name,
+			float ambientIntensity,
+			std::array<float, 3> diffuseColor,
+			std::array<float, 3> emissiveColor,
+			std::array<float, 3> specularColor,
+			float shininess,
+			float transparency,
+			bool isSmooth
+		);
+
+		MaterialObject(
+			std::string name,
+			float ambientIntensity,
+			std::array<float, 3> diffuseColor
+		);
+
+		/// @brief get name of the materal object, "" if no name
+		std::string getName() { return name_; }
+		/// @brief returns true if material object has a name
+		bool hasName();
+
+		/// @brief get the ambient intensity of the materal object, -1 if no data is present
+		float getAmbientIntensity() { return ambientIntensity_; }
+		/// @brief returns true if material object has an ambient intensity
+		bool hasAmbientIntensity();
+
+		/// @brief get the diffuse color of the materal object, populated with -1 if no data is present
+		std::array<float, 3> getDiffuseColor(){ return diffuseColor_; }
+		/// @brief returns true if material object has a diffuse color
+		bool hasDiffuseColor();
+
+		/// @brief get the emmisve color of the materal object, populated with -1 if no data is present
+		std::array<float, 3> getEmissiveColor() { return emissiveColor_; }
+		/// @brief returns true if material object has an emmisve color
+		bool hasEmissiveColor();
+
+		/// @brief get the specular color of the materal object, populated with -1 if no data is present
+		std::array<float, 3> getSpecularColor() { return specularColor_; }
+		/// @brief returns true if material object has a specular color
+		bool hasSpecularColor();
+
+		/// @brief get the shininess of the material object, -1 if no data is present
+		float getShininess() {return shininess_;}
+		/// @brief returns true if material object has a shininess value
+		bool hasShininess();
+
+		/// @brief get the transparancy of the material object, -1 if no data is present
+		float getTransparency() { return transparency_; }
+		/// @brief returns true if material object has a Transparency value
+		bool hasTransparency();
+
+		/// @brief get if material object is smooth
+		bool getIsSmooth() { return isSmooth_; }
+
+		/// @brief get the index of the object (location in list), -1 is no data is present
+		int getIdx() { return idx_; }
+
+		/// @brief set the index of the object
+		void setIdx(int idx) { idx_ = idx; }
+	};
+
+
+	class TextureObject 
+	{
+	private:
+		std::string name_ = "";
+		std::string type_ = "";
+		std::string image_ = "";
+		std::string wrapMode_ = "";
+		std::string textureType_ = "";
+		std::array<float, 3> borderColor_ = { -1, -1, -1 };
+		int idx_ = -1; //TODO implement
+	public:
+		TextureObject() {};
+
+		TextureObject(json textureJson);
+
+		void setIdx(int idx) { idx_ = idx; }
+	};
+
+	class AppearanceObject
+	{
+	private:
+		std::vector<MaterialObject> materials_ = {};
+		std::vector<TextureObject> textures_ = {};
+		std::map<std::string, TextureObject> verticesTextures_ = {};
+		std::string defaultThemeTexture_ = "";
+		std::string defaultThemeMaterial_ = "";
+	public:
+		void addMaterial(MaterialObject obb);
+		void addTexture(TextureObject obb);
+
+		std::vector<MaterialObject> getMaterials() { return materials_; }
+		std::vector<TextureObject> getTexures() { return textures_; }
+		MaterialObject getMaterial(int idx) { return materials_[idx]; }
+		MaterialObject getMaterial(std::string name);
+		size_t getMaterialSize() { return materials_.size(); }
+
+		size_t getTextureSize() { return textures_.size(); }
+	};
+
+
 	class PointOfContactObject
 	{
 	private:
@@ -270,8 +393,8 @@ namespace CJT {
 		std::string version_ = "";
 
 		metaDataObject metaData_;
-
 		ObjectTransformation objectTransformation_;
+		AppearanceObject appearance_;
 
 		bool isSilent_ = true;
 
@@ -280,6 +403,7 @@ namespace CJT {
 		ObjectTransformation fetchTransformation(json* transJson);
 		std::vector<CJTPoint> fetchPoints(json* pointJson);
 		std::map<std::string, CityObject> fetchCityObjects(json* cityObjects);
+		AppearanceObject fetchAppearance(json* AppearanceJson);
 
 	public:
 		/// @brief read a cityJSON file
@@ -296,6 +420,12 @@ namespace CJT {
 		std::vector<CityObject*> getCityObject(std::vector<std::string> obNameList);
 		/// @brief get cityObjects based on type
 		std::vector<CityObject*> getCityObjectTyped(std::string typeName);
+		/// @brief get all materials
+		std::vector<MaterialObject> getMaterials() { return appearance_.getMaterials(); }
+		/// @brief get Materialobject based on idx
+		MaterialObject getMaterial(int idx) { return appearance_.getMaterial(idx); }
+		/// @brief get a list of materialobjects based on material name
+		//std::vector<MaterialObject> getMaterial(std::string);
 
 		/// @brief returns all the vertsices that are in the collection
 		std::vector<CJTPoint> getVerices();

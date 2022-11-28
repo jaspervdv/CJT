@@ -71,6 +71,97 @@ namespace CJT
 		return scaler;
 	}
 
+	bool MaterialObject::checkArrayValidity(std::array<float, 3> a)
+	{
+		for (size_t i = 0; i < a.size(); i++)
+		{
+			if (a[i] == -1)
+			{
+				return false;
+			}
+		}
+		return true;
+	}
+
+	MaterialObject::MaterialObject(json materialJson)
+	{
+		if (materialJson.contains("name")) { name_ = materialJson["name"]; }
+		if (materialJson.contains("ambientIntensity")) { ambientIntensity_ = materialJson["ambientIntensity"]; }
+		if (materialJson.contains("diffuseColor")) { diffuseColor_ = materialJson["diffuseColor"]; }
+		if (materialJson.contains("emissiveColor")) { emissiveColor_ = materialJson["emissiveColor"]; }
+		if (materialJson.contains("specularColor")) { specularColor_ = materialJson["specularColor"]; }
+		if (materialJson.contains("shininess")) { shininess_ = materialJson["shininess"]; }
+		if (materialJson.contains("transparency")) { transparency_ = materialJson["transparency"]; }
+		if (materialJson.contains("isSmooth")) { isSmooth_ = materialJson["isSmooth"]; }
+	}
+
+	bool MaterialObject::hasName()
+	{
+		if (name_ == ""){ return false; }
+		return true;
+	}
+
+	bool MaterialObject::hasAmbientIntensity()
+	{
+		if (ambientIntensity_ == -1) { return false; }
+		return true;
+	}
+
+	bool MaterialObject::hasDiffuseColor()
+	{
+		return checkArrayValidity(diffuseColor_);
+	}
+
+	bool MaterialObject::hasEmissiveColor()
+	{
+		return checkArrayValidity(emissiveColor_);
+	}
+
+	bool MaterialObject::hasSpecularColor()
+	{
+		return checkArrayValidity(specularColor_);
+	}
+
+	bool MaterialObject::hasShininess()
+	{
+		if (shininess_ == -1) { return false; };
+		return true;
+	}
+
+	bool MaterialObject::hasTransparency()
+	{
+		if (transparency_ == -1) { return false; };
+		return true;
+	}
+
+
+	TextureObject::TextureObject(json textureJson)
+	{
+		if (textureJson.contains("type")) { type_ = textureJson["type"]; }
+		if (textureJson.contains("image")) 
+		{ 
+			image_ = textureJson["image"]; 
+			// create a name for easy access. 
+			std::filesystem::path imagePath = image_;
+			name_ = imagePath.filename().string();
+		}
+		if (textureJson.contains("wrapMode")) { wrapMode_ = textureJson["wrapMode"]; }
+		if (textureJson.contains("textureType")) { type_ = textureJson["textureType"]; }
+		if (textureJson.contains("borderColor")) { borderColor_ = textureJson["borderColor"]; }
+	}
+
+	void AppearanceObject::addMaterial(MaterialObject obb) {
+		int matIdx = materials_.size();
+		obb.setIdx(matIdx);
+		materials_.emplace_back(obb);
+	}
+
+	void AppearanceObject::addTexture(TextureObject obb) {
+		int textIdx = textures_.size();
+		obb.setIdx(textIdx);
+		textures_.emplace_back(obb);
+	}
+
 	bool CJTPoint::operator==(CJTPoint other)
 	{
 		if (x_ == other.x_ && y_ == other.y_ && z_ == other.z_)
@@ -522,6 +613,31 @@ namespace CJT
 		return collection;
 	}
 
+	AppearanceObject CityCollection::fetchAppearance(json* AppearanceJson)
+	{
+		AppearanceObject newAppearanceObject;
+		if (AppearanceJson->contains("materials"))
+		{
+			json materials = AppearanceJson->at("materials");
+			for (size_t i = 0; i < materials.size(); i++)
+			{
+				newAppearanceObject.addMaterial(MaterialObject(materials[i]));
+			}
+		}
+
+		if (AppearanceJson->contains("textures"))
+		{
+			json textures = AppearanceJson->at("textures");
+			for (size_t i = 0; i < textures.size(); i++)
+			{
+				newAppearanceObject.addTexture(TextureObject(textures[i]));
+			}
+		}
+
+
+		return newAppearanceObject;
+	}
+
 	bool CityCollection::parseJSON(std::string filePath, bool silent)
 	{
 		// set initial booleans
@@ -562,6 +678,14 @@ namespace CJT
 			std::cout << "Loaded " << cityObjects_.size() << " City Objects" << std::endl;
 		}
 
+		appearance_ = fetchAppearance(&completeData["appearance"]);
+
+		if (!isSilent_)
+		{
+			std::cout << "Loaded " << appearance_.getMaterialSize() << " material objects" << std::endl;
+			std::cout << "Loaded " << appearance_.getTextureSize() << " texture objects" << std::endl;
+		}
+
 		if (!isSilent_)
 		{
 			if (vertices_.size() != 0 && cityObjects_.size() != 0)
@@ -572,6 +696,9 @@ namespace CJT
 				std::cout << "JSON has not been loaded succesfully" << std::endl;
 			}
 		}
+
+		appearance_ = fetchAppearance(&completeData["appearance"]);
+
 
 		version_ = completeData["version"];
 		metaData_ = metaDataObject(completeData["metadata"]);
@@ -707,7 +834,57 @@ namespace CJT
 
 			objectCollection.emplace(objectName, cityObject);
 		}
+
 		newFile.emplace("CityObjects", objectCollection);
+
+		// get materials
+		std::vector<json> materialCollection;
+		int c = 0;
+		for (MaterialObject materialObject : getMaterials())
+		{
+			json materialJson;
+
+			if (!materialObject.hasName())
+			{
+				std::cout << "material at idx: " << c << " has no name!" << std::endl;
+				materialJson.emplace("name", "");
+			}
+			else {
+				materialJson.emplace("name", materialObject.getName());
+			}
+			if (materialObject.hasAmbientIntensity())
+			{
+				materialJson.emplace("ambientIntensity", materialObject.getAmbientIntensity());
+			}
+			if (materialObject.hasDiffuseColor())
+			{
+				materialJson.emplace("diffuseColor", materialObject.getDiffuseColor());
+			}
+			if (materialObject.hasEmissiveColor())
+			{
+				materialJson.emplace("emissiveColor", materialObject.getEmissiveColor());
+			}
+			if (materialObject.hasSpecularColor())
+			{
+				materialJson.emplace("specularColor", materialObject.getSpecularColor());
+			}
+			if (materialObject.hasShininess())
+			{
+				materialJson.emplace("shininess", materialObject.getShininess());
+			}
+			if (materialObject.hasTransparency())
+			{
+				materialJson.emplace("transparency", materialObject.getTransparency());
+			}
+
+			materialJson.emplace("isSmooth", materialObject.getIsSmooth());
+
+			materialCollection.emplace_back(materialJson);
+			c++;
+		}
+		std::map<std::string, json> appearanceCollecton;
+		appearanceCollecton.emplace("materials", materialCollection);
+		newFile.emplace("appearance", appearanceCollecton);
 
 		std::ofstream fileLoc;
 
@@ -782,13 +959,13 @@ namespace CJT
 		std::map<int, int> correctingIdxMap;
 		std::vector<CJTPoint> correctedvertices;
 		int correctionAmount = 0;
-		for (size_t i = 0; i < vertices_.size(); i++)
+		for (int i = 0; i < vertices_.size(); i++)
 		{
 			int doubleIdx = -1;
 			bool found = false;
 			CJTPoint currentPoint = vertices_[i];
 
-			for (size_t j = 0; j < correctedvertices.size(); j++)
+			for (int j = 0; j < correctedvertices.size(); j++)
 			{
 				if (currentPoint == correctedvertices[j])
 				{
@@ -855,4 +1032,7 @@ namespace CJT
 		cullDuplicatedVerices();
 		cullUnreferencedVerices();
 	}
+
+
+
 }
