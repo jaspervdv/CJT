@@ -95,6 +95,8 @@ namespace CJT {
 			std::array<float, 3> diffuseColor
 		);
 
+		MaterialObject(MaterialObject* other);
+
 		/// @brief get name of the materal object, "" if no name
 		std::string getName() { return name_; }
 		/// @brief returns true if material object has a name
@@ -150,13 +152,41 @@ namespace CJT {
 		std::string wrapMode_ = "";
 		std::string textureType_ = "";
 		std::array<float, 3> borderColor_ = { -1, -1, -1 };
-		int idx_ = -1; //TODO implement
+		int idx_ = -1; 
+
+		bool checkStringValidity(std::string s);
+
 	public:
 		TextureObject() {};
 
 		TextureObject(json textureJson);
 
 		void setIdx(int idx) { idx_ = idx; }
+
+		/// @brief get name of the texture object, "" if no name
+		std::string getName() { return name_; }
+		/// @brief returns true if texture object has a name
+		bool hasName();
+
+		/// @brief get type of the texture object, "" if no name
+		std::string getType() { return type_; }
+		/// @brief returns true if texture object has a type
+		bool hasType();
+
+		/// @brief get image path of the texture object, "" if no name
+		std::string getImage() { return image_; }
+		/// @brief returns true if texture object has a image path
+		bool hasImage();
+
+		/// @brief get wrepmode of the texture object, "" if no name
+		std::string getWrapmode() { return wrapMode_; }
+		/// @brief returns true if texture object has a wrapmode
+		bool hasWrapmode();
+
+		/// @brief get the border color of the texture object, populated with -1 if no data is present
+		std::array<float, 3> getBorderColor() { return borderColor_; }
+		/// @brief returns true if texture object has a border color
+		bool hasBorderColor();
 	};
 
 	class AppearanceObject
@@ -423,10 +453,13 @@ namespace CJT {
 		/// @brief get all materials
 		std::vector<MaterialObject> getMaterials() { return appearance_.getMaterials(); }
 		/// @brief get Materialobject based on idx
-		MaterialObject getMaterial(int idx) { return appearance_.getMaterial(idx); }
+		MaterialObject getMaterial(int idx);
 		/// @brief get a list of materialobjects based on material name
 		//std::vector<MaterialObject> getMaterial(std::string);
 
+		/// @brief get all the textures
+		std::vector<TextureObject> getTextures() { return appearance_.getTexures(); }
+ 
 		/// @brief returns all the vertsices that are in the collection
 		std::vector<CJTPoint> getVerices();
 		/// @brief remove duplicate vertices in collection, only use this completely before or completely after geometry altering

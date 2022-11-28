@@ -95,6 +95,48 @@ namespace CJT
 		if (materialJson.contains("isSmooth")) { isSmooth_ = materialJson["isSmooth"]; }
 	}
 
+	MaterialObject::MaterialObject(std::string name,
+		float ambientIntensity,
+		std::array<float, 3> diffuseColor,
+		std::array<float, 3> emissiveColor,
+		std::array<float, 3> specularColor,
+		float shininess,
+		float transparency,
+		bool isSmooth) 
+	{
+		name_ = name;
+		ambientIntensity_ = ambientIntensity;
+		diffuseColor_ = diffuseColor;
+		emissiveColor_ = emissiveColor;
+		specularColor_ = specularColor;
+		shininess_ = shininess;
+		transparency_ = transparency;
+		isSmooth_ = isSmooth;
+	}
+
+	MaterialObject::MaterialObject(
+		std::string name,
+		float ambientIntensity,
+		std::array<float, 3> diffuseColor
+	)
+	{
+		name_ = name;
+		ambientIntensity_ = ambientIntensity;
+		diffuseColor_ = diffuseColor;
+	}
+
+	MaterialObject::MaterialObject(MaterialObject* other) 
+	{
+		name_ = other->getName();
+		ambientIntensity_ = other->getAmbientIntensity();
+		diffuseColor_ = other->getDiffuseColor();
+		emissiveColor_ = other->getEmissiveColor();
+		specularColor_ = other->getSpecularColor();
+		shininess_ = other->getShininess();
+		transparency_ = other->getTransparency();
+		isSmooth_ = other->isSmooth_;
+	}
+
 	bool MaterialObject::hasName()
 	{
 		if (name_ == ""){ return false; }
@@ -134,6 +176,11 @@ namespace CJT
 		return true;
 	}
 
+	bool TextureObject::checkStringValidity(std::string a) 
+	{
+		if (a == "") { return false; }
+		return true;
+	}
 
 	TextureObject::TextureObject(json textureJson)
 	{
@@ -150,14 +197,43 @@ namespace CJT
 		if (textureJson.contains("borderColor")) { borderColor_ = textureJson["borderColor"]; }
 	}
 
+	bool TextureObject::hasName() 
+	{
+		return checkStringValidity(name_);
+	}
+
+	bool TextureObject::hasType() {
+		return checkStringValidity(type_);
+	}
+
+	bool TextureObject::hasImage() {
+		return checkStringValidity(image_);
+	}
+
+	bool TextureObject::hasWrapmode() {
+		return checkStringValidity(wrapMode_);
+	}
+
+	bool TextureObject::hasBorderColor() {
+		for (size_t i = 0; i < borderColor_.size(); i++)
+		{
+			if (borderColor_[i] == -1)
+			{
+				return false;
+			}
+		}
+		return true;
+	}
+
+
 	void AppearanceObject::addMaterial(MaterialObject obb) {
-		int matIdx = materials_.size();
+		int matIdx = (int) materials_.size();
 		obb.setIdx(matIdx);
 		materials_.emplace_back(obb);
 	}
 
 	void AppearanceObject::addTexture(TextureObject obb) {
-		int textIdx = textures_.size();
+		int textIdx = (int) textures_.size();
 		obb.setIdx(textIdx);
 		textures_.emplace_back(obb);
 	}
@@ -882,8 +958,46 @@ namespace CJT
 			materialCollection.emplace_back(materialJson);
 			c++;
 		}
+
+		// get textures
+		std::vector<json> textureCollection;
+		c = 0;
+		for (TextureObject textureObject : getTextures())
+		{
+			json textureJson;
+			if (!textureObject.hasType())
+			{
+				std::cout << "material at idx: " << c << " has no type!" << std::endl;
+				textureJson.emplace("type", "");
+			}
+			else
+			{
+				textureJson.emplace("type", textureObject.getType());
+			}
+			if (!textureObject.hasImage())
+			{
+				std::cout << "material at idx: " << c << " has no image!" << std::endl;
+				textureJson.emplace("image", "");
+			}
+			else
+			{
+				textureJson.emplace("image", textureObject.getImage());
+			}
+			if (textureObject.hasWrapmode())
+			{
+				textureJson.emplace("wrapMode", textureObject.getWrapmode());
+			}
+			if (textureObject.hasBorderColor())
+			{
+				textureJson.emplace("borderColor", textureObject.getBorderColor());
+			}
+
+			textureCollection.emplace_back(textureJson);
+		}
+
 		std::map<std::string, json> appearanceCollecton;
 		appearanceCollecton.emplace("materials", materialCollection);
+		appearanceCollecton.emplace("textures", textureCollection);
 		newFile.emplace("appearance", appearanceCollecton);
 
 		std::ofstream fileLoc;
@@ -945,6 +1059,16 @@ namespace CJT
 		}
 
 		return cityObjectList;
+	}
+
+	MaterialObject CityCollection::getMaterial(int idx) 
+	{
+		if (appearance_.getMaterialSize() >= idx + 1)
+		{
+			return appearance_.getMaterial(idx);
+		}	
+		std::cout << "no material present with idx: " << idx << std::endl;
+		return MaterialObject();
 	}
 
 
