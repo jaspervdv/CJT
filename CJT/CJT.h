@@ -30,9 +30,12 @@ namespace CJT {
 		double getY();
 		double getZ();
 
+		/// @brief cout the x, y, z coordinates
 		void print();
 
+		/// @brief evaluates the x, y, z coordinates to see if points are equal
 		bool operator== (CJTPoint other);
+		/// @brief evaluates the x, y, z coordinates to see if points are not equal
 		bool operator!= (CJTPoint other);
 	};
 
@@ -287,18 +290,34 @@ namespace CJT {
 		std::tuple<CJTPoint, CJTPoint> getExtend() { return geographicalExtent_; }
 		/// @brief get point of geographicalExtent, 0 == lll, 1 == rrr
 		CJTPoint getExtend(int idx);
+		/// @brief set geographicalExtent data
+		void setExtend(CJTPoint minPoint, CJTPoint maxPoint);
 		/// @brief get identifier data
 		std::string getIdentifier() { return identifier_; }
+		/// @brief set identifier data
+		void setIdentifier(std::string id) { identifier_ = id; }
 		/// @brief get contact information object
 		PointOfContactObject* getPointOfContact() { return &pointOfContact_; }
+		/// @brief set contact information object
+		void setPointOfcContact(PointOfContactObject* pointOfContact) { pointOfContact_ = *pointOfContact; }
 		/// @brief get referenceDate information
 		std::string getReferenceDate() { return referenceDate_; }
+		// @brief set referenceData informaton
+		void setReferenceData(std::string date) { referenceDate_ = date; }
 		/// @brief get referenceSystem information
 		std::string getReferenceSystem() { return referenceSystem_; }
+		/// @brief set referenceSystem information
+		void setReferenceSystem(std::string sys) { referenceSystem_ = sys; }
 		/// @brief get title information
 		std::string getTitle() { return title_; }
+		/// @brief set title information
+		void setTitle(std::string title) { title_ = title; }
 		/// @brief get additional stored data
 		json getAdditionalData() { return additionalData_; }
+		/// @brief add additional stored data
+		void addAdditionalData(json addData, bool overRide);
+		/// @brief remove additional stored data at key
+		void removeAdditionalData(std::string keyName);
 		/// @brief returns true if data is stored in object
 		bool checkInfo();
 	};

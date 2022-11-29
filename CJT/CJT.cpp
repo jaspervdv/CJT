@@ -19,6 +19,31 @@ namespace CJT
 		}
 		return {};
 	}
+
+	std::vector<int> getFlatVerts(json* boundaries) {
+		std::vector<int> collection;
+		if (boundaries[0].type() == json::value_t::number_unsigned)
+		{
+			for (size_t i = 0; i < boundaries->size(); i++)
+			{
+				collection.emplace_back(boundaries[i]);
+			}
+		}
+		else
+		{
+			for (json::iterator obb = boundaries->begin(); obb != boundaries->end(); ++obb)
+			{
+				json* subvalue = &obb.value();
+				
+				std::vector<int> outputboundaries = getFlatVerts(subvalue);
+				for (size_t i = 0; i < outputboundaries.size(); i++)
+				{
+					collection.emplace_back(outputboundaries[i]);
+				}
+			}
+		}
+		return collection;
+	}
 	
 	std::array<double, 3> CJTPoint::getCoordinates()
 	{
@@ -410,6 +435,49 @@ namespace CJT
 		if (getPointOfContact() != nullptr) { return true; }
 
 		return false;
+	}
+
+	void metaDataObject::setExtend(CJTPoint minPoint, CJTPoint maxPoint)
+	{
+		auto minPointVec = minPoint.getCoordinates();
+		auto maxPointVec = maxPoint.getCoordinates();
+		for (size_t i = 0; i < 3; i++)
+		{
+			if (minPointVec[i] > maxPointVec[i])
+			{
+				std::cout << "minpoint that does not behave like a minpoint is ignored" << std::endl;
+				return;
+			}
+		}
+
+		geographicalExtent_ = std::tuple<CJTPoint, CJTPoint>(minPoint, maxPoint);
+	}
+
+	void metaDataObject::addAdditionalData(json addData, bool overRide)
+	{
+		for (auto obb = addData.begin(); obb != addData.end(); ++obb)
+		{
+			std::string k = obb.key();
+
+			if (additionalData_.contains(k) && !overRide)
+			{
+				continue;
+			}
+			if (additionalData_.contains(k))
+			{
+				additionalData_[k] = obb.value();
+				continue;
+			}
+			additionalData_.emplace(k, obb.value());
+		}
+	}
+
+	void metaDataObject::removeAdditionalData(std::string keyName)
+	{
+		if (additionalData_.contains(keyName))
+		{
+			additionalData_.erase(keyName);
+		}
 	}
 
 	GeoObject::GeoObject(json boundaries, std::string lod, json surfaceData, json surfaceTypeValues, std::string type)
@@ -1148,6 +1216,89 @@ namespace CJT
 
 	void CityCollection::cullUnreferencedVerices()
 	{
+		std::vector<bool> vertreference;
+
+		for (size_t i = 0; i < vertices_.size(); i++)
+		{
+			vertreference.emplace_back(false);
+		}
+
+		for (auto obb = cityObjects_.begin(); obb != cityObjects_.end(); ++obb)
+		{
+			CityObject currentCityObject = obb->second;
+
+			if (!currentCityObject.hasGeo()) { continue; }
+
+			std::vector< GeoObject> curentGeoObjects = currentCityObject.getGeoObjects();
+
+			for (size_t i = 0; i < curentGeoObjects.size(); i++)
+			{
+				GeoObject* currentGeoObject = &curentGeoObjects[i];
+				json boundaries = currentGeoObject->getBoundaries();
+
+				std::string geoType = currentGeoObject->getType();
+				std::vector<int> referencesIdx;
+
+				referencesIdx = getFlatVerts(&boundaries);
+
+
+				for (size_t i = 0; i < referencesIdx.size(); i++)
+				{
+					vertreference[referencesIdx[i]] = true;
+				}
+
+			}
+		}
+
+		std::map<int, int> correctingIdxMap;
+		int correctionAmount = 0;
+		std::vector<CJTPoint> correctedvertices;
+
+		for (size_t i = 0; i < vertreference.size(); i++)
+		{
+			if (vertreference[i] == false)
+			{
+				correctionAmount++;
+			}
+			else {
+				correctedvertices.emplace_back(vertices_[i]);
+				correctingIdxMap.emplace(i, i - correctionAmount);
+			}
+		}
+
+		// correct geo references
+		if (correctedvertices.size() == vertices_.size()) { return; }
+
+		vertices_ = correctedvertices;
+
+		for (auto obb = cityObjects_.begin(); obb != cityObjects_.end(); ++obb)
+		{
+			CityObject currentCityObject = obb->second;
+
+			if (!currentCityObject.hasGeo()) { continue; }
+
+			std::vector< GeoObject> curentGeoObjects = currentCityObject.getGeoObjects();
+
+			for (size_t i = 0; i < curentGeoObjects.size(); i++)
+			{
+				GeoObject* currentGeoObject = &curentGeoObjects[i];
+				json boundaries = currentGeoObject->getBoundaries();
+
+				std::string geoType = currentGeoObject->getType();
+
+				if (geoType == "MultiSurface")
+				{
+					currentGeoObject->setBoundaries(updateVerts(&boundaries, &correctingIdxMap, 3));
+				}
+
+				if (geoType == "Solid")
+				{
+					currentGeoObject->setBoundaries(updateVerts(&boundaries, &correctingIdxMap, 4));
+				}
+			}
+			currentCityObject.setGeo(curentGeoObjects);
+			cityObjects_[obb->first] = currentCityObject;
+		}
 
 	}
 
