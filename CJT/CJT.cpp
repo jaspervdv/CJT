@@ -282,6 +282,15 @@ namespace CJT
 		return true;
 	}
 
+	bool CJTPoint::operator<(CJTPoint other)
+	{
+		if (x_ + y_ + z_ < other.x_ + other.y_ + other.z_)
+		{
+			return true;
+		}
+		return false;
+	}
+
 
 	PointOfContactObject::PointOfContactObject(std::string contactName, std::string contactType, std::string role, std::string phone, std::string website, std::string address)
 	{
@@ -487,7 +496,15 @@ namespace CJT
 		surfaceData_ = surfaceData;
 		surfaceTypeValues_ = surfaceTypeValues;
 		type_ = type;
-	}	
+	}
+
+	GeoObject::GeoObject(json boundaries, std::string lod, std::string type)
+	{
+		boundaries_ = boundaries;
+		lod_ = lod;
+		type_ = type;
+	}
+
 
 
 	bool CityCollection::isValid(json jsonData) {
@@ -788,6 +805,12 @@ namespace CJT
 		isSilent_ = silent;
 		bool success = true;
 
+		if (!isSilent_)
+		{
+			std::cout << "===========================" << std::endl;
+			std::cout << "Parsing file : " << filePath << std::endl;
+		}
+
 		// parse json 
 		std::ifstream f(filePath);
 		json completeData = json::parse(f);
@@ -796,7 +819,7 @@ namespace CJT
 		if (!isValid(completeData))
 		{
 			if (!isSilent_)
-			{
+			{		
 				std::cout << "File: '" + filePath + "' is invalid!" << std::endl;
 			}
 			return false;
@@ -847,12 +870,23 @@ namespace CJT
 		version_ = completeData["version"];
 		metaData_ = metaDataObject(completeData["metadata"]);
 
+		if (!isSilent_)
+		{
+			std::cout << "Success" << std::endl;
+		}
+
 		return success;
 	}
 
 
-	bool CityCollection::dumpJson(std::string filePath, bool silent)
+	bool CityCollection::dumpJson(std::string filePath)
 	{
+		if (!isSilent_)
+		{
+			std::cout << "===========================" << std::endl;
+			std::cout << "Writing data to: " << filePath << std::endl;
+		}
+
 		if (version_ != "1.1" && version_ != "1.0") { std::cout << "only cityJSON 1.0 and 1.1 supported" << std::endl; }
 
 		json newFile;
@@ -1074,6 +1108,11 @@ namespace CJT
 		fileLoc << newFile;
 		fileLoc.close();
 
+		if (!isSilent_)
+		{
+			std::cout << "Success" << std::endl;
+		}
+
 		return true;
 	}
 	std::vector<CityObject*> CityCollection::getCityObject()
@@ -1145,8 +1184,49 @@ namespace CJT
 		return vertices_;
 	}
 
+
+	int CityCollection::addVertex(CJTPoint point, bool unique)
+	{
+		int location = -1;
+		if (unique)
+		{
+			for (size_t i = 0; i < vertices_.size(); i++)
+			{
+				if (point == vertices_[i])
+				{
+					location = i;
+					break;
+				}
+			}
+		}
+		if (location == -1)
+		{
+			location = vertices_.size();
+			vertices_.emplace_back(point);
+			return location;
+		}
+		return location;
+	}
+
+
+	std::vector<int> CityCollection::addVertex(std::vector<CJTPoint> pointList, bool checkUnique)
+	{
+		std::vector<int> locationList;
+		for (size_t i = 0; i < pointList.size(); i++)
+		{
+			locationList.emplace_back(addVertex(pointList[i]));
+		}
+		return locationList;
+	}
+
 	void CityCollection::cullDuplicatedVerices() 
 	{
+		if (!isSilent_)
+		{	
+			std::cout << "===========================" << std::endl;
+			std::cout << "Culling duplicated vertices" << std::endl;
+		}
+
 		// remove dups and make map that maps the correcting locations
 		std::map<int, int> correctingIdxMap;
 		std::vector<CJTPoint> correctedvertices;
@@ -1180,7 +1260,17 @@ namespace CJT
 		}
 
 		// correct geo references
-		if (correctedvertices.size() == vertices_.size()) { return; }
+		if (correctedvertices.size() == vertices_.size()) 
+		{ 
+			std::cout << "No duplicate vertices found" << std::endl;
+			return; 
+		}
+
+		if (!isSilent_)
+		{
+			std::cout << "Reduced vertices count from: " << vertices_.size() << ", to: " << correctedvertices.size() << std::endl;
+			std::cout << "Correcting vertices referencing" << std::endl;
+		}
 
 		vertices_ = correctedvertices;
 
@@ -1212,10 +1302,22 @@ namespace CJT
 			currentCityObject.setGeo(curentGeoObjects);
 			cityObjects_[obb->first] = currentCityObject;
 		}
+
+		if (!isSilent_)
+		{
+			std::cout << "Succesfully corrected" << std::endl;
+		}
 	}
 
 	void CityCollection::cullUnreferencedVerices()
 	{
+
+		if (!isSilent_)
+		{
+			std::cout << "===========================" << std::endl;
+			std::cout << "Culling unreferenced vertices" << std::endl;
+		}
+
 		std::vector<bool> vertreference;
 
 		for (size_t i = 0; i < vertices_.size(); i++)
@@ -1241,15 +1343,14 @@ namespace CJT
 
 				referencesIdx = getFlatVerts(&boundaries);
 
-
-				for (size_t i = 0; i < referencesIdx.size(); i++)
+				for (size_t j = 0; j < referencesIdx.size(); j++)
 				{
-					vertreference[referencesIdx[i]] = true;
+					vertreference[referencesIdx[j]] = true;
 				}
-
 			}
 		}
 
+		
 		std::map<int, int> correctingIdxMap;
 		int correctionAmount = 0;
 		std::vector<CJTPoint> correctedvertices;
@@ -1264,6 +1365,19 @@ namespace CJT
 				correctedvertices.emplace_back(vertices_[i]);
 				correctingIdxMap.emplace(i, i - correctionAmount);
 			}
+		}
+
+		if (!isSilent_)
+		{
+			if (correctionAmount == 0)
+			{
+				std::cout << "No unreferenced vertices found" << std::endl;
+			}
+			else {
+				std::cout << correctionAmount << " unreferenced vertices found" << std::endl;
+				std::cout << "Correcting vertices referencing" << std::endl;
+			}
+			
 		}
 
 		// correct geo references
@@ -1299,15 +1413,15 @@ namespace CJT
 			currentCityObject.setGeo(curentGeoObjects);
 			cityObjects_[obb->first] = currentCityObject;
 		}
-
+		if (!isSilent_)
+		{
+			std::cout << "Succesfully corrected" << std::endl;
+		}
 	}
 
 	void CityCollection::CleanVertices()
 	{
-		cullDuplicatedVerices();
 		cullUnreferencedVerices();
+		cullDuplicatedVerices();
 	}
-
-
-
 }

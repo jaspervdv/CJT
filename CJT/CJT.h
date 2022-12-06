@@ -37,6 +37,8 @@ namespace CJT {
 		bool operator== (CJTPoint other);
 		/// @brief evaluates the x, y, z coordinates to see if points are not equal
 		bool operator!= (CJTPoint other);
+		/// @brief evaluates if the sum of the x, y, z coordinates is smaller 
+		bool operator< (CJTPoint other);
 	};
 
 	class ObjectTransformation
@@ -331,6 +333,7 @@ namespace CJT {
 		json surfaceData_;
 		json surfaceTypeValues_;
 		std::string type_;
+		int id_ = -1;
 
 	public:
 		GeoObject(
@@ -341,6 +344,12 @@ namespace CJT {
 			std::string type
 		);
 
+		GeoObject(
+			json boundaries,
+			std::string lod,
+			std::string type
+		);
+
 		std::string getLoD() { return lod_; }
 		std::string getType() { return type_; }
 
@@ -348,6 +357,8 @@ namespace CJT {
 		void setBoundaries(json boundaries) { boundaries_ = boundaries; }
 		json getSurfaceData() { return surfaceData_; }
 		json getSurfaceTypeValues() { return surfaceTypeValues_; }
+		int getId() { return id_; }
+		void setId(int id) { id_ = id; }
 	};
 
 
@@ -459,7 +470,7 @@ namespace CJT {
 		bool parseJSON(std::string filePath, bool silent);
 
 		/// @brief dump to a cityJSON file
-		bool dumpJson(std::string filePath, bool silent);
+		bool dumpJson(std::string filePath);
 
 		/// @brief get all cityObjects
 		std::vector<CityObject*> getCityObject();
@@ -479,8 +490,12 @@ namespace CJT {
 		/// @brief get all the textures
 		std::vector<TextureObject> getTextures() { return appearance_.getTexures(); }
  
-		/// @brief returns all the vertsices that are in the collection
+		/// @brief returns all the vertices that are in the collection
 		std::vector<CJTPoint> getVerices();
+		/// @brief add a vertex to the collection, returns idx location where point is placed
+		int addVertex(CJTPoint point, bool checkUnique = false);
+		///@brief add a collection of vertices to the collection, returns idx location where points are placed
+		std::vector<int> addVertex(std::vector<CJTPoint> pointList, bool checkUnique = false);
 		/// @brief remove duplicate vertices in collection, only use this completely before or completely after geometry altering
 		void cullDuplicatedVerices();
 		/// @brief remove unreferenced vertices in collection, only use this completely before or completely after geometry altering
@@ -492,6 +507,11 @@ namespace CJT {
 		metaDataObject* getMetaData() { return &metaData_; }
 			
 		bool setMetaData(metaDataObject metaData) { metaData_ = metaData; }
+
+		/// @brief get object to stop printing information about processes
+		void silence() { isSilent_ = true; }
+		/// @brief get object to start printing information about processes
+		void unSilence() { isSilent_ = false; }
 	};
 
 	template<typename T>

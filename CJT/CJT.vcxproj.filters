@@ -18,9 +18,15 @@
     <ClInclude Include="CJT.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="CJToKernel.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="CJT.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CJToKernel.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
