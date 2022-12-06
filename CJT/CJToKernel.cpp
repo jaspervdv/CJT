@@ -44,6 +44,13 @@ namespace CJT {
 	}
 
 
+	std::vector<gp_Pnt> EdgeCollection::getStartPoints()
+	{
+		std::vector<gp_Pnt> startPoints;
+		for (size_t i = 0; i < edgeList_.size(); i++) { startPoints.emplace_back(edgeList_[i]->getStart()); }
+		return startPoints;
+	}
+
 	void EdgeCollection::orderEdges()
 	{
 		Edge* startEdge = edgeList_[0];
@@ -61,7 +68,7 @@ namespace CJT {
 			{
 				if (edgeList_[i] == currentEdge) { continue; }
 
-				if (isEqual(p2, edgeList_[i]->getStart()))
+				if (isEqual(p2, edgeList_[i]->getStart())) // TODO add neighbours data
 				{
 					currentEdge = edgeList_[i];
 					break;
@@ -76,14 +83,6 @@ namespace CJT {
 		}
 
 		edgeList_ = cleanedList;
-
-		for (size_t i = 0; i < edgeList_.size(); i++)
-		{
-			printPoint(edgeList_[i]->getStart());
-			printPoint(edgeList_[i]->getEnd());
-		}
-
-		std::cout << std::endl;
 	}
 
 
@@ -159,11 +158,11 @@ namespace CJT {
 	}
 
 
-	void Kernel::convertShape(TopoDS_Shape& shape, std::string lod, std::string objectType)
+	GeoObject Kernel::convertShape(TopoDS_Shape& shape, std::string lod)
 	{
 		std::string geomType = "";
-		if (shape.ShapeType() == 2) { geomType == "Solid"; }
-		else if (shape.ShapeType() == 3) { geomType == "MultiSurface"; }
+		if (shape.ShapeType() == 2) { geomType = "Solid"; }
+		else if (shape.ShapeType() == 3) { geomType = "MultiSurface"; }
 		else 
 		{ 
 			std::cout << "Kernel does not regonize geo type" << std::endl;
@@ -202,11 +201,50 @@ namespace CJT {
 
 		// find or add the unique verts to the collection
 		std::vector<CJTPoint> cjtUniquePoints;
+		std::vector<gp_Pnt> uniquePoints;
 		for (size_t i = 0; i < uniqueVerts.size(); i++)
 		{
 			const auto& currectPoint = uniqueVerts[i];
 			cjtUniquePoints.emplace_back(CJTPoint(currectPoint.X(), currectPoint.Y(), currectPoint.Z()));
+			uniquePoints.emplace_back(currectPoint);
 		}
 		std::vector<int> pointLocation = cityCollection_->addVertex(cjtUniquePoints, true);
+
+		// from opencascade data to json
+		json boundaries;
+
+		for (size_t i = 0; i < edgeCollectionList.size(); i++)
+		{
+			json ShapeCollection;
+			EdgeCollection currentCollection = edgeCollectionList[i];
+			std::vector<gp_Pnt> startPointCollection = currentCollection.getStartPoints();
+			std::vector<int> idxList;
+			for (size_t j = 0; j < startPointCollection.size(); j++)
+			{
+				
+				for (size_t k = 0; k < uniquePoints.size(); k++)
+				{
+					if (isEqual(startPointCollection[j], uniquePoints[k]))
+					{
+						idxList.emplace_back(pointLocation[k]);
+					}
+				}
+				
+			}
+			ShapeCollection.emplace_back(idxList);
+			boundaries.emplace_back(ShapeCollection);
+		}
+		
+		std::cout << geomType << std::endl;
+		if (geomType == "Solid")
+		{
+			json solidCollection;
+			solidCollection.emplace_back(boundaries);
+			return GeoObject(solidCollection, lod, geomType);
+		}
+		if (geomType == "MultiSurface")
+		{
+			return GeoObject(boundaries, lod, geomType);
+		}
 	}
 }

@@ -37,6 +37,7 @@ namespace CJT {
 		std::vector<Edge*> getEdges() { return edgeList_; }
 		void setEdges(std::vector<Edge*> edgeList) { edgeList_ = edgeList; }
 		void addEdge(Edge* edge) { edgeList_.emplace_back(edge); }
+		std::vector<gp_Pnt> getStartPoints();
 
 		void orderEdges();
 		void reverseEdges();
@@ -58,7 +59,7 @@ namespace CJT {
 		TopoDS_Shape getShape(GeoObject geoObject);
 		std::vector<TopoDS_Shape> getShape(CityObject cityObject);
 
-		// places the shape into the internalized cityObject
-		void convertShape(TopoDS_Shape& shape, std::string lod, std::string objectType);
+		// places the shape into the internalized cityObject as geoObject, the geoobject itself is not placed
+		GeoObject convertShape(TopoDS_Shape& shape, std::string lod);
 	};
 }

@@ -1168,7 +1168,12 @@ namespace CJT
 		return cityObjectList;
 	}
 
-	MaterialObject CityCollection::getMaterial(int idx) 
+	void CityCollection::addCityObject(CityObject cityObject)
+	{
+		cityObjects_.emplace(cityObject.getName(), cityObject);
+	}
+
+	MaterialObject CityCollection::getMaterial(int idx)
 	{
 		if (appearance_.getMaterialSize() >= idx + 1)
 		{

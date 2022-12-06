@@ -350,6 +350,8 @@ namespace CJT {
 			std::string type
 		);
 
+		GeoObject() {};
+
 		std::string getLoD() { return lod_; }
 		std::string getType() { return type_; }
 
@@ -480,6 +482,8 @@ namespace CJT {
 		std::vector<CityObject*> getCityObject(std::vector<std::string> obNameList);
 		/// @brief get cityObjects based on type
 		std::vector<CityObject*> getCityObjectTyped(std::string typeName);
+		/// @brief add a cityObject to the collection
+		void addCityObject(CityObject cityObject);
 		/// @brief get all materials
 		std::vector<MaterialObject> getMaterials() { return appearance_.getMaterials(); }
 		/// @brief get Materialobject based on idx
