@@ -47,42 +47,100 @@ namespace CJT {
 	std::vector<gp_Pnt> EdgeCollection::getStartPoints()
 	{
 		std::vector<gp_Pnt> startPoints;
-		for (size_t i = 0; i < edgeList_.size(); i++) { startPoints.emplace_back(edgeList_[i]->getStart()); }
+		for (size_t i = 0; i < ring_.size(); i++) { startPoints.emplace_back(ring_[i]->getStart()); }
 		return startPoints;
 	}
 
-	void EdgeCollection::orderEdges()
+	void EdgeCollection::computeNormal() // creates a unitvector for the face normal
 	{
-		Edge* startEdge = edgeList_[0];
-		Edge* currentEdge = edgeList_[0];
+		std::vector<gp_Pnt> startPoints = getStartPoints();
+		gp_Pnt p1 = startPoints[0];
+		gp_Pnt p2 = startPoints[1];
+		gp_Pnt p3 = startPoints[2];
+
+		gp_Pnt pu = gp_Pnt(p2.X() - p1.X(), p2.Y() - p1.Y(), p2.Z() - p1.Z());
+		gp_Pnt pv = gp_Pnt(p3.X() - p1.X(), p3.Y() - p1.Y(), p3.Z() - p1.Z());
+
+		gp_Pnt normal =  gp_Pnt(
+			pu.Y() * pv.Z() - pu.Z() * pv.Y(),
+			pu.Z() * pv.X() - pu.X() * pv.Z(),
+			pu.X() * pv.Y() - pu.Y() * pv.X()
+		);
+
+		double magnitude = std::pow(std::pow(normal.X(), 2) + std::pow(normal.Y(), 2) + std::pow(normal.Z(), 2), 0.5);
+		normal_ = gp_Pnt(normal.X() / magnitude, normal.Z() / magnitude, normal.Y() / magnitude);
+	}
+
+	void EdgeCollection::orderEdges(int idx)
+	{
+		int falsePresent = ring_.size();
+		Edge* startEdge = ring_[idx];
+		Edge* currentEdge = ring_[idx];
 		std::vector<Edge*> cleanedList;
-		bool started = false;
-		while (startEdge != currentEdge || !started)
+		while (falsePresent != 0)
 		{
-			cleanedList.emplace_back(currentEdge);
-
-			started = true;
-			gp_Pnt p2 = currentEdge->getEnd();
-
-			for (size_t i = 0; i < edgeList_.size(); i++)
+			if (currentEdge->isProcessed())
 			{
-				if (edgeList_[i] == currentEdge) { continue; }
+				EdgeCollection* innerRing = new EdgeCollection;
+				for (size_t i = 0; i < ring_.size(); i++)
+				{
+					if (!ring_[i]->isProcessed())
+					{
+						Edge& tempEdge = *ring_[i];
+						innerRing->addEdge(&tempEdge);
+					}
+				}
+				innerRing->orderEdges();
+				addInnerRing(innerRing);
+				falsePresent = falsePresent - innerRing->getEdges().size();
+			}
 
-				if (isEqual(p2, edgeList_[i]->getStart())) // TODO add neighbours data
+			if (!currentEdge->isProcessed())
+			{
+				currentEdge->setIsProcessed();
+				falsePresent--;
+
+				cleanedList.emplace_back(currentEdge);
+				gp_Pnt p2 = currentEdge->getEnd();
+
+				for (size_t i = 0; i < ring_.size(); i++)
 				{
-					currentEdge = edgeList_[i];
-					break;
+					if (ring_[i] == currentEdge) { continue; }
+
+					if (isEqual(p2, ring_[i]->getStart())) // TODO add neighbours data
+					{
+						currentEdge = ring_[i];
+						break;
+					}
+					else if (isEqual(p2, ring_[i]->getEnd()))
+					{
+						ring_[i]->reverse();
+						currentEdge = ring_[i];
+						break;
+					}
 				}
-				else if (isEqual(p2, edgeList_[i]->getEnd()))
-				{
-					edgeList_[i]->reverse();
-					currentEdge = edgeList_[i];
-					break;
-				}
+			}	
+		}
+		computeNormal();
+		ring_ = cleanedList;
+
+		if (innerRingList_.size() == 0) { return; }
+		for (size_t i = 0; i < innerRingList_.size(); i++)
+		{
+			gp_Pnt otherNormal = innerRingList_[i]->normal_;
+			if (otherNormal.X() == normal_.X() && otherNormal.Y() == normal_.Y() && otherNormal.Z() == normal_.Z())
+			{
+				innerRingList_[i]->flipFace();
 			}
 		}
+	}
 
-		edgeList_ = cleanedList;
+	void EdgeCollection::flipFace()
+	{
+		for (size_t i = 0; i < ring_.size(); i++) { ring_[i]->reverse(); }
+		std::reverse(ring_.begin(), ring_.end());
+
+		for (size_t i = 0; i < innerRingList_.size(); i++) { innerRingList_[i]->flipFace(); }
 	}
 
 
@@ -158,7 +216,7 @@ namespace CJT {
 	}
 
 
-	GeoObject Kernel::convertShape(TopoDS_Shape& shape, std::string lod)
+	GeoObject Kernel::convertShape(const TopoDS_Shape& shape, std::string lod)
 	{
 		std::string geomType = "";
 		if (shape.ShapeType() == 2) { geomType = "Solid"; }
@@ -174,11 +232,10 @@ namespace CJT {
 		std::vector<TopoDS_Face> faceList;
 		std::vector<EdgeCollection> edgeCollectionList;
 		TopExp_Explorer expl;
-		for (expl.Init(shape, TopAbs_FACE); expl.More(); expl.Next()) { faceList.emplace_back(TopoDS::Face(expl.Current())); }
+		for (expl.Init(shape, TopAbs_FACE); expl.More(); expl.Next()) { faceList.emplace_back(TopoDS::Face(expl.Current())); } // TODO try brep function
 
 		for (size_t i = 0; i < faceList.size(); i++)
 		{
-			std::cout << "new face" << std::endl;
 			EdgeCollection edgeCollection;
 			int c = 0;
 			gp_Pnt lP;
@@ -217,11 +274,12 @@ namespace CJT {
 		{
 			json ShapeCollection;
 			EdgeCollection currentCollection = edgeCollectionList[i];
+
+			// get outer ring
 			std::vector<gp_Pnt> startPointCollection = currentCollection.getStartPoints();
 			std::vector<int> idxList;
 			for (size_t j = 0; j < startPointCollection.size(); j++)
 			{
-				
 				for (size_t k = 0; k < uniquePoints.size(); k++)
 				{
 					if (isEqual(startPointCollection[j], uniquePoints[k]))
@@ -232,10 +290,32 @@ namespace CJT {
 				
 			}
 			ShapeCollection.emplace_back(idxList);
+
+			// get inner rings
+			std::vector<EdgeCollection*> innerRingsCollection = currentCollection.getInnerRings();
+
+			for (size_t j = 0; j < innerRingsCollection.size(); j++)
+			{
+				EdgeCollection* currentInnerCollection = innerRingsCollection[j];
+				std::cout << currentInnerCollection << std::endl;
+
+				std::vector<gp_Pnt> innerStartPointCollection = currentInnerCollection->getStartPoints();
+				std::vector<int> innerIdxList;
+				for (size_t k = 0; k < innerStartPointCollection.size(); k++)
+				{
+					for (size_t l = 0; l < uniquePoints.size(); l++)
+					{
+						if (isEqual(innerStartPointCollection[k], uniquePoints[l]))
+						{
+							innerIdxList.emplace_back(pointLocation[l]);
+						}
+					}
+
+				}
+				ShapeCollection.emplace_back(innerIdxList);
+			}
 			boundaries.emplace_back(ShapeCollection);
 		}
-		
-		std::cout << geomType << std::endl;
 		if (geomType == "Solid")
 		{
 			json solidCollection;

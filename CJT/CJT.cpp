@@ -1183,6 +1183,14 @@ namespace CJT
 		return MaterialObject();
 	}
 
+	void CityCollection::removeCityObject(std::string obName)
+	{
+		if (cityObjects_.find(obName) != cityObjects_.end())
+		{
+			cityObjects_.erase(obName);
+		}
+	}
+
 
 	std::vector<CJTPoint> CityCollection::getVerices()
 	{

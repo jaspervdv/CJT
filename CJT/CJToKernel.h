@@ -21,10 +21,14 @@ namespace CJT {
 		Edge* forwardNeighbour_;
 		Edge* backwardNeighbour_;
 
+		bool processed_ = false;
+
 	public:
 		Edge(gp_Pnt sPoint, gp_Pnt ePoint);
 		gp_Pnt getStart() { return sPoint_; }
 		gp_Pnt getEnd() { return ePoint_; }
+		bool isProcessed() { return processed_; }
+		void setIsProcessed() { processed_ = true; }
 
 		void reverse();
 	};
@@ -32,15 +36,23 @@ namespace CJT {
 	class EdgeCollection 
 	{
 	private:
-		std::vector<Edge*> edgeList_;
-	public:
-		std::vector<Edge*> getEdges() { return edgeList_; }
-		void setEdges(std::vector<Edge*> edgeList) { edgeList_ = edgeList; }
-		void addEdge(Edge* edge) { edgeList_.emplace_back(edge); }
-		std::vector<gp_Pnt> getStartPoints();
+		std::vector<Edge*> ring_;
+		std::vector<TopoDS_Face> triangulatedFace_;
+		std::vector<EdgeCollection*>  innerRingList_;
+		gp_Pnt normal_;
 
-		void orderEdges();
-		void reverseEdges();
+	public:
+		std::vector<Edge*> getEdges() { return ring_; }
+		std::vector<EdgeCollection*> getInnerRings() { return innerRingList_; }
+		void setEdges(std::vector<Edge*> edgeList) { ring_ = edgeList; }
+		void addEdge(Edge* edge) { ring_.emplace_back(edge); }
+		std::vector<gp_Pnt> getStartPoints();
+		void addInnerRing(EdgeCollection* innerRing) { innerRingList_.emplace_back(innerRing); }
+
+		void computeNormal();
+
+		void orderEdges(int idx = 0);
+		void flipFace();
 	};
 
 	class Kernel 
@@ -60,6 +72,6 @@ namespace CJT {
 		std::vector<TopoDS_Shape> getShape(CityObject cityObject);
 
 		// places the shape into the internalized cityObject as geoObject, the geoobject itself is not placed
-		GeoObject convertShape(TopoDS_Shape& shape, std::string lod);
+		GeoObject convertShape(const TopoDS_Shape& shape, std::string lod);
 	};
 }

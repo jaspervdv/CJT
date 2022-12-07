@@ -39,6 +39,9 @@ namespace CJT {
 		bool operator!= (CJTPoint other);
 		/// @brief evaluates if the sum of the x, y, z coordinates is smaller 
 		bool operator< (CJTPoint other);
+
+		CJTPoint operator- (CJTPoint other);
+		CJTPoint operator+ (CJTPoint other);
 	};
 
 	class ObjectTransformation
@@ -484,6 +487,8 @@ namespace CJT {
 		std::vector<CityObject*> getCityObjectTyped(std::string typeName);
 		/// @brief add a cityObject to the collection
 		void addCityObject(CityObject cityObject);
+		/// @brief remove a cityObject from the collection
+		void removeCityObject(std::string obName);
 		/// @brief get all materials
 		std::vector<MaterialObject> getMaterials() { return appearance_.getMaterials(); }
 		/// @brief get Materialobject based on idx
