@@ -241,7 +241,6 @@ namespace CJT {
 							if (isFound) { break; }
 						}
 					}
-
 				}
 			}
 			if (nextStep.size() == 0) { break; }
