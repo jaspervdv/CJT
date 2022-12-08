@@ -294,8 +294,6 @@ namespace CJT {
 			return occtShape;
 		}
 
-		std::cout << geoObject.getLoD() << std::endl;
-
 		// construct facelist 		
 		std::vector<std::vector<int>> faceIntList = getSurfaceIdx(&geoObject.getBoundaries());
 		std::vector<CJTPoint> cityVerts = cityCollection_->getVerices();
@@ -324,8 +322,13 @@ namespace CJT {
 				}
 			}
 			TopoDS_Wire topoWire = mkwire.Wire();
-			TopoDS_Face topoFace = BRepBuilderAPI_MakeFace(topoWire);
+			TopoDS_Face topoFace = BRepBuilderAPI_MakeFace(topoWire).Face();
 
+			if (topoFace.IsNull())
+			{
+				auto plane = GC_MakePlane(oPointList[0], oPointList[1], oPointList[2]);
+				topoFace = BRepBuilderAPI_MakeFace(plane.Value(), topoWire).Face();
+			}
 			brepSewer.Add(topoFace);
 		}
 		TopoDS_Solid solidShape;
@@ -351,8 +354,6 @@ namespace CJT {
 		}
 
 		std::vector<GeoObject> geoObjectList = 	cityObject.getGeoObjects();
-
-
 		for (size_t i = 0; i < geoObjectList.size(); i++)
 		{
 			GeoObject currentObject = geoObjectList[i];

@@ -611,6 +611,20 @@ namespace CJT
 		hasAttributes_ = false;
 	}
 
+	std::vector<GeoObject> CityObject::getGeoObjects(std::string lod)
+	{
+		std::vector<GeoObject> geoObjectList;
+		for (size_t i = 0; i < geometry_.size(); i++)
+		{
+			if (geometry_[i].getLoD() == lod)
+			{
+				geoObjectList.emplace_back(geometry_[i]);
+			}
+		}
+
+		return geoObjectList;
+	}
+
 	void CityObject::addParent(std::string parentName, CityCollection* citycoll)
 	{
 		bool found = true;

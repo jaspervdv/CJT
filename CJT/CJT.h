@@ -461,7 +461,9 @@ namespace CJT {
 		/// @brief adds geo object to the cityObject
 		void addGeoObject(GeoObject geom) { geometry_.emplace_back(geom); hasGeo_ = true; }
 		/// @brief returns all geoObjects
-		std::vector< GeoObject> getGeoObjects() { return geometry_; }
+		std::vector<GeoObject> getGeoObjects() { return geometry_; }
+		/// @brief returns all geoObjects with the supplied LoD
+		std::vector<GeoObject> getGeoObjects(std::string lod);
 
 		/// @brief adds a parent relationship to the CityObject, second input is optional validation of name
 		void addParent(std::string parentName, CityCollection* citycoll = nullptr);

@@ -15,6 +15,7 @@
 #include <BRepBuilderAPI_MakeFace.hxx>
 #include <BRepBuilderAPI_Sewing.hxx>
 #include <BRep_Builder.hxx>
+#include <GC_MakePlane.hxx>
 
 namespace CJT {
 	class Edge 
