@@ -10,6 +10,11 @@
 #include <TopoDS_Face.hxx>
 #include <TopoDS_Wire.hxx>
 #include <BRep_Tool.hxx>
+#include <BRepBuilderAPI_MakeEdge.hxx>
+#include <BRepBuilderAPI_MakeWire.hxx>
+#include <BRepBuilderAPI_MakeFace.hxx>
+#include <BRepBuilderAPI_Sewing.hxx>
+#include <BRep_Builder.hxx>
 
 namespace CJT {
 	class Edge 
@@ -17,10 +22,6 @@ namespace CJT {
 	private:
 		gp_Pnt sPoint_;
 		gp_Pnt ePoint_;
-
-		Edge* forwardNeighbour_;
-		Edge* backwardNeighbour_;
-
 		bool processed_ = false;
 
 	public:
@@ -84,12 +85,12 @@ namespace CJT {
 		/// @brief constructs kernel and internaliz the cityCollection, required to convert.
 		Kernel(CityCollection* cityCollection);
 
-		// @brief create OpenCASCADE TopoDS_Shape from CityJSON GeoObject
+		/// @brief create OpenCASCADE TopoDS_Shape from CityJSON GeoObject
 		TopoDS_Shape getShape(GeoObject geoObject);
-		// @brief create multiple OpenCASCADE TopoDS_shape objects from CityJSON CityObject
+		/// @brief create multiple OpenCASCADE TopoDS_shape objects from CityJSON CityObject
 		std::vector<TopoDS_Shape> getShape(CityObject cityObject);
 
-		// places the shape into the internalized cityObject as geoObject, the geoobject itself is not placed
+		/// @brief places the shape into the internalized cityObject as geoObject, the geoobject itself is not placed
 		GeoObject convertShape(const TopoDS_Shape& shape, std::string lod);
 	};
 }

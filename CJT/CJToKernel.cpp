@@ -29,6 +29,38 @@ namespace CJT {
 		return false;
 	}
 
+
+	std::vector<std::vector<int>> getSurfaceIdx(json* boundaries) {
+		std::vector < std::vector<int> >collection;
+		bool isInt = false;
+
+		if (boundaries->begin().value().is_number_integer()) { isInt = true; }
+
+		if (isInt)
+		{
+			std::vector<int> surfaceIdx;
+			for (json::iterator obb = boundaries->begin(); obb != boundaries->end(); ++obb)
+			{
+				json* subvalue = &obb.value();
+				surfaceIdx.emplace_back(*subvalue);
+			}
+			collection.emplace_back(surfaceIdx);
+		}
+		else {
+			for (json::iterator obb = boundaries->begin(); obb != boundaries->end(); ++obb)
+			{
+				json* subvalue = &obb.value();
+				std::vector<std::vector<int>> outputboundaries = getSurfaceIdx(subvalue);
+				for (size_t i = 0; i < outputboundaries.size(); i++)
+				{
+					collection.emplace_back(outputboundaries[i]);
+				}
+			}
+		}
+		return collection;
+	}
+
+
 	Edge::Edge(gp_Pnt sPoint, gp_Pnt ePoint)
 	{
 		sPoint_ = sPoint;
@@ -264,9 +296,43 @@ namespace CJT {
 
 		std::cout << geoObject.getLoD() << std::endl;
 
-		// get and construct opencascade point list
+		// construct facelist 		
+		std::vector<std::vector<int>> faceIntList = getSurfaceIdx(&geoObject.getBoundaries());
+		std::vector<CJTPoint> cityVerts = cityCollection_->getVerices();
 
-		return TopoDS_Shape();
+		BRep_Builder brepBuilder;
+		BRepBuilderAPI_Sewing brepSewer;
+		brepSewer.SetTolerance(0.001);
+
+		for (size_t i = 0; i < faceIntList.size(); i++)
+		{
+			std::vector<gp_Pnt> oPointList;
+			for (size_t j = 0; j < faceIntList[i].size(); j++)
+			{
+				CJTPoint currentPoint = cityVerts[faceIntList[i][j]];
+				oPointList.emplace_back(gp_Pnt(currentPoint.getX(), currentPoint.getY(), currentPoint.getZ()));
+			}
+			BRepBuilderAPI_MakeWire mkwire;
+			for (size_t j = 0; j < oPointList.size(); j++)
+			{
+				if (j + 1 < oPointList.size())
+				{
+					mkwire.Add(BRepBuilderAPI_MakeEdge(oPointList[j], oPointList[j + 1]));
+				}
+				else {
+					mkwire.Add(BRepBuilderAPI_MakeEdge(oPointList[j], oPointList[0]));
+				}
+			}
+			TopoDS_Wire topoWire = mkwire.Wire();
+			TopoDS_Face topoFace = BRepBuilderAPI_MakeFace(topoWire);
+
+			brepSewer.Add(topoFace);
+		}
+		TopoDS_Solid solidShape;
+		brepBuilder.MakeSolid(solidShape);
+		brepSewer.Perform();
+		brepBuilder.Add(solidShape, brepSewer.SewedShape());
+		return solidShape;
 	}
 
 
