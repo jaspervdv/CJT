@@ -37,7 +37,6 @@ namespace CJT {
 	{
 	private:
 		std::vector<Edge*> ring_;
-		std::vector<TopoDS_Face> triangulatedFace_;
 		std::vector<EdgeCollection*>  innerRingList_;
 		gp_Pnt normal_;
 
@@ -48,6 +47,8 @@ namespace CJT {
 		void addEdge(Edge* edge) { ring_.emplace_back(edge); }
 		std::vector<gp_Pnt> getStartPoints();
 		void addInnerRing(EdgeCollection* innerRing) { innerRingList_.emplace_back(innerRing); }
+		bool hasPositiveNormal();
+		std::vector<Edge*> getAllEdges();
 
 		void computeNormal();
 
@@ -61,6 +62,9 @@ namespace CJT {
 		int idCounter_ = 10000;
 		std::map<int, TopoDS_Shape > internalizedObjectMap_;
 		CityCollection* cityCollection_;
+
+		int findTopEdgeCollection(std::vector<EdgeCollection*> edgeCollectionList);
+		void correctFaceDirection(std::vector<EdgeCollection*> edgeCollectionList, int startingIndx);
 
 	public:
 		/// @brief initialize the Kernel before use
