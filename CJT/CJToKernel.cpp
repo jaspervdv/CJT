@@ -147,9 +147,17 @@ namespace CJT {
 		{
 			if (j + 1 < pointList.size())
 			{
+				if (pointList[j].IsEqual(pointList[j + 1], 0.001))
+				{
+					return TopoDS_Wire();
+				}
 				mkwire.Add(BRepBuilderAPI_MakeEdge(pointList[j], pointList[j + 1]));
 			}
 			else {
+				if (pointList[j].IsEqual(pointList[0], 0.001))
+				{
+					return TopoDS_Wire();
+				}
 				mkwire.Add(BRepBuilderAPI_MakeEdge(pointList[j], pointList[0]));
 			}
 		}
@@ -405,7 +413,12 @@ namespace CJT {
 			IntFace currentIntFace = faceIntList[i];
 			std::vector<gp_Pnt> oPointList = intPoint2GpPoint(currentIntFace.outerRing_, cityVerts);
 			TopoDS_Wire topoWire = makeRingWire(oPointList);
+			if (topoWire.IsNull()) { 
+				success = false;
+				continue; 
+			}
 			TopoDS_Face topoFace = BRepBuilderAPI_MakeFace(topoWire).Face();
+			
 
 			if (topoFace.IsNull())
 			{
@@ -443,9 +456,22 @@ namespace CJT {
 			brepSewer.Add(topoFace);
 		}
 
-		if (success == false)
+		if (geoObject.getType() == "Solid" && success)
 		{
-			return TopoDS_Shape();
+			TopoDS_Solid solidShape;
+			brepBuilder.MakeSolid(solidShape);
+			brepSewer.Perform();
+			brepBuilder.Add(solidShape, brepSewer.SewedShape());
+			return solidShape;
+		}
+		if (geoObject.getType() == "MultiSurface" || !success)
+		{
+			TopoDS_Compound shellShape;
+			//brepBuilder.MakeShell(shellShape);
+			brepBuilder.MakeCompound(shellShape);
+			brepSewer.Perform();
+			brepBuilder.Add(shellShape, brepSewer.SewedShape());
+			return shellShape;
 		}
 
 		TopoDS_Solid solidShape;
