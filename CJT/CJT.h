@@ -399,7 +399,7 @@ namespace CJT {
 		std::string name_;
 		std::string type_;
 
-		std::vector<GeoObject> geometry_;
+		std::vector<GeoObject*> geometry_;
 
 		bool hasGeo_ = false;
 		bool isParent_ = false;
@@ -459,11 +459,11 @@ namespace CJT {
 		/// @brief returns true if object has geometry
 		bool hasGeo() { return hasGeo_; }
 		/// @brief adds geo object to the cityObject
-		void addGeoObject(GeoObject geom) { geometry_.emplace_back(geom); hasGeo_ = true; }
+		void addGeoObject(GeoObject* geom) { geometry_.emplace_back(geom); hasGeo_ = true; }
 		/// @brief returns all geoObjects
-		std::vector<GeoObject> getGeoObjects() { return geometry_; }
+		std::vector<GeoObject*> getGeoObjects() { return geometry_; }
 		/// @brief returns all geoObjects with the supplied LoD
-		std::vector<GeoObject> getGeoObjects(std::string lod);
+		std::vector<GeoObject*> getGeoObjects(std::string lod);
 
 		/// @brief adds a parent relationship to the CityObject, second input is optional validation of name
 		void addParent(std::string parentName, CityCollection* citycoll = nullptr);
@@ -474,14 +474,14 @@ namespace CJT {
 		/// @brief returns a list of all the children
 		std::vector<std::string> getChildren() { return childList_; }
 		/// @brief sets object geometry
-		void setGeo(std::vector<GeoObject> geometry) { geometry_ = geometry; }
+		void setGeo(std::vector<GeoObject*> geometry) { geometry_ = geometry; }
 	};
 
 
 	class CityCollection 
 	{
 	private:
-		std::map<std::string, CityObject> cityObjects_;
+		std::map<std::string, CityObject*> cityObjects_;
 		std::vector<CJTPoint> vertices_;
 		std::string version_ = "";
 
@@ -495,7 +495,7 @@ namespace CJT {
 
 		ObjectTransformation fetchTransformation(json* transJson);
 		std::vector<CJTPoint> fetchPoints(json* pointJson);
-		std::map<std::string, CityObject> fetchCityObjects(json* cityObjects);
+		std::map<std::string, CityObject*> fetchCityObjects(json* cityObjects);
 		AppearanceObject fetchAppearance(json* AppearanceJson);
 
 	public:

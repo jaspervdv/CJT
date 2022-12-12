@@ -3,6 +3,13 @@
 
 namespace CJT {
 
+	struct IntFace {
+		std::vector<int> outerRing_;
+		std::vector<std::vector<int>> innerRingList_;
+		bool hasInner_ = false;
+	};
+
+
 	void printPoint(gp_Pnt p) {
 		std::cout << p.X() << ", " << p.Y() << ", " << p.Z() << ", " << std::endl;
 	}
@@ -30,27 +37,44 @@ namespace CJT {
 	}
 
 
-	std::vector<std::vector<int>> getSurfaceIdx(json* boundaries) {
-		std::vector < std::vector<int> >collection;
+	std::vector<IntFace> getSurfaceIdx(json* boundaries) {
+		std::vector<IntFace> collection;
 		bool isInt = false;
 
-		if (boundaries->begin().value().is_number_integer()) { isInt = true; }
+		if (boundaries->begin().value().begin().value().is_number_integer()) { isInt = true; }
 
 		if (isInt)
 		{
-			std::vector<int> surfaceIdx;
-			for (json::iterator obb = boundaries->begin(); obb != boundaries->end(); ++obb)
+			IntFace intFace;
+
+			int ringCount = 0;
+			for (json::iterator ringItt = boundaries->begin(); ringItt != boundaries->end(); ++ringItt)
 			{
-				json* subvalue = &obb.value();
-				surfaceIdx.emplace_back(*subvalue);
+				std::vector<int> surfaceIdx;
+				json* ring = &ringItt.value();
+				for (json::iterator intItt = ring->begin(); intItt != ring->end(); ++intItt)
+				{
+					json* subvalue = &intItt.value();
+					surfaceIdx.emplace_back(*subvalue);
+				}
+				if (ringCount == 0)
+				{
+					intFace.outerRing_ = surfaceIdx;
+					ringCount++;
+				}
+				if (ringCount != 0)
+				{
+					intFace.innerRingList_.emplace_back(surfaceIdx);
+					intFace.hasInner_ = true;
+				}
 			}
-			collection.emplace_back(surfaceIdx);
+			collection.emplace_back(intFace);
 		}
 		else {
 			for (json::iterator obb = boundaries->begin(); obb != boundaries->end(); ++obb)
 			{
 				json* subvalue = &obb.value();
-				std::vector<std::vector<int>> outputboundaries = getSurfaceIdx(subvalue);
+				std::vector<IntFace> outputboundaries = getSurfaceIdx(subvalue);
 				for (size_t i = 0; i < outputboundaries.size(); i++)
 				{
 					collection.emplace_back(outputboundaries[i]);
@@ -104,6 +128,33 @@ namespace CJT {
 			}
 		}
 		return idx;
+	}
+	
+
+	std::vector<gp_Pnt> intPoint2GpPoint(const std::vector<int> &pointIdxList, const std::vector<CJTPoint> &cityVerts) {
+		std::vector<gp_Pnt> oPointList;
+		for (size_t i = 0; i < pointIdxList.size(); i++)
+		{
+			CJTPoint currentPoint = cityVerts[pointIdxList[i]];
+			oPointList.emplace_back(gp_Pnt(currentPoint.getX(), currentPoint.getY(), currentPoint.getZ()));
+		}
+		return oPointList;
+	}
+
+	TopoDS_Wire makeRingWire(std::vector<gp_Pnt> pointList) {
+		BRepBuilderAPI_MakeWire mkwire;
+		for (size_t j = 0; j < pointList.size(); j++)
+		{
+			if (j + 1 < pointList.size())
+			{
+				mkwire.Add(BRepBuilderAPI_MakeEdge(pointList[j], pointList[j + 1]));
+			}
+			else {
+				mkwire.Add(BRepBuilderAPI_MakeEdge(pointList[j], pointList[0]));
+			}
+		}
+		TopoDS_Wire topoWire = mkwire.Wire();
+		return topoWire;
 	}
 
 
@@ -328,6 +379,7 @@ namespace CJT {
 
 	TopoDS_Shape Kernel::getShape(GeoObject geoObject) {
 		TopoDS_Shape occtShape;
+		bool success = true;
 
 		if (cityCollection_ == nullptr)
 		{
@@ -341,7 +393,7 @@ namespace CJT {
 		}
 
 		// construct facelist 		
-		std::vector<std::vector<int>> faceIntList = getSurfaceIdx(&geoObject.getBoundaries());
+		std::vector<IntFace> faceIntList = getSurfaceIdx(&geoObject.getBoundaries());
 		std::vector<CJTPoint> cityVerts = cityCollection_->getVerices();
 
 		BRep_Builder brepBuilder;
@@ -350,24 +402,9 @@ namespace CJT {
 
 		for (size_t i = 0; i < faceIntList.size(); i++)
 		{
-			std::vector<gp_Pnt> oPointList;
-			for (size_t j = 0; j < faceIntList[i].size(); j++)
-			{
-				CJTPoint currentPoint = cityVerts[faceIntList[i][j]];
-				oPointList.emplace_back(gp_Pnt(currentPoint.getX(), currentPoint.getY(), currentPoint.getZ()));
-			}
-			BRepBuilderAPI_MakeWire mkwire;
-			for (size_t j = 0; j < oPointList.size(); j++)
-			{
-				if (j + 1 < oPointList.size())
-				{
-					mkwire.Add(BRepBuilderAPI_MakeEdge(oPointList[j], oPointList[j + 1]));
-				}
-				else {
-					mkwire.Add(BRepBuilderAPI_MakeEdge(oPointList[j], oPointList[0]));
-				}
-			}
-			TopoDS_Wire topoWire = mkwire.Wire();
+			IntFace currentIntFace = faceIntList[i];
+			std::vector<gp_Pnt> oPointList = intPoint2GpPoint(currentIntFace.outerRing_, cityVerts);
+			TopoDS_Wire topoWire = makeRingWire(oPointList);
 			TopoDS_Face topoFace = BRepBuilderAPI_MakeFace(topoWire).Face();
 
 			if (topoFace.IsNull())
@@ -380,8 +417,37 @@ namespace CJT {
 				auto plane = GC_MakePlane(oPointList[0], supportPoint1, supportPoint2);
 				topoFace = BRepBuilderAPI_MakeFace(plane.Value(), topoWire).Face();
 			}
+
+			if (topoFace.IsNull())
+			{
+				success = false;
+				break;
+			}
+
+			if (currentIntFace.hasInner_)
+			{
+				for (size_t j = 0; j < currentIntFace.innerRingList_.size(); j++)
+				{
+					std::vector<gp_Pnt> iPointList = intPoint2GpPoint(currentIntFace.innerRingList_[j], cityVerts);
+					TopoDS_Wire innerWire = makeRingWire(iPointList);
+					topoFace = BRepBuilderAPI_MakeFace(topoFace, innerWire).Face();
+				}
+			}
+
+			if (topoFace.IsNull()) 
+			{
+				success = false;
+				break;
+			}
+
 			brepSewer.Add(topoFace);
 		}
+
+		if (success == false)
+		{
+			return TopoDS_Shape();
+		}
+
 		TopoDS_Solid solidShape;
 		brepBuilder.MakeSolid(solidShape);
 		brepSewer.Perform();
@@ -404,15 +470,15 @@ namespace CJT {
 			return shapeList;
 		}
 
-		std::vector<GeoObject> geoObjectList = 	cityObject.getGeoObjects();
+		std::vector<GeoObject*> geoObjectList = 	cityObject.getGeoObjects();
 		for (size_t i = 0; i < geoObjectList.size(); i++)
 		{
-			GeoObject currentObject = geoObjectList[i];
-			int geoId = currentObject.getId();
+			GeoObject* currentObject = geoObjectList[i];
+			int geoId = currentObject->getId();
 
 			if (geoId == -1)
 			{
-				shapeList.emplace_back(getShape(currentObject));
+				shapeList.emplace_back(getShape(*currentObject));
 			}
 			else
 			{
@@ -423,8 +489,8 @@ namespace CJT {
 				}
 				else
 				{
-					currentObject.setId(-1);
-					shapeList.emplace_back(getShape(currentObject));
+					currentObject->setId(-1);
+					shapeList.emplace_back(getShape(*currentObject));
 				}
 			}
 		}

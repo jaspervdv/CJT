@@ -575,7 +575,7 @@ namespace CJT
 		std::vector<float> loDList = {};
 		for (size_t i = 0; i < geometry_.size(); i++)
 		{
-			float lod = std::stof(geometry_[i].getLoD());
+			float lod = std::stof(geometry_[i]->getLoD());
 
 			if (!std::count(loDList.begin(), loDList.end(), lod))
 			{
@@ -611,12 +611,12 @@ namespace CJT
 		hasAttributes_ = false;
 	}
 
-	std::vector<GeoObject> CityObject::getGeoObjects(std::string lod)
+	std::vector<GeoObject*> CityObject::getGeoObjects(std::string lod)
 	{
-		std::vector<GeoObject> geoObjectList;
+		std::vector<GeoObject*> geoObjectList;
 		for (size_t i = 0; i < geometry_.size(); i++)
 		{
-			if (geometry_[i].getLoD() == lod)
+			if (geometry_[i]->getLoD() == lod)
 			{
 				geoObjectList.emplace_back(geometry_[i]);
 			}
@@ -694,9 +694,9 @@ namespace CJT
 		return vertList;
 	}
 
-	std::map<std::string, CityObject> CityCollection::fetchCityObjects(json* cityObjects)
+	std::map<std::string, CityObject*> CityCollection::fetchCityObjects(json* cityObjects)
 	{
-		std::map<std::string, CityObject> collection;
+		std::map<std::string, CityObject*> collection;
 
 		for (auto cityObject = cityObjects->begin(); cityObject != cityObjects->end(); ++cityObject)
 		{
@@ -710,7 +710,7 @@ namespace CJT
 			if (objectValue.contains("parents")) { parents = objectValue["parents"]; }
 			if (objectValue.contains("children")) { children = objectValue["children"]; }
 
-			CityObject CCityObject(
+			CityObject* CCityObject = new CityObject(
 				objectName, 
 				objectValue["type"],
 				attributes,
@@ -773,15 +773,15 @@ namespace CJT
 					if (semanticData.contains("surfaces")) { surfaceData = semanticData["surfaces"]; }
 
 				}
+				GeoObject* geoObjectP = new GeoObject(
+					boundaries,
+					lod,
+					surfaceData,
+					semanticValues,
+					geoType
+				);
 
-				CCityObject.addGeoObject(
-					GeoObject(
-						boundaries,
-						lod,
-						surfaceData,
-						semanticValues,
-						geoType
-				));
+				CCityObject->addGeoObject(geoObjectP);
 			}
 			collection.emplace(objectName, CCityObject);
 		}
@@ -812,7 +812,7 @@ namespace CJT
 
 		return newAppearanceObject;
 	}
-
+	
 	bool CityCollection::parseJSON(std::string filePath, bool silent)
 	{
 		// set initial booleans
@@ -962,48 +962,48 @@ namespace CJT
 		// offload cityobjects
 		json cityGeoCollection;
 		std::map<std::string, json> objectCollection;
-		for (std::pair<std::string, CityObject> cityObject : cityObjects_)
+		for (std::pair<std::string, CityObject*> cityObject : cityObjects_)
 		{
 			auto currentObject = cityObject.second;
-			std::string objectName = currentObject.getName();
-			std::string objectType = currentObject.getType();
-			std::vector<GeoObject> geoObjectList = currentObject.getGeoObjects();
+			std::string objectName = currentObject->getName();
+			std::string objectType = currentObject->getType();
+			std::vector<GeoObject*> geoObjectList = currentObject->getGeoObjects();
 			std::map<std::string, json> cityObject;
 
 			cityObject.emplace("type", objectType);
 
-			if (currentObject.hasAttributes())
+			if (currentObject->hasAttributes())
 			{
-				cityObject.emplace("attributes", currentObject.getAttributes());
+				cityObject.emplace("attributes", currentObject->getAttributes());
 			}
 
 			// get geometry
-			if (currentObject.hasGeo())
+			if (currentObject->hasGeo())
 			{
 				std::list<json> geoGroup;
 
 				for (size_t i = 0; i < geoObjectList.size(); i++)
 				{
 					std::map<std::string, json> geoCollection;
-					geoCollection.emplace("boundaries", geoObjectList[i].getBoundaries());
+					geoCollection.emplace("boundaries", geoObjectList[i]->getBoundaries());
 
 					if (stringLoD)
 					{
-						geoCollection.emplace("lod", geoObjectList[i].getLoD());
+						geoCollection.emplace("lod", geoObjectList[i]->getLoD());
 					}
 					else
 					{
-						geoCollection.emplace("lod", std::stod(geoObjectList[i].getLoD()));
+						geoCollection.emplace("lod", std::stod(geoObjectList[i]->getLoD()));
 					}
 
 
-					geoCollection.emplace("type", geoObjectList[i].getType());
+					geoCollection.emplace("type", geoObjectList[i]->getType());
 
-					auto surfaceSemData = geoObjectList[i].getSurfaceData();
+					auto surfaceSemData = geoObjectList[i]->getSurfaceData();
 					if (!surfaceSemData.is_null()) // if no surface semantic data is supplied
 					{
 						std::pair surfaceTypePair{ "surfaces", surfaceSemData };
-						std::pair surfaceValuePair{ "values", geoObjectList[i].getSurfaceTypeValues() };
+						std::pair surfaceValuePair{ "values", geoObjectList[i]->getSurfaceTypeValues() };
 						geoCollection.emplace("semantics", std::pair{ surfaceTypePair, surfaceValuePair });
 					}
 					geoGroup.emplace_back(geoCollection);
@@ -1012,8 +1012,8 @@ namespace CJT
 			}
 
 			// get parents/children
-			std::vector<std::string> parentList = currentObject.getParents();
-			std::vector<std::string> childList = currentObject.getChildren();
+			std::vector<std::string> parentList = currentObject->getParents();
+			std::vector<std::string> childList = currentObject->getChildren();
 
 			if (parentList.size())
 			{
@@ -1129,15 +1129,19 @@ namespace CJT
 
 		return true;
 	}
+
+
 	std::vector<CityObject*> CityCollection::getCityObject()
 	{
 		std::vector<CityObject*> outputList;
-		for (std::pair<std::string, CityObject> data : cityObjects_)
+		for (std::pair<std::string, CityObject*> data : cityObjects_)
 		{
-			outputList.emplace_back(&data.second);
+			outputList.emplace_back(data.second);
 		}
 		return outputList;
 	}
+
+
 	CityObject* CityCollection::getCityObject(std::string obName)
 	{
 		if (cityObjects_.find(obName) == cityObjects_.end())
@@ -1146,7 +1150,7 @@ namespace CJT
 			return nullptr;
 		}
 
-		return &cityObjects_[obName];
+		return cityObjects_[obName];
 	}
 	
 
@@ -1167,15 +1171,15 @@ namespace CJT
 
 		return cityObjectList;
 	}
-
+	
 	std::vector<CityObject*> CityCollection::getCityObjectTyped(std::string typeName)
 	{
 		std::vector<CityObject*> cityObjectList;
 		for (auto obb = cityObjects_.begin(); obb != cityObjects_.end(); ++obb)
 		{
-			if (obb->second.getType() == typeName)
+			if (obb->second->getType() == typeName)
 			{
-				cityObjectList.emplace_back(&obb->second);
+				cityObjectList.emplace_back(obb->second);
 			}
 		}
 
@@ -1184,7 +1188,7 @@ namespace CJT
 
 	void CityCollection::addCityObject(CityObject cityObject)
 	{
-		cityObjects_.emplace(cityObject.getName(), cityObject);
+		cityObjects_.emplace(cityObject.getName(), &cityObject);
 	}
 
 	MaterialObject CityCollection::getMaterial(int idx)
@@ -1196,7 +1200,7 @@ namespace CJT
 		std::cout << "no material present with idx: " << idx << std::endl;
 		return MaterialObject();
 	}
-
+	
 	void CityCollection::removeCityObject(std::string obName)
 	{
 		if (cityObjects_.find(obName) != cityObjects_.end())
@@ -1303,15 +1307,15 @@ namespace CJT
 
 		for (auto obb = cityObjects_.begin(); obb != cityObjects_.end(); ++obb)
 		{
-			CityObject currentCityObject = obb->second;
+			CityObject* currentCityObject = obb->second;
 
-			if (!currentCityObject.hasGeo()) { continue; }
+			if (!currentCityObject->hasGeo()) { continue; }
 
-			std::vector< GeoObject> curentGeoObjects = currentCityObject.getGeoObjects();
+			std::vector<GeoObject*> curentGeoObjects = currentCityObject->getGeoObjects();
 
 			for (size_t i = 0; i < curentGeoObjects.size(); i++)
 			{
-				GeoObject* currentGeoObject = &curentGeoObjects[i];
+				GeoObject* currentGeoObject = curentGeoObjects[i];
 				json boundaries = currentGeoObject->getBoundaries();
 
 				std::string geoType = currentGeoObject->getType();
@@ -1326,7 +1330,7 @@ namespace CJT
 					currentGeoObject->setBoundaries(updateVerts(&boundaries, &correctingIdxMap, 4));
 				}
 			}
-			currentCityObject.setGeo(curentGeoObjects);
+			currentCityObject->setGeo(curentGeoObjects);
 			cityObjects_[obb->first] = currentCityObject;
 		}
 
@@ -1354,15 +1358,15 @@ namespace CJT
 
 		for (auto obb = cityObjects_.begin(); obb != cityObjects_.end(); ++obb)
 		{
-			CityObject currentCityObject = obb->second;
+			CityObject* currentCityObject = obb->second;
 
-			if (!currentCityObject.hasGeo()) { continue; }
+			if (!currentCityObject->hasGeo()) { continue; }
 
-			std::vector< GeoObject> curentGeoObjects = currentCityObject.getGeoObjects();
+			std::vector<GeoObject*> curentGeoObjects = currentCityObject->getGeoObjects();
 
 			for (size_t i = 0; i < curentGeoObjects.size(); i++)
 			{
-				GeoObject* currentGeoObject = &curentGeoObjects[i];
+				GeoObject* currentGeoObject = curentGeoObjects[i];
 				json boundaries = currentGeoObject->getBoundaries();
 
 				std::string geoType = currentGeoObject->getType();
@@ -1414,15 +1418,15 @@ namespace CJT
 
 		for (auto obb = cityObjects_.begin(); obb != cityObjects_.end(); ++obb)
 		{
-			CityObject currentCityObject = obb->second;
+			CityObject* currentCityObject = obb->second;
 
-			if (!currentCityObject.hasGeo()) { continue; }
+			if (!currentCityObject->hasGeo()) { continue; }
 
-			std::vector< GeoObject> curentGeoObjects = currentCityObject.getGeoObjects();
+			std::vector<GeoObject*> curentGeoObjects = currentCityObject->getGeoObjects();
 
 			for (size_t i = 0; i < curentGeoObjects.size(); i++)
 			{
-				GeoObject* currentGeoObject = &curentGeoObjects[i];
+				GeoObject* currentGeoObject = curentGeoObjects[i];
 				json boundaries = currentGeoObject->getBoundaries();
 
 				std::string geoType = currentGeoObject->getType();
@@ -1437,7 +1441,7 @@ namespace CJT
 					currentGeoObject->setBoundaries(updateVerts(&boundaries, &correctingIdxMap, 4));
 				}
 			}
-			currentCityObject.setGeo(curentGeoObjects);
+			currentCityObject->setGeo(curentGeoObjects);
 			cityObjects_[obb->first] = currentCityObject;
 		}
 		if (!isSilent_)
@@ -1450,5 +1454,5 @@ namespace CJT
 	{
 		cullUnreferencedVerices();
 		cullDuplicatedVerices();
-	}
+	}//*/
 }
