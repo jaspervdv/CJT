@@ -60,6 +60,52 @@ namespace CJT {
 		return collection;
 	}
 
+	int furtestPoint(int baseIdx, const std::vector<gp_Pnt>& pointList) {
+		double distance = 0;
+		int idx = 0;
+
+		gp_Pnt basePoint = pointList[baseIdx];
+
+		for (size_t i = 0; i < pointList.size(); i++)
+		{
+			if (i == idx){ continue; }
+			double localDistance = basePoint.Distance(pointList.at(i));
+			if (localDistance > distance)
+			{
+				distance = localDistance;
+				idx = i;
+			}
+		}
+		return idx;
+	}
+
+	int furtestPointLine(int p1Idx, int p2Idx, const std::vector<gp_Pnt>& pointList) {
+		double distance = 0;
+		int idx = 0;
+
+		gp_Pnt p1 = pointList[p1Idx];
+		gp_Pnt p2 = pointList[p2Idx];
+
+		for (size_t i = 0; i < pointList.size(); i++)
+		{
+			if (i == p1Idx || i == p2Idx){ continue; }
+
+			gp_Pnt currentPoint = pointList[i];
+			double localDistance = abs(
+				(p2.X() - p1.X()) * (p1.Y() - currentPoint.Y()) -
+				(p1.X() - currentPoint.X()) * (p2.Y() - p1.Y())
+			) / sqrt(
+				pow(p2.X() - p1.X(), 2) + pow(p2.Y() - p1.Y(), 2)
+			);
+			if (localDistance > distance)
+			{
+				distance = localDistance;
+				idx = i;
+			}
+		}
+		return idx;
+	}
+
 
 	Edge::Edge(gp_Pnt sPoint, gp_Pnt ePoint)
 	{
@@ -326,7 +372,12 @@ namespace CJT {
 
 			if (topoFace.IsNull())
 			{
-				auto plane = GC_MakePlane(oPointList[0], oPointList[1], oPointList[2]);
+				gp_Pnt basePoint = oPointList[0];
+				int supportPointIdx = furtestPoint(0, oPointList);
+				gp_Pnt supportPoint1 = oPointList[supportPointIdx];
+				gp_Pnt supportPoint2 = oPointList[furtestPointLine(0, supportPointIdx, oPointList)];
+
+				auto plane = GC_MakePlane(oPointList[0], supportPoint1, supportPoint2);
 				topoFace = BRepBuilderAPI_MakeFace(plane.Value(), topoWire).Face();
 			}
 			brepSewer.Add(topoFace);
