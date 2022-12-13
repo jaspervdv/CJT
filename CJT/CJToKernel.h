@@ -76,22 +76,23 @@ namespace CJT {
 	{
 	private:
 		int idCounter_ = 10000;
-		std::map<int, TopoDS_Shape > internalizedObjectMap_;
+		std::map<int, TopoDS_Shape* > internalizedObjectMap_;
 		CityCollection* cityCollection_;
 
 		int findTopEdgeCollection(std::vector<EdgeCollection*> edgeCollectionList);
 		void correctFaceDirection(std::vector<EdgeCollection*> edgeCollectionList, int startingIndx);
+		bool checkIfInit();
 
 	public:
 		/// @brief constructs kernel and internaliz the cityCollection, required to convert.
 		Kernel(CityCollection* cityCollection);
 
 		/// @brief create OpenCASCADE TopoDS_Shape from CityJSON GeoObject
-		TopoDS_Shape getShape(GeoObject geoObject);
+		TopoDS_Shape* convertToCascade(GeoObject& geoObject);
 		/// @brief create multiple OpenCASCADE TopoDS_shape objects from CityJSON CityObject
-		std::vector<TopoDS_Shape> getShape(CityObject cityObject);
+		std::vector<TopoDS_Shape*> convertToCascade(CityObject& cityObject);
 
-		/// @brief places the shape into the internalized cityObject as geoObject, the geoobject itself is not placed
-		GeoObject convertShape(const TopoDS_Shape& shape, std::string lod);
+		/// @brief places the shape into the internalized cityObject as geoObject, the geoobject itself is not placed in the cityObject!
+		GeoObject* convertToJSON(const TopoDS_Shape& shape, std::string lod);
 	};
 }

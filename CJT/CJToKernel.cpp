@@ -385,20 +385,26 @@ namespace CJT {
 		}
 	}
 
-	TopoDS_Shape Kernel::getShape(GeoObject geoObject) {
-		TopoDS_Shape occtShape;
-		bool success = true;
 
+	bool Kernel::checkIfInit() {
 		if (cityCollection_ == nullptr)
 		{
 			std::cout << "Kernel has not been initialized, add cityCollection to kernel before retrieving a shape" << std::endl;
-			return occtShape;
+			return false;
 		}
 		if (cityCollection_->getVerices().size() == 0)
 		{
 			std::cout << "Kernel has not been initialized, add pointlist to cityCollection before retrieving a shape" << std::endl;
-			return occtShape;
+			return false;
 		}
+		return true;
+	}
+
+	TopoDS_Shape* Kernel::convertToCascade(GeoObject& geoObject) {
+		TopoDS_Shape* occtShape = nullptr;
+		bool success = true;
+
+		if (!checkIfInit()) { return occtShape; }
 
 		// construct facelist 		
 		std::vector<IntFace> faceIntList = getSurfaceIdx(&geoObject.getBoundaries());
@@ -458,45 +464,36 @@ namespace CJT {
 
 		if (geoObject.getType() == "Solid" && success)
 		{
-			TopoDS_Solid solidShape;
-			brepBuilder.MakeSolid(solidShape);
+			TopoDS_Solid* solidShape = new TopoDS_Solid();
+			brepBuilder.MakeSolid(*solidShape);
 			brepSewer.Perform();
-			brepBuilder.Add(solidShape, brepSewer.SewedShape());
+			brepBuilder.Add(*solidShape, brepSewer.SewedShape());
 			return solidShape;
 		}
 		if (geoObject.getType() == "MultiSurface" || !success)
 		{
-			TopoDS_Compound shellShape;
+			TopoDS_Compound* shellShape = new TopoDS_Compound();
 			//brepBuilder.MakeShell(shellShape);
-			brepBuilder.MakeCompound(shellShape);
+			brepBuilder.MakeCompound(*shellShape);
 			brepSewer.Perform();
-			brepBuilder.Add(shellShape, brepSewer.SewedShape());
+			brepBuilder.Add(*shellShape, brepSewer.SewedShape());
 			return shellShape;
 		}
 
-		TopoDS_Solid solidShape;
-		brepBuilder.MakeSolid(solidShape);
+		TopoDS_Solid* solidShape = new TopoDS_Solid();
+		brepBuilder.MakeSolid(*solidShape);
 		brepSewer.Perform();
-		brepBuilder.Add(solidShape, brepSewer.SewedShape());
+		brepBuilder.Add(*solidShape, brepSewer.SewedShape());
 		return solidShape;
 	}
 
 
-	std::vector<TopoDS_Shape> Kernel::getShape(CityObject cityObject) {
-		std::vector<TopoDS_Shape> shapeList;
+	std::vector<TopoDS_Shape*> Kernel::convertToCascade(CityObject& cityObject) {
+		std::vector<TopoDS_Shape*> shapeList;
 		
-		if (cityCollection_ == nullptr)
-		{
-			std::cout << "Kernel has not been initialized, add cityCollection to kernel before retrieving a shape" << std::endl;
-			return shapeList;
-		}
-		if (cityCollection_->getVerices().size() == 0)
-		{
-			std::cout << "Kernel has not been initialized, add pointlist to cityCollection before retrieving a shape" << std::endl;
-			return shapeList;
-		}
+		if (!checkIfInit()) { return shapeList; }
 
-		std::vector<GeoObject*> geoObjectList = 	cityObject.getGeoObjects();
+		std::vector<GeoObject*> geoObjectList = cityObject.getGeoObjects();
 		for (size_t i = 0; i < geoObjectList.size(); i++)
 		{
 			GeoObject* currentObject = geoObjectList[i];
@@ -504,7 +501,7 @@ namespace CJT {
 
 			if (geoId == -1)
 			{
-				shapeList.emplace_back(getShape(*currentObject));
+				shapeList.emplace_back(convertToCascade(*currentObject));
 			}
 			else
 			{
@@ -516,7 +513,7 @@ namespace CJT {
 				else
 				{
 					currentObject->setId(-1);
-					shapeList.emplace_back(getShape(*currentObject));
+					shapeList.emplace_back(convertToCascade(*currentObject));
 				}
 			}
 		}
@@ -524,7 +521,7 @@ namespace CJT {
 	}
 
 
-	GeoObject Kernel::convertShape(const TopoDS_Shape& shape, std::string lod)
+	GeoObject* Kernel::convertToJSON(const TopoDS_Shape& shape, std::string lod)
 	{
 		std::string geomType = "";
 		if (shape.ShapeType() == 2) { geomType = "Solid"; }
@@ -638,11 +635,11 @@ namespace CJT {
 		{
 			json solidCollection;
 			solidCollection.emplace_back(boundaries);
-			return GeoObject(solidCollection, lod, geomType);
+			return new GeoObject(solidCollection, lod, geomType);
 		}
 		if (geomType == "MultiSurface")
 		{
-			return GeoObject(boundaries, lod, geomType);
+			return new GeoObject(boundaries, lod, geomType);
 		}
 	}
 }
