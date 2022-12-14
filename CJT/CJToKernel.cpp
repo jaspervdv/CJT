@@ -129,7 +129,7 @@ namespace CJT {
 		}
 		return idx;
 	}
-	
+
 
 	std::vector<gp_Pnt> intPoint2GpPoint(const std::vector<int> &pointIdxList, const std::vector<CJTPoint> &cityVerts) {
 		std::vector<gp_Pnt> oPointList;
@@ -209,31 +209,73 @@ namespace CJT {
 	}
 
 
-	void EdgeCollection::computeNormal() // creates a unitvector for the face normal
+	void EdgeCollection::computeNormal(bool isInterior) // creates a unitvector for the face normal
 	{
 		std::vector<gp_Pnt> startPoints = getStartPoints();
 		gp_Pnt p1 = startPoints[0];
 		gp_Pnt p2 = startPoints[1];
 		gp_Pnt p3 = startPoints[2];
 
-		gp_Pnt pu = gp_Pnt(p2.X() - p1.X(), p2.Y() - p1.Y(), p2.Z() - p1.Z());
-		gp_Pnt pv = gp_Pnt(p3.X() - p1.X(), p3.Y() - p1.Y(), p3.Z() - p1.Z());
+		double bigArea = 0;
+		int backupIdx1 = 0;
+		int backupIdx2 = 0;
+		int backupIdx3 = 0;
+		bool found = false;
 
-		gp_Pnt normal =  gp_Pnt(
-			pu.Y() * pv.Z() - pu.Z() * pv.Y(),
-			pu.Z() * pv.X() - pu.X() * pv.Z(),
-			pu.X() * pv.Y() - pu.Y() * pv.X()
-		);
+		for (size_t i = 0; i < startPoints.size(); i++) //TODO change this to inner ring normal computation
+		{
+			p1 = startPoints[i];
 
-		double magnitude = std::pow(std::pow(normal.X(), 2) + std::pow(normal.Y(), 2) + std::pow(normal.Z(), 2), 0.5);
+			for (size_t j = 1; j < startPoints.size(); j++)
+			{
+				if (i >= j) { continue; }
+				p2 = startPoints[j];
+				for (size_t k = 2; k < startPoints.size(); k++)
+				{
+					if (j >= k) { continue; }
+
+					p3 = startPoints[k];
+					// compute area of the triangle
+					gp_Vec v1(p2.X() - p1.X(), p2.Y() - p1.Y(), p2.Z() - p1.Z());
+					gp_Vec v2(p3.X() - p1.X(), p3.Y() - p1.Y(), p3.Z() - p1.Z());
+					gp_Vec normal = v1.Crossed(v2);
+					double magnitude = normal.Magnitude();
+					double area = magnitude * 0.5;
+					if (area > 1)
+					{
+						normal_ = gp_Pnt(normal.X() / magnitude, normal.Y() / magnitude, normal.Z() / magnitude);
+						return;
+					}
+
+					if (area > bigArea)
+					{
+						bigArea = area;
+						backupIdx1 = i;
+						backupIdx2 = j;
+						backupIdx3 = k;
+					}
+				}
+			}
+		}
+
+
+		p2 = startPoints[backupIdx2];
+		p3 = startPoints[backupIdx3];
+
+		gp_Vec v1(p2.X() - p1.X(), p2.Y() - p1.Y(), p2.Z() - p1.Z());
+		gp_Vec v2(p3.X() - p1.X(), p3.Y() - p1.Y(), p3.Z() - p1.Z());
+		gp_Vec normal = v1.Crossed(v2);
+		double magnitude = normal.Magnitude();
+
 		normal_ = gp_Pnt(normal.X() / magnitude, normal.Y() / magnitude, normal.Z() / magnitude);
+		return;
 	}
 
-	void EdgeCollection::orderEdges(int idx)
+	void EdgeCollection::orderEdges()
 	{
 		int falsePresent = ring_.size();
-		Edge* startEdge = ring_[idx];
-		Edge* currentEdge = ring_[idx];
+		Edge* startEdge = ring_[0];
+		Edge* currentEdge = ring_[0];
 		std::vector<Edge*> cleanedList;
 		while (falsePresent != 0)
 		{
@@ -265,7 +307,7 @@ namespace CJT {
 				{
 					if (ring_[i] == currentEdge) { continue; }
 
-					if (isEqual(p2, ring_[i]->getStart())) // TODO add neighbours data
+					if (isEqual(p2, ring_[i]->getStart()))
 					{
 						currentEdge = ring_[i];
 						break;
@@ -319,13 +361,17 @@ namespace CJT {
 			{
 				avHeight += vertCollection[j].Z();
 			}
+			double average = avHeight / vertCollection.size();
 
-			if (height < avHeight)
+			if (height < average)
 			{
-				height = avHeight;
+				height = average;
 				highestCollectionIdx = i;
 			}
 		}
+
+		std::vector<gp_Pnt> vertCollection = edgeCollectionList[highestCollectionIdx]->getStartPoints();
+
 		return highestCollectionIdx;
 	}
 
@@ -338,6 +384,8 @@ namespace CJT {
 		stepIdx.emplace_back(startingIndx);
 		bool isFirst = true;
 
+		EdgeCollection* t = edgeCollectionList[startingIndx];
+		std::vector<Edge*> se = t->getAllEdges();
 		while (true)
 		{
 			std::vector<int> nextStep;
@@ -363,20 +411,22 @@ namespace CJT {
 					{
 						for (size_t k = 0; k < otherEdges.size(); k++)
 						{
-							if (isEqual(selfEdges[j]->getStart(), otherEdges[k]->getStart()) && isEqual(selfEdges[j]->getEnd(), otherEdges[k]->getEnd()))
+							if (selfEdges[j]->getStart().IsEqual(otherEdges[k]->getStart(),0.01) && selfEdges[j]->getEnd().IsEqual(otherEdges[k]->getEnd(), 0.01))
 							{
 								otherEdgeCollection->flipFace();
 								isFound = true;
 								nextStep.emplace_back(i);
 								processedIdx.emplace_back(i);
+								break;
 							}
-							else if (isEqual(selfEdges[j]->getStart(), otherEdges[k]->getEnd()) && isEqual(selfEdges[j]->getEnd(), otherEdges[k]->getStart())) {
+							else if (selfEdges[j]->getStart().IsEqual(otherEdges[k]->getEnd(), 0.01) && selfEdges[j]->getEnd().IsEqual(otherEdges[k]->getStart(), 0.01)) {
 								isFound = true;
 								nextStep.emplace_back(i);
 								processedIdx.emplace_back(i);
+								break;
 							}
-							if (isFound) { break; }
 						}
+						if (isFound) { break; }
 					}
 				}
 			}
@@ -473,7 +523,6 @@ namespace CJT {
 		if (geoObject.getType() == "MultiSurface" || !success)
 		{
 			TopoDS_Compound* shellShape = new TopoDS_Compound();
-			//brepBuilder.MakeShell(shellShape);
 			brepBuilder.MakeCompound(*shellShape);
 			brepSewer.Perform();
 			brepBuilder.Add(*shellShape, brepSewer.SewedShape());
@@ -526,6 +575,7 @@ namespace CJT {
 		std::string geomType = "";
 		if (shape.ShapeType() == 2) { geomType = "Solid"; }
 		else if (shape.ShapeType() == 3) { geomType = "MultiSurface"; }
+		else if (shape.ShapeType() == 0) { geomType = "MultiSurface"; }
 		else 
 		{ 
 			std::cout << "Kernel does not regonize geo type" << std::endl;
@@ -537,7 +587,55 @@ namespace CJT {
 		std::vector<TopoDS_Face> faceList;
 		std::vector<EdgeCollection*> edgeCollectionList;
 		TopExp_Explorer expl;
-		for (expl.Init(shape, TopAbs_FACE); expl.More(); expl.Next()) { faceList.emplace_back(TopoDS::Face(expl.Current())); } // TODO try brep function
+		BRepMesh_IncrementalMesh(shape, 0.001);
+
+		for (expl.Init(shape, TopAbs_FACE); expl.More(); expl.Next()) 
+		{ 
+			TopoDS_Face face = TopoDS::Face(expl.Current());
+			faceList.emplace_back(face);
+		} 
+
+		for (expl.Init(shape, TopAbs_FACE); expl.More(); expl.Next())
+		{
+			const TopoDS_Face& face = TopoDS::Face(expl.Current());
+			TopLoc_Location loc;
+			Handle(Poly_Triangulation) tri = BRep_Tool::Triangulation(face, loc);
+
+			if (tri.IsNull())
+			{
+				std::cout << "panic" << std::endl;
+				continue;
+			}
+
+			int counter = tri->NbTriangles();
+			for (int i = 0; i < counter; i++)
+			{
+				int idx = i + 1;
+				Poly_Triangle triangle = tri->Triangle(idx);
+
+				int n1, n2, n3;
+				triangle.Get(n1, n2, n3);
+
+				gp_Pnt p1 = tri->Node(n1).Transformed(loc);
+				gp_Pnt p2 = tri->Node(n2).Transformed(loc);
+				gp_Pnt p3 = tri->Node(n3).Transformed(loc);
+
+				gp_Pnt pc = gp_Pnt(
+					(p1.X() + p2.X() + p3.X()) / 3,
+					(p1.Y() + p2.Y() + p3.Y()) / 3,
+					(p1.Z() + p2.Z() + p3.Z()) / 3
+				);
+
+				auto ttt = BRepExtrema_DistShapeShape(face, BRepBuilderAPI_MakeVertex(pc));
+
+				if (ttt.Value() > 0.001)
+				{
+					continue;
+				}
+				///TODO remember
+			}
+		}
+		
 
 		for (size_t i = 0; i < faceList.size(); i++)
 		{
@@ -557,13 +655,14 @@ namespace CJT {
 				lP = p;
 				c++;
 			}
+			edgeCollection->setOriginalFace(faceList[i]);
 			edgeCollection->orderEdges();
 			edgeCollectionList.emplace_back(edgeCollection);
 		}
 
 		// find highest face
 		int highestCollectionIdx = findTopEdgeCollection(edgeCollectionList);
-		if (edgeCollectionList[highestCollectionIdx]->hasPositiveNormal()) { edgeCollectionList[highestCollectionIdx]->flipFace(); } // TODO find out why normal is reversed
+		if (!edgeCollectionList[highestCollectionIdx]->hasPositiveNormal()) { edgeCollectionList[highestCollectionIdx]->flipFace(); } // TODO find out why normal is reversed
 		correctFaceDirection(edgeCollectionList, highestCollectionIdx);
 
 
@@ -620,7 +719,7 @@ namespace CJT {
 						}
 					}
 				}
-				ShapeCollection.emplace_back(innerIdxList);
+				//ShapeCollection.emplace_back(innerIdxList);
 			}
 			boundaries.emplace_back(ShapeCollection);
 		}

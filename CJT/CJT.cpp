@@ -611,6 +611,15 @@ namespace CJT
 		hasAttributes_ = false;
 	}
 
+	void CityObject::addGeoObject(GeoObject* geom)
+	{
+		GeoObject* newGeo = new GeoObject();
+		*newGeo = *geom;
+
+		geometry_.emplace_back(newGeo);
+		hasGeo_ = true;
+	}
+
 	std::vector<GeoObject*> CityObject::getGeoObjects(std::string lod)
 	{
 		std::vector<GeoObject*> geoObjectList;
@@ -1149,7 +1158,6 @@ namespace CJT
 			std::cout << "Object Name not found" << std::endl;
 			return nullptr;
 		}
-
 		return cityObjects_[obName];
 	}
 	
@@ -1186,9 +1194,9 @@ namespace CJT
 		return cityObjectList;
 	}
 
-	void CityCollection::addCityObject(CityObject cityObject)
+	void CityCollection::addCityObject(CityObject* cityObject)
 	{
-		cityObjects_.emplace(cityObject.getName(), &cityObject);
+		cityObjects_.emplace(cityObject->getName(), cityObject);
 	}
 
 	MaterialObject CityCollection::getMaterial(int idx)

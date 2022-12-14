@@ -16,6 +16,10 @@
 #include <BRepBuilderAPI_Sewing.hxx>
 #include <BRep_Builder.hxx>
 #include <GC_MakePlane.hxx>
+#include <BRepMesh_IncrementalMesh.hxx>
+#include <BRepExtrema_DistShapeShape.hxx>
+#include <BRepBuilderAPI_MakeVertex.hxx>
+
 
 namespace CJT {
 	class Edge 
@@ -46,7 +50,7 @@ namespace CJT {
 		std::vector<Edge*> ring_;
 		std::vector<EdgeCollection*>  innerRingList_;
 		gp_Pnt normal_;
-
+		TopoDS_Face originalFace_;
 	public:
 		// @brief returns the Edge objects from the outer ring of the Edgecollection
 		std::vector<Edge*> getEdges() { return ring_; }
@@ -65,9 +69,11 @@ namespace CJT {
 		/// @brief gets the Edge object from all the rings of the collection
 		std::vector<Edge*> getAllEdges();
 		/// @bief computes the normal of the Edgecollection
-		void computeNormal();
+		void computeNormal(bool isInterior = false);
+		/// @brief sets the original face
+		void setOriginalFace(TopoDS_Face face) { originalFace_ = face; }
 		/// @brief orders the edges by connecting the Endpoint to the Startpoint of the next edge, creating an continuous loop
-		void orderEdges(int idx = 0);
+		void orderEdges();
 		/// @brief flips the normal/Edge order
 		void flipFace();
 	};

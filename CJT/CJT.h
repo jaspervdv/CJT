@@ -459,7 +459,7 @@ namespace CJT {
 		/// @brief returns true if object has geometry
 		bool hasGeo() { return hasGeo_; }
 		/// @brief adds geo object to the cityObject
-		void addGeoObject(GeoObject* geom) { geometry_.emplace_back(geom); hasGeo_ = true; }
+		void addGeoObject(GeoObject* geom);
 		/// @brief returns all geoObjects
 		std::vector<GeoObject*> getGeoObjects() { return geometry_; }
 		/// @brief returns all geoObjects with the supplied LoD
@@ -514,7 +514,7 @@ namespace CJT {
 		/// @brief returns cityObjects based on type
 		std::vector<CityObject*> getCityObjectTyped(std::string typeName);
 		/// @brief adds a cityObject to the collection
-		void addCityObject(CityObject cityObject);
+		void addCityObject(CityObject* cityObject);
 		/// @brief removes a cityObject from the collection
 		void removeCityObject(std::string obName);
 		/// @brief returns all materials
