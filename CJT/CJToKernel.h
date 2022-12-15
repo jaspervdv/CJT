@@ -49,8 +49,9 @@ namespace CJT {
 	private:
 		std::vector<Edge*> ring_;
 		std::vector<EdgeCollection*>  innerRingList_;
-		gp_Pnt normal_;
-		TopoDS_Face originalFace_;
+		gp_Vec normal_;
+		TopoDS_Face* originalFace_;
+		bool isInner_ = false;
 	public:
 		// @brief returns the Edge objects from the outer ring of the Edgecollection
 		std::vector<Edge*> getEdges() { return ring_; }
@@ -69,11 +70,15 @@ namespace CJT {
 		/// @brief gets the Edge object from all the rings of the collection
 		std::vector<Edge*> getAllEdges();
 		/// @bief computes the normal of the Edgecollection
-		void computeNormal(bool isInterior = false);
-		/// @breif get the normal
-		gp_Pnt getNormal() { return normal_; }
+		void computeNormal();
+		/// @brief get the normal
+		gp_Vec getNormal() { return normal_; }
+		/// @brief set if ring is inner ring
+		void setIsInner() { isInner_ = true; }
+		/// @brief get if ring is inner ring
+		bool isInner() { return isInner_; }
 		/// @brief sets the original face
-		void setOriginalFace(TopoDS_Face face) { originalFace_ = face; }
+		void setOriginalFace(TopoDS_Face* face) { originalFace_ = face;}
 		/// @brief orders the edges by connecting the Endpoint to the Startpoint of the next edge, creating an continuous loop
 		void orderEdges();
 		/// @brief flips the normal/Edge order
