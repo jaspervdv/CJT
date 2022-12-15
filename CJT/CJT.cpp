@@ -441,8 +441,10 @@ namespace CJT
 		if (referenceSystem_.size() > 0) { return true; };
 		if (title_.size() > 0) { return true; };
 		if (additionalData_.size() > 0) { return true; };
-		if (getPointOfContact() != nullptr) { return true; }
-
+		if (getPointOfContact() != nullptr) 
+		{	
+			if (!getPointOfContact()->getData().is_null()) { return true; }
+		}
 		return false;
 	}
 
@@ -1121,9 +1123,10 @@ namespace CJT
 		}
 
 		std::map<std::string, json> appearanceCollecton;
-		appearanceCollecton.emplace("materials", materialCollection);
-		appearanceCollecton.emplace("textures", textureCollection);
-		newFile.emplace("appearance", appearanceCollecton);
+
+		if (materialCollection.size() > 0) { appearanceCollecton.emplace("materials", materialCollection);}
+		if (textureCollection.size() > 0) { appearanceCollecton.emplace("textures", textureCollection); }
+		if (appearanceCollecton.size() > 0) { newFile.emplace("appearance", appearanceCollecton); }
 
 		std::ofstream fileLoc;
 
