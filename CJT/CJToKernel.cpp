@@ -241,7 +241,7 @@ namespace CJT {
 					gp_Vec normal = v1.Crossed(v2);
 					double magnitude = normal.Magnitude();
 					double area = magnitude * 0.5;
-					if (area > 1)
+					if (area > 10)
 					{
 						normal_ = gp_Pnt(normal.X() / magnitude, normal.Y() / magnitude, normal.Z() / magnitude);
 						return;
@@ -257,8 +257,6 @@ namespace CJT {
 				}
 			}
 		}
-
-
 		p2 = startPoints[backupIdx2];
 		p3 = startPoints[backupIdx3];
 
@@ -281,6 +279,7 @@ namespace CJT {
 		{
 			if (currentEdge->isProcessed())
 			{
+				break; // TODO remove
 				EdgeCollection* innerRing = new EdgeCollection;
 				for (size_t i = 0; i < ring_.size(); i++)
 				{
@@ -321,10 +320,10 @@ namespace CJT {
 				}
 			}	
 		}
-		computeNormal();
 		ring_ = cleanedList;
+		computeNormal();
 
-		if (innerRingList_.size() == 0) { return; }
+		/*if (innerRingList_.size() == 0) { return; }
 		for (size_t i = 0; i < innerRingList_.size(); i++)
 		{
 			gp_Pnt otherNormal = innerRingList_[i]->normal_;
@@ -332,7 +331,7 @@ namespace CJT {
 			{
 				innerRingList_[i]->flipFace();
 			}
-		}
+		}*/
 	}
 
 	void EdgeCollection::flipFace()
@@ -365,13 +364,17 @@ namespace CJT {
 
 			if (height < average)
 			{
-				height = average;
-				highestCollectionIdx = i;
+				double normalZ = edgeCollectionList[i]->getNormal().Z();
+
+				if (normalZ > 0.2 || normalZ < -0.2)
+				{
+					height = average;
+					highestCollectionIdx = i;
+				}
 			}
 		}
 
 		std::vector<gp_Pnt> vertCollection = edgeCollectionList[highestCollectionIdx]->getStartPoints();
-
 		return highestCollectionIdx;
 	}
 
@@ -662,7 +665,7 @@ namespace CJT {
 
 		// find highest face
 		int highestCollectionIdx = findTopEdgeCollection(edgeCollectionList);
-		if (!edgeCollectionList[highestCollectionIdx]->hasPositiveNormal()) { edgeCollectionList[highestCollectionIdx]->flipFace(); } // TODO find out why normal is reversed
+		if (!edgeCollectionList[highestCollectionIdx]->hasPositiveNormal()) {edgeCollectionList[highestCollectionIdx]->flipFace(); } // TODO find out why normal is reversed
 		correctFaceDirection(edgeCollectionList, highestCollectionIdx);
 
 

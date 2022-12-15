@@ -70,6 +70,8 @@ namespace CJT {
 		std::vector<Edge*> getAllEdges();
 		/// @bief computes the normal of the Edgecollection
 		void computeNormal(bool isInterior = false);
+		/// @breif get the normal
+		gp_Pnt getNormal() { return normal_; }
 		/// @brief sets the original face
 		void setOriginalFace(TopoDS_Face face) { originalFace_ = face; }
 		/// @brief orders the edges by connecting the Endpoint to the Startpoint of the next edge, creating an continuous loop
