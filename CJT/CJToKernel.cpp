@@ -42,7 +42,6 @@ namespace CJT {
 		bool isInt = false;
 
 		if (boundaries->begin().value().begin().value().is_number_integer()) { isInt = true; }
-
 		if (isInt)
 		{
 			IntFace intFace;
@@ -51,6 +50,7 @@ namespace CJT {
 			for (json::iterator ringItt = boundaries->begin(); ringItt != boundaries->end(); ++ringItt)
 			{
 				std::vector<int> surfaceIdx;
+				surfaceIdx.clear();
 				json* ring = &ringItt.value();
 				for (json::iterator intItt = ring->begin(); intItt != ring->end(); ++intItt)
 				{
@@ -62,7 +62,7 @@ namespace CJT {
 					intFace.outerRing_ = surfaceIdx;
 					ringCount++;
 				}
-				if (ringCount != 0)
+				else if (ringCount != 0)
 				{
 					intFace.innerRingList_.emplace_back(surfaceIdx);
 					intFace.hasInner_ = true;
@@ -279,11 +279,10 @@ namespace CJT {
 		{
 			if (currentEdge->isProcessed())
 			{
-				break; // TODO remove
 				EdgeCollection* innerRing = new EdgeCollection;
 				for (size_t i = 0; i < ring_.size(); i++)
 				{
-					if (!ring_[i]->isProcessed())
+					if (ring_[i]->isProcessed() == false)
 					{
 						Edge& tempEdge = *ring_[i];
 						innerRing->addEdge(&tempEdge);
@@ -323,7 +322,7 @@ namespace CJT {
 		ring_ = cleanedList;
 		computeNormal();
 
-		/*if (innerRingList_.size() == 0) { return; }
+		if (innerRingList_.size() == 0) { return; }
 		for (size_t i = 0; i < innerRingList_.size(); i++)
 		{
 			gp_Pnt otherNormal = innerRingList_[i]->normal_;
@@ -331,7 +330,7 @@ namespace CJT {
 			{
 				innerRingList_[i]->flipFace();
 			}
-		}*/
+		}
 	}
 
 	void EdgeCollection::flipFace()
@@ -639,7 +638,7 @@ namespace CJT {
 			}
 		}
 		
-
+		
 		for (size_t i = 0; i < faceList.size(); i++)
 		{
 			EdgeCollection* edgeCollection = new EdgeCollection;
@@ -722,7 +721,7 @@ namespace CJT {
 						}
 					}
 				}
-				//ShapeCollection.emplace_back(innerIdxList);
+				ShapeCollection.emplace_back(innerIdxList);
 			}
 			boundaries.emplace_back(ShapeCollection);
 		}
