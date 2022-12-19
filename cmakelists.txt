@@ -1,0 +1,32 @@
+cmake_minimum_required(VERSION 3.10)
+
+project("CJT")
+set(CMAKE_CXX_STANDARD 17)
+
+# OpenCascade
+find_package(OpenCASCADE REQUIRED)
+find_package(nlohmann_json CONFIG REQUIRED)
+
+include_directories ( SYSTEM ${OpenCASCADE_INCLUDE_DIR} ${nlohmann_json_INCLUDE_DIR})
+message(STATUS  ${nlohmann_json_INCLUDE_DIR})
+
+add_library(${PROJECT_NAME})
+
+target_sources(${PROJECT_NAME}
+    PRIVATE
+    CJT/CJT.h
+    CJT/CJT.cpp
+    CJT/CJToKernel.h
+    CJT/CJToKernel.cpp
+)
+
+foreach (LIB ${OpenCASCADE_LIBRARIES})
+  target_link_libraries(${PROJECT_NAME} debug ${OpenCASCADE_LIBRARY_DIR}d/${LIB}.lib)
+  target_link_libraries(${PROJECT_NAME} optimized ${OpenCASCADE_LIBRARY_DIR}/${LIB}.lib)
+endforeach()
+
+target_link_libraries(${PROJECT_NAME} nlohmann_json::nlohmann_json)
+
+# Adjust runtime environment
+set_property(TARGET ${PROJECT_NAME} PROPERTY VS_DEBUGGER_ENVIRONMENT "PATH=$<$<CONFIG:DEBUG>:${OpenCASCADE_BINARY_DIR}d>$<$<NOT:$<CONFIG:DEBUG>>:${OpenCASCADE_BINARY_DIR}>;%PATH%")
+
