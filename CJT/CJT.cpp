@@ -1,4 +1,4 @@
-#include "CJT.h"
+#include "inc/CJT.h"
 
 namespace CJT
 {

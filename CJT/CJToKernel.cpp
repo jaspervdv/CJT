@@ -1,5 +1,5 @@
-#include "CJT.h"
-#include "CJToKernel.h"
+#include "inc/CJT.h"
+#include "inc/CJToKernel.h"
 
 namespace CJT {
 
