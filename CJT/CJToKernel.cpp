@@ -403,20 +403,26 @@ namespace CJT {
 		{
 			if (currentEdge->isProcessed())
 			{
-				EdgeCollection* innerRing = new EdgeCollection;
-				innerRing->setOriginalFace(originalFace_);
-				for (size_t i = 0; i < ring_.size(); i++)
+				if (!isInner_)
 				{
-					if (ring_[i]->isProcessed() == false)
+					EdgeCollection* innerRing = new EdgeCollection;
+					innerRing->setOriginalFace(originalFace_);
+					for (size_t i = 0; i < ring_.size(); i++)
 					{
-						Edge& tempEdge = *ring_[i];
-						innerRing->addEdge(&tempEdge);
+						if (ring_[i]->isProcessed() == false)
+						{
+							Edge& tempEdge = *ring_[i];
+							innerRing->addEdge(&tempEdge);
+						}
 					}
+					innerRing->setIsInner();
+					innerRing->orderEdges();
+					addInnerRing(innerRing);
+					falsePresent = falsePresent - innerRing->getEdges().size();				
 				}
-				innerRing->setIsInner();
-				innerRing->orderEdges();
-				addInnerRing(innerRing);
-				falsePresent = falsePresent - innerRing->getEdges().size();
+				else {
+					break;
+				}
 			}
 
 			if (!currentEdge->isProcessed())
@@ -456,7 +462,7 @@ namespace CJT {
 			{
 				innerRingList_[i]->flipFace();
 			}
-		}
+		}	
 	}
 
 	void EdgeCollection::flipFace()
@@ -747,7 +753,6 @@ namespace CJT {
 			edgeCollection->orderEdges();
 			edgeCollectionList.emplace_back(edgeCollection);
 		}
-
 		// find highest face
 		int highestCollectionIdx = findTopEdgeCollection(edgeCollectionList);
 		if (!edgeCollectionList[highestCollectionIdx]->hasPositiveNormal()) {edgeCollectionList[highestCollectionIdx]->flipFace(); } // TODO find out why normal is reversed

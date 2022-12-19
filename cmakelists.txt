@@ -14,9 +14,9 @@ add_library(${PROJECT_NAME})
 
 target_sources(${PROJECT_NAME}
     PRIVATE
-    CJT/CJT.h
+    CJT/inc/CJT.h
     CJT/CJT.cpp
-    CJT/CJToKernel.h
+    CJT/inc/CJToKernel.h
     CJT/CJToKernel.cpp
 )
 
