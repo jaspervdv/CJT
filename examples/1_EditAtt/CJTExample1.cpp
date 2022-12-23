@@ -1,7 +1,7 @@
 #include <filesystem>
 #include <iostream>
 
-
+// Only CJT.h is required for the editing of attributes 
 #include <CJT.h>
 
 int main()
@@ -26,6 +26,14 @@ int main()
     CJT::CityObject* cityObject2 = collection.getCityObject("Building_2");
 
     /*
+    Names can be easily be changed with the setName() function.
+    The types can also be changed easily, make sure you look at the valid types in the standard: https://www.cityjson.org/spec
+    The libary does not validate the used types
+    */
+    cityObject1->setName("Bridge_Building_1");
+    cityObject1->setType("Bridge");
+
+    /*
     Attributes can be easily added with the addAttribute() function.
     In this case we set the key to "CJT Edited?" and the value associated with this key to "Yes!".
     Instead of two strings a std::pair can also be used
@@ -46,10 +54,41 @@ int main()
     collection.dumpJson(filepath + "/twobuildings_exported_1.city.json");
 
     /*
-    An attribute can be removed with the
+    An attribute can be removed with the removeAttribute() function
     */
     cityObject1->removeAttribute("CJT Edited?");
     collection.dumpJson(filepath + "/twobuildings_exported_2.city.json");
 
+    /*
+    A parent child relationship can be created with the addParent() or addChild() function. 
+    This will create the relationship in both the city object. 
+    In this case cityObject1 will receive cityObject2 as parent and cityObject2 will receive cityObject1 as child
+    */
+    cityObject1->addParent(cityObject2);
+    collection.dumpJson(filepath + "/twobuildings_exported_3.city.json");
+
+    /*
+    A parent child relation can be removed with the removeParent() or removeChild() function.
+    This will remove the relationship in both the city object.
+    In this case the child is removed from cityObject2 to show that cityObject1 also is updated even though the parent was originally added to cityObject1
+    */
+    cityObject2->removeChild(cityObject1);
+    collection.dumpJson(filepath + "/twobuildings_exported_4.city.json");
+
+    /*
+    Changing the LoD of a city object is slightly more challeging because the LoD is not a city object attribute but an attribute of a geometry object.
+    Every city object that has visable geometry has one, or more, geometry objects internalized.
+    These can be accessed with the getGeoObjects() function, this function als takes a variable, allowing for filtering of the the geoobjects based on their LoD
+    For every Geoobject the LoD can be easily edited with the setLoD() function
+    */
+    std::vector<CJT::GeoObject*> geoObjectList = cityObject1->getGeoObjects();
+
+    for (std::vector< CJT::GeoObject*>::iterator ptr = geoObjectList.begin(); ptr < geoObjectList.end(); ptr++)
+    {
+        CJT::GeoObject* geoObject = *ptr;
+        geoObject->setLoD("2.2");
+    }
+
+    collection.dumpJson(filepath + "/twobuildings_exported_5.city.json");
 }
 

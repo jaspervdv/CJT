@@ -376,6 +376,8 @@ namespace CJT {
 
 		/// @brief returns the LOD
 		std::string getLoD() { return lod_; }
+		/// @brief sets the LoD
+		void setLoD(std::string lod) { lod_ = lod; }
 		/// @brief returns the type of the geometry object
 		std::string getType() { return type_; }
 		/// @brief returns the boundaries of the geoObject in CityJSON format
@@ -433,11 +435,11 @@ namespace CJT {
 		/// @brief returns cityObject's name
 		std::string getName() { return name_; }
 		/// @brief set the name of the cityObject
-		std::string setName(std::string name) { name_ = name; }
+		void setName(std::string name) { name_ = name; }
 		/// @brief returns cityObject's type
 		std::string getType() { return type_; }
 		/// @brief set the type of the cityObject
-		std::string setType(std::string type) { type_ = type; }
+		void setType(std::string type) { type_ = type; }
 
 		/// @brief returns true if the cityobject has one or more attributes
 		bool hasAttributes() { return hasAttributes_; }
@@ -522,7 +524,7 @@ namespace CJT {
 		bool dumpJson(std::string filePath);
 
 		/// @brief returns all cityObjects
-		std::vector<CityObject*> getCityObject();
+		std::vector<CityObject*> getAllCityObject();
 		/// @brief returns cityObject based on name
 		CityObject* getCityObject(std::string obName);
 		/// @brief returns cityObjects based on name
