@@ -432,8 +432,12 @@ namespace CJT {
 
 		/// @brief returns cityObject's name
 		std::string getName() { return name_; }
+		/// @brief set the name of the cityObject
+		std::string setName(std::string name) { name_ = name; }
 		/// @brief returns cityObject's type
 		std::string getType() { return type_; }
+		/// @brief set the type of the cityObject
+		std::string setType(std::string type) { type_ = type; }
 
 		/// @brief returns true if the cityobject has one or more attributes
 		bool hasAttributes() { return hasAttributes_; }
@@ -445,10 +449,10 @@ namespace CJT {
 		
 		/// @brief adds an attribute to the cityObject
 		template <typename T>
-		void addAttribute(std::string key, T value);
+		void addAttribute(std::string key, T value, bool overwrite = false);
 		/// @brief adds multiple attributes of the same type to the cityObject
 		template <typename T>
-		void addAttribute(std::map<std::string, T> keyValueList);
+		void addAttribute(std::map<std::string, T> keyValueList, bool overwrite = false);
 		/// @brief removes attribute with given keyName
 		void removeAttribute(std::string keyName);
 		/// @brief removes attribute with given keyName
@@ -465,14 +469,26 @@ namespace CJT {
 		/// @brief returns all geoObjects with the supplied LoD
 		std::vector<GeoObject*> getGeoObjects(std::string lod);
 
-		/// @brief adds a parent relationship to the CityObject, second input is optional validation of name
-		void addParent(std::string parentName, CityCollection* citycoll = nullptr);
+		/// @brief adds parent child relationship to the CityObject, does also update the parentObject
+		void addParent(CityObject* parentObject);
+		/// @brief set the parent child relationships to the cityobject, does NOT update the parentObjects
+		void setParent(std::vector<std::string> parentNames);
+		/// @brief removes the parent chiled relationship from the CityObject, does also update the parentObject
+		void removeParent(CityObject* removeableObject);
 		/// @brief returns a list of all the parents
 		std::vector<std::string> getParents() { return parentList_; }
-		/// @brief adds a child reationship to the CityObject, second input is optional validation of name
-		void addChild(std::string childName, CityCollection* citycoll = nullptr);
+		/// @brief returns a list of all the parents
+		std::vector<std::string>* getParentsPtr() { return &parentList_; }
+		/// @brief adds a child parent relationship to the CityObject, does also update the childObject
+		void addChild(CityObject* childObject);
+		/// @brief set the child parent relationships to the cityobject, does NOT update the childObjects
+		void setChild(std::vector<std::string> childNames);
+		/// @brief removes the child parent relationship from the CityObject, does also update the childObject
+		void removeChild(CityObject* removeableObject);
 		/// @brief returns a list of all the children
 		std::vector<std::string> getChildren() { return childList_; }
+		/// @brief returns a list of all the children
+		std::vector<std::string>* getChildrenPtr() { return &childList_; }
 		/// @brief sets object geometry
 		void setGeo(std::vector<GeoObject*> geometry) { geometry_ = geometry; }
 	};
@@ -552,22 +568,27 @@ namespace CJT {
 	};
 
 	template<typename T>
-	inline void CityObject::addAttribute(std::string key, T value)
+	inline void CityObject::addAttribute(std::string key, T value, bool overwrite)
 	{
 		if (attributes_.contains(key))
 		{
-			std::cout << "key: " + key << " already in attributes of object " + name_ << std::endl;
-			return;
+			if (!overwrite)
+			{
+				std::cout << "key: " + key << " already in attributes of object " + name_ << std::endl;
+				return;
+			}
+			attributes_[key] = value;
+
 		}
 		attributes_.emplace(key, value);
 		hasAttributes_ = true;
 	}
 	template<typename T>
-	inline void CityObject::addAttribute(std::map<std::string, T> keyValueList)
+	inline void CityObject::addAttribute(std::map<std::string, T> keyValueList, bool overwrite)
 	{
 		for (auto pair = keyValueList.begin(); pair != keyValueList.end(); ++pair)
 		{			
-			addAttribute(pair->first, pair->second);
+			addAttribute(pair->first, pair->second, overwrite);
 		}
 	}
 }

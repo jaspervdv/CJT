@@ -70,6 +70,17 @@ namespace CJT
 		std::cout << "{" << x_ << ", " << y_ << ", " << z_ << "}" << std::endl;
 	}
 
+	int findIdxVector(std::vector<std::string> searchVector, std::string name) {
+		for (size_t i = 0; i < searchVector.size(); i++)
+		{
+			if (searchVector[i] == name)
+			{
+				return i;
+			}
+		}
+		return -1;
+	}
+
 	ObjectTransformation::ObjectTransformation(json* transformationJson)
 	{
 		auto scaler = transformationJson->at("scale");
@@ -636,60 +647,59 @@ namespace CJT
 		return geoObjectList;
 	}
 
-	void CityObject::addParent(std::string parentName, CityCollection* citycoll)
+	void CityObject::addParent(CityObject* parentObject)
 	{
-		bool found = true;
-		if (citycoll != nullptr)
-		{
-			found = false;
-			std::vector<CityObject*> cityObjectCollection = citycoll->getCityObject();
+		std::string parentName = parentObject->getName();
 
-			for (size_t i = 0; i < cityObjectCollection.size(); i++)
-			{
-				if (parentName == cityObjectCollection[i]->getName())
-				{
-					found = true;
-					break;
-				}
-			}
-		}
-
-		if (found)
-		{
+		if(std::find(parentList_.begin(), parentList_.end(), parentName) == parentList_.end()) {
 			parentList_.emplace_back(parentName);
-		}
-		else 
-		{
-			std::cout << "No object present with name: " + parentName << std::endl;
+			parentObject->childList_.emplace_back(getName());
 		}
 	}
 
-	void CityObject::addChild(std::string childName, CityCollection* citycoll)
+	void CityObject::setParent(std::vector<std::string> parentNames)
 	{
-		bool found = true;
-		if (citycoll != nullptr)
-		{
-			found = false;
-			std::vector<CityObject*> cityObjectCollection = citycoll->getCityObject();
+		parentList_ = parentNames;
+	}
 
-			for (size_t i = 0; i < cityObjectCollection.size(); i++)
-			{
-				if (childName == cityObjectCollection[i]->getName())
-				{
-					found = true;
-					break;
-				}
-			}
-		}
+	void CityObject::removeParent(CityObject* removeableObject)
+	{
+		std::string parentName = removeableObject->getName();
+		int loc = findIdxVector(parentList_, parentName);
+		if (loc != -1) { parentList_.erase(parentList_.begin() + loc); }
+		else { return; }
 
-		if (found)
-		{
-			childList_.emplace_back(childName);
+		std::vector<std::string>* otherChildList = removeableObject->getChildrenPtr();
+		loc = findIdxVector(*otherChildList, getName());
+		if (loc != -1) { otherChildList->erase(otherChildList->begin() + loc); }
+
+	}
+
+	void CityObject::addChild(CityObject* childObject)
+	{
+		std::string childName = childObject->getName();
+
+		if (std::find(childList_.begin(), childList_.end(), childName) == childList_.end()) {
+			childList_.emplace_back(childObject->getName());
+			childObject->parentList_.emplace_back(getName());
 		}
-		else
-		{
-			std::cout << "No object present with name: " + childName << std::endl;
-		}
+	}
+
+	void CityObject::setChild(std::vector<std::string> childNames)
+	{
+		childList_ = childNames;
+	}
+
+	void CityObject::removeChild(CityObject* removeableObject)
+	{
+		std::string childName = removeableObject->getName();
+		int loc = findIdxVector(childList_, childName);
+		if (loc != -1) { childList_.erase(childList_.begin() + loc); }
+		else { return; }
+
+		std::vector<std::string>* otherParentList = removeableObject->getParentsPtr();
+		loc = findIdxVector(*otherParentList, getName());
+		if (loc != -1) { otherParentList->erase(otherParentList->begin() + loc); }
 	}
 
 	std::vector<CJTPoint> CityCollection::fetchPoints(json* pointJson)
@@ -1143,7 +1153,7 @@ namespace CJT
 	}
 
 
-	std::vector<CityObject*> CityCollection::getCityObject()
+	std::vector<CityObject*> CityCollection::getAllCityObject()
 	{
 		std::vector<CityObject*> outputList;
 		for (std::pair<std::string, CityObject*> data : cityObjects_)
