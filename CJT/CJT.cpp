@@ -71,7 +71,7 @@ namespace CJT
 	}
 
 	int findIdxVector(std::vector<std::string> searchVector, std::string name) {
-		for (size_t i = 0; i < searchVector.size(); i++)
+		for (int i = 0; i < searchVector.size(); i++)
 		{
 			if (searchVector[i] == name)
 			{
@@ -224,7 +224,7 @@ namespace CJT
 		case CJT::PoC_type::individual:
 			return "individual";
 		case CJT::PoC_type::organization:
-			return "organizatiollln";
+			return "organization";
 		default:
 			return "none";
 		}
@@ -593,9 +593,12 @@ namespace CJT
 
 	CJTPoint metaDataObject::getExtend(int idx)
 	{
-		if (idx != 0 && idx != 1) { std::cout << "no point available with idx: " << idx << std::endl; }
-		else if (idx == 0) { return std::get<0>(geographicalExtent_); }
+		if (idx == 0) { return std::get<0>(geographicalExtent_); }
 		else if (idx == 1) { return std::get<1>(geographicalExtent_); }
+		else { 
+			std::cout << "no point available with idx: " << idx << std::endl; 
+			return CJTPoint(0, 0, 0);
+		}
 	}
 
 	bool metaDataObject::checkInfo()
@@ -1368,7 +1371,8 @@ namespace CJT
 
 	MaterialObject CityCollection::getMaterial(int idx)
 	{
-		if (appearance_.getMaterialSize() >= idx + 1)
+		int buffer = 1;
+		if (appearance_.getMaterialSize() >= idx + buffer)
 		{
 			return appearance_.getMaterial(idx);
 		}	
@@ -1396,7 +1400,7 @@ namespace CJT
 		int location = -1;
 		if (unique)
 		{
-			for (size_t i = 0; i < vertices_.size(); i++)
+			for (int i = 0; i < vertices_.size(); i++)
 			{
 				if (point == vertices_[i])
 				{
@@ -1407,7 +1411,7 @@ namespace CJT
 		}
 		if (location == -1)
 		{
-			location = vertices_.size();
+			location = static_cast<int>(vertices_.size());
 			vertices_.emplace_back(point);
 			return location;
 		}

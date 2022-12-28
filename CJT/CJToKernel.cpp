@@ -90,7 +90,7 @@ namespace CJT {
 
 		gp_Pnt basePoint = pointList[baseIdx];
 
-		for (size_t i = 0; i < pointList.size(); i++)
+		for (int i = 0; i < pointList.size(); i++)
 		{
 			if (i == idx){ continue; }
 			double localDistance = basePoint.Distance(pointList.at(i));
@@ -110,7 +110,7 @@ namespace CJT {
 		gp_Pnt p1 = pointList[p1Idx];
 		gp_Pnt p2 = pointList[p2Idx];
 
-		for (size_t i = 0; i < pointList.size(); i++)
+		for (int i = 0; i < pointList.size(); i++)
 		{
 			if (i == p1Idx || i == p2Idx){ continue; }
 
@@ -305,15 +305,15 @@ namespace CJT {
 		else if (isInner_ == true)
 		{
 			bool large = false;
-			for (size_t i = 0; i < startPoints.size(); i++) //TODO change this to inner ring normal computation
+			for (int i = 0; i < startPoints.size(); i++) //TODO change this to inner ring normal computation
 			{
 				p1 = startPoints[i];
 
-				for (size_t j = 1; j < startPoints.size(); j++)
+				for (int j = 1; j < startPoints.size(); j++)
 				{
 					if (i >= j) { continue; }
 					p2 = startPoints[j];
-					for (size_t k = 2; k < startPoints.size(); k++)
+					for (int k = 2; k < startPoints.size(); k++)
 					{
 						if (j >= k) { continue; }
 						p3 = startPoints[k];
@@ -395,7 +395,7 @@ namespace CJT {
 
 	void EdgeCollection::orderEdges()
 	{
-		int falsePresent = ring_.size();
+		int falsePresent = static_cast<int>(ring_.size());
 		Edge* startEdge = ring_[0];
 		Edge* currentEdge = ring_[0];
 		std::vector<Edge*> cleanedList;
@@ -418,7 +418,7 @@ namespace CJT {
 					innerRing->setIsInner();
 					innerRing->orderEdges();
 					addInnerRing(innerRing);
-					falsePresent = falsePresent - innerRing->getEdges().size();				
+					falsePresent = static_cast<int>(falsePresent - innerRing->getEdges().size());
 				}
 				else {
 					break;
@@ -483,7 +483,7 @@ namespace CJT {
 	{
 		int highestCollectionIdx = 0;
 		double height = -999999999;
-		for (size_t i = 0; i < edgeCollectionList.size(); i++)
+		for (int i = 0; i < edgeCollectionList.size(); i++)
 		{
 			std::vector<gp_Pnt> vertCollection = edgeCollectionList[i]->getStartPoints();
 			double avHeight = 0;
@@ -833,5 +833,7 @@ namespace CJT {
 		{
 			return new GeoObject(boundaries, lod, geomType);
 		}
+
+		return new GeoObject(boundaries, lod, geomType); // TODO: add more types
 	}
 }

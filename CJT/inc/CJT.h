@@ -15,6 +15,7 @@ namespace CJT {
 	// Forward Declaration
 	class CityCollection;
 
+	/// @brief enum class representing the possible building types
 	enum class Building_Type
 	{
 		none,
@@ -59,6 +60,7 @@ namespace CJT {
 		TunnelFurniture
 	};
 
+	/// @brief struct allowing for the translation from string to building types
 	struct Building_Type_Map : public std::map<std::string, Building_Type> // TODO: find an elegant solution for this 
 	{	
 		Building_Type_Map()
@@ -96,6 +98,7 @@ namespace CJT {
 		~Building_Type_Map() {}
 	};
 
+	/// @brief enum class representing the possible point of contact roles
 	enum class PoC_role 
 	{
 		none,
@@ -121,6 +124,7 @@ namespace CJT {
 		stakeholder
 	};
 
+	/// @brief struct allowing for the translation from string to point of contact roles
 	struct PoC_role_Map : public std::map<std::string, PoC_role>
 	{
 		PoC_role_Map()
@@ -150,6 +154,7 @@ namespace CJT {
 		~PoC_role_Map() {}
 	};
 
+	/// @brief enum class representing the possible point of contact types
 	enum class PoC_type
 	{
 		none,
@@ -157,6 +162,7 @@ namespace CJT {
 		organization
 	};
 
+	/// @brief struct allowing for the translation from string to point of contact types
 	struct PoC_type_Map : public std::map<std::string, PoC_type>
 	{
 		PoC_type_Map()
@@ -580,7 +586,7 @@ namespace CJT {
 		std::vector<std::string> childList_ = {};
 
 	public:
-		CityObject() {}
+		CityObject();
 
 		/// @brief construct a simple cityobject
 		CityObject
