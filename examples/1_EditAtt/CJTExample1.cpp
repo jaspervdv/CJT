@@ -31,7 +31,7 @@ int main()
     The libary does not validate the used types
     */
     cityObject1->setName("Bridge_Building_1");
-    cityObject1->setType("Bridge");
+    cityObject1->setType(CJT::Building_Type::Bridge);
 
     /*
     Attributes can be easily added with the addAttribute() function.

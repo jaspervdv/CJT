@@ -81,6 +81,159 @@ namespace CJT
 		return -1;
 	}
 
+
+	std::string buildingTypeToString(Building_Type bType) {
+		switch (bType)
+		{
+		case CJT::Building_Type::none:
+			return "none";
+		case CJT::Building_Type::Bridge:
+			return "Bridge";
+		case CJT::Building_Type::Building:
+			return "Building";
+		case CJT::Building_Type::CityFurniture:
+			return "CityFurniture";
+		case CJT::Building_Type::CityObjectGroup:
+			return "CityObjectGroup";
+		case CJT::Building_Type::LandUse:
+			return "LandUse";
+		case CJT::Building_Type::OtherConstruction:
+			return "OtherConstruction";
+		case CJT::Building_Type::PlantCover:
+			return "PlantCover";
+		case CJT::Building_Type::SolitaryVegetationObject:
+			return "SolitaryVegetationObject";
+		case CJT::Building_Type::TINRelief:
+			return "TINRelief";
+		case CJT::Building_Type::TransporationSquare:
+			return "TransporationSquare";
+		case CJT::Building_Type::Railway:
+			return "Railway";
+		case CJT::Building_Type::Road:
+			return "Road";
+		case CJT::Building_Type::Tunnel:
+			return "Tunnel";
+		case CJT::Building_Type::WaterBody:
+			return "WaterBody";
+		case CJT::Building_Type::Waterway:
+			return "Waterway";
+		case CJT::Building_Type::p_Extenstion:
+			return "+Extenstion";
+		case CJT::Building_Type::BridgePart:
+			return "BridgePart";
+		case CJT::Building_Type::BridgeInstallation:
+			return "BridgeInstallation";
+		case CJT::Building_Type::BridgeConstructiveElement:
+			return "BridgeConstructiveElement";
+		case CJT::Building_Type::BridgeRoom:
+			return "BridgeRoom";
+		case CJT::Building_Type::BridgeFurniture:
+			return "BridgeFurniture";
+		case CJT::Building_Type::BuildingPart:
+			return "BuildingPart";
+		case CJT::Building_Type::BuildingInstallation:
+			return "BuildingInstallation";
+		case CJT::Building_Type::BuildingConstructiveElement:
+			return "BuildingConstructiveElement";
+		case CJT::Building_Type::BuildingFurniture:
+			return "BuildingFurniture";
+		case CJT::Building_Type::BuildingStorey:
+			return "BuildingStorey";
+		case CJT::Building_Type::BuildingRoom:
+			return "BuildingRoom";
+		case CJT::Building_Type::BuildingUnit:
+			return "BuildingUnit";
+		case CJT::Building_Type::TunnelPart:
+			return "TunnelPart";
+		case CJT::Building_Type::TunnelInstallation:
+			return "TunnelInstallation";
+		case CJT::Building_Type::TunnelConstructiveElement:
+			return "TunnelConstructiveElement";
+		case CJT::Building_Type::TunnelHollowSpace:
+			return "TunnelHollowSpace";
+		case CJT::Building_Type::TunnelFurniture:
+			return "TunnelFurniture";
+		default:
+			return "none";
+		}
+	}
+
+	Building_Type stringToBuildingType(std::string stringType) {
+		return Building_Type_Map()[stringType];
+	}
+
+	std::string roleToString(PoC_role roleEnum) {
+		switch (roleEnum)
+		{
+		case CJT::PoC_role::none:
+			return "none";
+		case CJT::PoC_role::resourceProvider:
+			return "resourceProvider";
+		case CJT::PoC_role::custodian:
+			return "custodian";
+		case CJT::PoC_role::owner:
+			return "owner";
+		case CJT::PoC_role::user:
+			return "user";
+		case CJT::PoC_role::distributor:
+			return "distributor";
+		case CJT::PoC_role::originator:
+			return "originator";
+		case CJT::PoC_role::pointOfContact:
+			return "pointOfContact";
+		case CJT::PoC_role::principalInvestigator:
+			return "principalInvestigator";
+		case CJT::PoC_role::processor:
+			return "processor";
+		case CJT::PoC_role::publisher:
+			return "publisher";
+		case CJT::PoC_role::author:
+			return "author";
+		case CJT::PoC_role::sponsor:
+			return "sponsor";
+		case CJT::PoC_role::coauthor:
+			return "coauthor";
+		case CJT::PoC_role::collaborator:
+			return "collaborator";
+		case CJT::PoC_role::editor:
+			return "editor";
+		case CJT::PoC_role::mediator:
+			return "mediator";
+		case CJT::PoC_role::rightsHolder:
+			return "rightsHolder";
+		case CJT::PoC_role::contributor:
+			return "contributor";
+		case CJT::PoC_role::funder:
+			return "funder";
+		case CJT::PoC_role::stakeholder:
+			return "stakeholder";
+		default:
+			return "none";
+		}
+	}
+
+	PoC_role stringToPoCRole(std::string stringRole) {
+		return PoC_role_Map()[stringRole];
+	}
+
+	std::string	contactTypeToString(PoC_type roleType) {
+		switch (roleType)
+		{
+		case CJT::PoC_type::none:
+			return "none";
+		case CJT::PoC_type::individual:
+			return "individual";
+		case CJT::PoC_type::organization:
+			return "organizatiollln";
+		default:
+			return "none";
+		}
+	}
+
+	PoC_type stringToContactType(std::string stringType) {
+		return PoC_type_Map()[stringType];
+	}
+
 	ObjectTransformation::ObjectTransformation(json* transformationJson)
 	{
 		auto scaler = transformationJson->at("scale");
@@ -303,7 +456,7 @@ namespace CJT
 	}
 
 
-	PointOfContactObject::PointOfContactObject(std::string contactName, std::string contactType, std::string role, std::string phone, std::string website, std::string address)
+	PointOfContactObject::PointOfContactObject(std::string contactName, PoC_type contactType, PoC_role role, std::string phone, std::string website, std::string address)
 	{
 		contactName_ = contactName;
 		contactType_ = contactType;
@@ -320,7 +473,8 @@ namespace CJT
 			std::string k = obb.key();
 
 			if (k == "contactName") { contactName_ = obb.value(); }
-			else if (k == "contactType") { contactType_ = obb.value(); }
+			else if (k == "contactType") { contactType_ = stringToContactType(obb.value()); } // TODO: make less crash prone
+			else if (k == "contactType") { role_ = stringToPoCRole(obb.value()); }
 			else if (k == "phone") { phone_ = obb.value(); }
 			else if (k == "website") { website_ = obb.value(); }
 			else if (k == "address") { address_ = obb.value(); }
@@ -332,8 +486,8 @@ namespace CJT
 	{
 		json outputJson;
 		if (contactName_.size() != 0) { outputJson.emplace("contactName", contactName_); }
-		if (contactType_.size() != 0) { outputJson.emplace("contactType", contactType_); }
-		if (role_.size() != 0) { outputJson.emplace("role", role_); }
+		if (contactType_ != PoC_type::none) { outputJson.emplace("contactType", contactTypeToString(contactType_)); }
+		if (role_ != PoC_role::none) { outputJson.emplace("role", roleToString(role_)); }
 		if (phone_.size() != 0) { outputJson.emplace("phone", phone_); }
 		if (website_.size() != 0) { outputJson.emplace("website", website_); }
 		if (address_.size() != 0) { outputJson.emplace("address", address_); }
@@ -548,13 +702,13 @@ namespace CJT
 		return transformation;
 	}
 
-	CityObject::CityObject(std::string name, std::string type)
+	CityObject::CityObject(std::string name, Building_Type type)
 	{
 		name_ = name;
 		type_ = type;
 	}
 
-	CityObject::CityObject(std::string name, std::string type, json attributes, std::vector<std::string> parentList, std::vector<std::string> childList)
+	CityObject::CityObject(std::string name, Building_Type type, json attributes, std::vector<std::string> parentList, std::vector<std::string> childList)
 	{
 		name_ = name;
 		type_ = type;
@@ -733,7 +887,7 @@ namespace CJT
 
 			CityObject* CCityObject = new CityObject(
 				objectName, 
-				objectValue["type"],
+				stringToBuildingType(objectValue["type"]), //TODO: make less crash prone and more effective
 				attributes,
 				parents,
 				children
@@ -987,7 +1141,7 @@ namespace CJT
 		{
 			auto currentObject = cityObject.second;
 			std::string objectName = currentObject->getName();
-			std::string objectType = currentObject->getType();
+			std::string objectType = buildingTypeToString(currentObject->getType());
 			std::vector<GeoObject*> geoObjectList = currentObject->getGeoObjects();
 			std::map<std::string, json> cityObject;
 
@@ -1193,7 +1347,7 @@ namespace CJT
 		return cityObjectList;
 	}
 	
-	std::vector<CityObject*> CityCollection::getCityObjectTyped(std::string typeName)
+	std::vector<CityObject*> CityCollection::getCityObjectTyped(Building_Type typeName)
 	{
 		std::vector<CityObject*> cityObjectList;
 		for (auto obb = cityObjects_.begin(); obb != cityObjects_.end(); ++obb)

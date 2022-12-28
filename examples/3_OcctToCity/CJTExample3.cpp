@@ -50,7 +50,8 @@ int main()
 	*/
 	std::unique_ptr<CJT::PointOfContactObject> contactObject = std::make_unique<CJT::PointOfContactObject>();
 	contactObject->setConactName("User Name");
-	contactObject->setRole("user");
+	contactObject->setConactType(CJT::PoC_type::individual);
+	contactObject->setRole(CJT::PoC_role::user);
 	contactObject->setWebsite("https://github.com/jaspervdv/CJT");
 
 	metaData->setPointOfcContact(contactObject.get());
@@ -70,7 +71,7 @@ int main()
 	std::unique_ptr<CJT::CityObject> cityObject = std::make_unique<CJT::CityObject>();
 	cityObject->setName("Box");
 	cityObject->addGeoObject(geoObject);
-	cityObject->setType("Building");
+	cityObject->setType(CJT::Building_Type::Building);
 
 	/*
 	This city object can be added to the collection. and the collection can be dumped to a JSON.

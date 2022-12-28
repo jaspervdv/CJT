@@ -15,6 +15,159 @@ namespace CJT {
 	// Forward Declaration
 	class CityCollection;
 
+	enum class Building_Type
+	{
+		none,
+
+		// 1st level objects
+		Bridge = 1000,
+		Building,
+		CityFurniture,
+		CityObjectGroup,
+		LandUse,
+		OtherConstruction,
+		PlantCover,
+		SolitaryVegetationObject,
+		TINRelief,
+		TransporationSquare,
+		Railway,
+		Road,
+		Tunnel,
+		WaterBody,
+		Waterway,
+		p_Extenstion,
+
+		// 2nd level objects
+		BridgePart = 2000, //TODO: request parent when using 2nd lvl objects
+		BridgeInstallation,
+		BridgeConstructiveElement,
+		BridgeRoom,
+		BridgeFurniture,
+
+		BuildingPart,
+		BuildingInstallation,
+		BuildingConstructiveElement,
+		BuildingFurniture,
+		BuildingStorey,
+		BuildingRoom,
+		BuildingUnit,
+
+		TunnelPart,
+		TunnelInstallation,
+		TunnelConstructiveElement,
+		TunnelHollowSpace,
+		TunnelFurniture
+	};
+
+	struct Building_Type_Map : public std::map<std::string, Building_Type> // TODO: find an elegant solution for this 
+	{	
+		Building_Type_Map()
+		{
+			this->operator[]("none") = Building_Type::none;
+			this->operator[]("Bridge") = Building_Type::Bridge;
+			this->operator[]("Building") = Building_Type::Building;
+			this->operator[]("CityFurniture") = Building_Type::CityFurniture;
+			this->operator[]("CityObjectGroup") = Building_Type::CityObjectGroup;
+			this->operator[]("LandUse") = Building_Type::LandUse;
+			this->operator[]("OtherConstruction") = Building_Type::OtherConstruction;
+			this->operator[]("SolitaryVegetationObject") = Building_Type::SolitaryVegetationObject;
+			this->operator[]("TINRelief") = Building_Type::TINRelief;
+			this->operator[]("TransporationSquare") = Building_Type::TransporationSquare;
+			this->operator[]("Railway") = Building_Type::Railway;
+			this->operator[]("Road") = Building_Type::Road;
+			this->operator[]("Tunnel") = Building_Type::Tunnel;
+			this->operator[]("WaterBody") = Building_Type::WaterBody;
+			this->operator[]("Waterway") = Building_Type::Waterway;
+			this->operator[]("+Extenstion") = Building_Type::p_Extenstion;
+			this->operator[]("BridgePart") = Building_Type::BridgePart;
+			this->operator[]("BridgeInstallation") = Building_Type::BridgeInstallation;
+			this->operator[]("BridgeConstructiveElement") = Building_Type::BridgeConstructiveElement;
+			this->operator[]("BridgeRoom") = Building_Type::BridgeRoom;
+			this->operator[]("BridgeFurniture") = Building_Type::BridgeFurniture;
+			this->operator[]("BuildingStorey") = Building_Type::BuildingStorey;
+			this->operator[]("BuildingRoom") = Building_Type::BuildingRoom;
+			this->operator[]("BuildingUnit") = Building_Type::BuildingUnit;
+			this->operator[]("TunnelPart") = Building_Type::TunnelPart;
+			this->operator[]("TunnelInstallation") = Building_Type::TunnelInstallation;
+			this->operator[]("TunnelConstructiveElement") = Building_Type::TunnelConstructiveElement;
+			this->operator[]("TunnelHollowSpace") = Building_Type::TunnelHollowSpace;
+			this->operator[]("TunnelFurniture") = Building_Type::TunnelFurniture;
+		};
+		~Building_Type_Map() {}
+	};
+
+	enum class PoC_role 
+	{
+		none,
+		resourceProvider,
+		custodian,
+		owner,
+		user,
+		distributor,
+		originator,
+		pointOfContact,
+		principalInvestigator,
+		processor,
+		publisher,
+		author,
+		sponsor,
+		coauthor,
+		collaborator,
+		editor,
+		mediator,
+		rightsHolder,
+		contributor,
+		funder,
+		stakeholder
+	};
+
+	struct PoC_role_Map : public std::map<std::string, PoC_role>
+	{
+		PoC_role_Map()
+		{
+			this->operator[]("none") = PoC_role::none;
+			this->operator[]("resourceProvider") = PoC_role::resourceProvider;
+			this->operator[]("custodian") = PoC_role::custodian;
+			this->operator[]("owner") = PoC_role::owner;
+			this->operator[]("user") = PoC_role::user;
+			this->operator[]("distributor") = PoC_role::distributor;
+			this->operator[]("originator") = PoC_role::originator;
+			this->operator[]("pointOfContact") = PoC_role::pointOfContact;
+			this->operator[]("principalInvestigator") = PoC_role::principalInvestigator;
+			this->operator[]("processor") = PoC_role::processor;
+			this->operator[]("publisher") = PoC_role::publisher;
+			this->operator[]("author") = PoC_role::author;
+			this->operator[]("sponsor") = PoC_role::sponsor;
+			this->operator[]("coauthor") = PoC_role::coauthor;
+			this->operator[]("collaborator") = PoC_role::collaborator;
+			this->operator[]("editor") = PoC_role::editor;
+			this->operator[]("mediator") = PoC_role::mediator;
+			this->operator[]("rightsHolder") = PoC_role::rightsHolder;
+			this->operator[]("contributor") = PoC_role::contributor;
+			this->operator[]("funder") = PoC_role::funder;
+			this->operator[]("stakeholder") = PoC_role::stakeholder;
+		};
+		~PoC_role_Map() {}
+	};
+
+	enum class PoC_type
+	{
+		none,
+		individual,
+		organization
+	};
+
+	struct PoC_type_Map : public std::map<std::string, PoC_type>
+	{
+		PoC_type_Map()
+		{
+			this->operator[]("none") = PoC_type::none;
+			this->operator[]("individual") = PoC_type::individual;
+			this->operator[]("organization") = PoC_type::organization;
+		};
+		~PoC_type_Map() {}
+	};
+
 	class CJTPoint
 	{
 	private:
@@ -242,8 +395,8 @@ namespace CJT {
 	{
 	private:
 		std::string contactName_ = "";
-		std::string contactType_ = "";
-		std::string role_ = "";
+		PoC_type contactType_ = PoC_type::none;
+		PoC_role role_ = PoC_role::none;
 		std::string phone_ = "";
 		std::string website_ = "";
 		std::string address_ = "";
@@ -253,8 +406,8 @@ namespace CJT {
 
 		PointOfContactObject(
 			std::string contactName,
-			std::string contactType,
-			std::string role,
+			PoC_type contactType,
+			PoC_role role,
 			std::string phone,
 			std::string website,
 			std::string address
@@ -269,13 +422,13 @@ namespace CJT {
 		/// @brief sets the contactNama data
 		void setConactName(std::string contactName) { contactName_ = contactName; }
 		/// @brief returns contactType data
-		std::string getContactType() { return contactType_; }
+		PoC_type getContactType() { return contactType_; }
 		/// @brief sets the conactType data
-		void setConactType(std::string contactType) { contactType_ = contactType; }
+		void setConactType(PoC_type contactType) { contactType_ = contactType; }
 		/// @brief returns role data
-		std::string getRole() { return role_; }
+		PoC_role getRole() { return role_; }
 		/// @brief set role data
-		void setRole(std::string role) { role_ = role; }
+		void setRole(PoC_role role) { role_ = role; }
 		/// @brief returns phone data
 		std::string getPhone() { return phone_; }
 		/// @brief set phone data
@@ -413,7 +566,7 @@ namespace CJT {
 	{
 	private:
 		std::string name_;
-		std::string type_;
+		Building_Type type_;
 
 		std::vector<GeoObject*> geometry_;
 
@@ -433,14 +586,14 @@ namespace CJT {
 		CityObject
 		(
 			std::string name,
-			std::string type
+			Building_Type type
 		);
 
 		/// @brief construct a cityobject 
 		CityObject
 		(
 			std::string name,
-			std::string type,
+			Building_Type type,
 			json attributes,
 			std::vector<std::string> parentList,
 			std::vector<std::string> childList
@@ -451,9 +604,11 @@ namespace CJT {
 		/// @brief set the name of the cityObject
 		void setName(std::string name) { name_ = name; }
 		/// @brief returns cityObject's type
-		std::string getType() { return type_; }
+		Building_Type getType() { return type_; }
+		/// @brief returns a cityObject's type as string
+		std::string getTypeString();
 		/// @brief set the type of the cityObject
-		void setType(std::string type) { type_ = type; }
+		void setType(Building_Type type) { type_ = type; }
 
 		/// @brief returns true if the cityobject has one or more attributes
 		bool hasAttributes() { return hasAttributes_; }
@@ -544,7 +699,7 @@ namespace CJT {
 		/// @brief returns cityObjects based on name
 		std::vector<CityObject*> getCityObject(std::vector<std::string> obNameList);
 		/// @brief returns cityObjects based on type
-		std::vector<CityObject*> getCityObjectTyped(std::string typeName);
+		std::vector<CityObject*> getCityObjectTyped(Building_Type typeName);
 		/// @brief adds a cityObject to the collection
 		void addCityObject(CityObject* cityObject);
 		/// @brief removes a cityObject from the collection
