@@ -69,6 +69,8 @@ namespace CJT {
 
 		/// @brief returns an array for size 3 representing the translation
 		double* getTranslation();
+		/// @brief set the translation of the transformation
+		void setTranslation(double x, double y, double z) { xTrans_ = x; yTrans_ = y; zTrans_ = z; };
 		/// @brief returns an array for size 3 representing the scaling
 		double* getScale();
 	};
@@ -264,16 +266,28 @@ namespace CJT {
 		json getData();
 		/// @brief returns contactName data
 		std::string getContactName() { return contactName_; }
+		/// @brief sets the contactNama data
+		void setConactName(std::string contactName) { contactName_ = contactName; }
 		/// @brief returns contactType data
 		std::string getContactType() { return contactType_; }
+		/// @brief sets the conactType data
+		void setConactType(std::string contactType) { contactType_ = contactType; }
 		/// @brief returns role data
 		std::string getRole() { return role_; }
+		/// @brief set role data
+		void setRole(std::string role) { role_ = role; }
 		/// @brief returns phone data
 		std::string getPhone() { return phone_; }
+		/// @brief set phone data
+		void setPhone(std::string phoneNr) { phone_ = phoneNr; }
 		/// @brief returns website data
 		std::string getWebsite() { return website_; }
+		/// @brief set website data
+		void setWebsite(std::string url) { website_ = url; }
 		/// @brief returns address data
 		std::string getAddress() { return address_; }
+		/// @brief set address data
+		void setAddress(std::string address) { address_ = address; }
 		/// @brief returns additional stored data
 		json getAdditionalData() { return additionalData_; }
 	};
@@ -503,8 +517,8 @@ namespace CJT {
 		std::vector<CJTPoint> vertices_;
 		std::string version_ = "";
 
-		metaDataObject metaData_;
-		ObjectTransformation objectTransformation_;
+		metaDataObject* metaData_;
+		ObjectTransformation objectTransformation_= ObjectTransformation(1);
 		AppearanceObject appearance_;
 
 		bool isSilent_ = true;
@@ -545,6 +559,11 @@ namespace CJT {
 		/// @brief returns all the textures
 		std::vector<TextureObject> getTextures() { return appearance_.getTexures(); }
  
+		/// @brief get version
+		std::string getVersion() { return version_; }
+		/// @brief set version
+		void setVersion(std::string version) { version_ = version; }
+
 		/// @brief returns all the vertices that are in the collection
 		std::vector<CJTPoint> getVerices();
 		/// @brief adds a vertex to the collection, returns idx location where point is placed
@@ -559,9 +578,14 @@ namespace CJT {
 		void CleanVertices();
 
 		/// @brief returns the full metadata
-		metaDataObject* getMetaData() { return &metaData_; }
-			
-		bool setMetaData(metaDataObject metaData) { metaData_ = metaData; }
+		metaDataObject* getMetaData() { return metaData_; }
+		/// @brief sets the metadata of the collection
+		void setMetaData(metaDataObject* metaData) { metaData_ = metaData; }
+
+		/// @brief returns the transformation of the collection
+		ObjectTransformation getTransformation() { return objectTransformation_; }
+		/// @brief sets the transfomation object of the collection
+		void setTransformation(ObjectTransformation transformation) { objectTransformation_ = transformation; }
 
 		/// @brief returns object to stop printing information about processes
 		void silence() { isSilent_ = true; }

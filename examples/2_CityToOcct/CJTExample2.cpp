@@ -5,7 +5,7 @@
 // CJT.h is required for the reading of CityJSON data and the editing of attributes 
 #include <CJT.h>
 
-/// CJToKernel is required for the conversion between the CityJSON format and the OpenCASCADE format
+// CJToKernel is required for the conversion between the CityJSON format and the OpenCASCADE format
 #include <CJToKernel.h>
 
 int main()

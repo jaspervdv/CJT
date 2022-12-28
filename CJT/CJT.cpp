@@ -903,7 +903,7 @@ namespace CJT
 
 
 		version_ = completeData["version"];
-		metaData_ = metaDataObject(completeData["metadata"]);
+		metaData_ = new metaDataObject(completeData["metadata"]);
 
 		if (!isSilent_)
 		{
@@ -936,9 +936,9 @@ namespace CJT
 		newFile.emplace(fileType);
 		newFile.emplace(version);
 
-		if (metaData_.checkInfo())
+		if (metaData_->checkInfo())
 		{
-			newFile.emplace("metadata", metaData_.getData());
+			newFile.emplace("metadata", metaData_->getData());
 		}
 
 		// transformation data collection
