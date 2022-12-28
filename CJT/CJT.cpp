@@ -705,6 +705,12 @@ namespace CJT
 		return transformation;
 	}
 
+	CityObject::CityObject()
+	{
+		name_ = "";
+		type_ = Building_Type::none;
+	}
+
 	CityObject::CityObject(std::string name, Building_Type type)
 	{
 		name_ = name;
