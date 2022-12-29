@@ -4,6 +4,9 @@ cmake_minimum_required (VERSION 3.0.0 FATAL_ERROR)
 project (CJTExample1 CXX)
 set(CMAKE_CXX_STANDARD 17)
 
+#nhollman
+find_package(nlohmann_json REQUIRED)
+
 # Tbb
 find_package(tbb REQUIRED NO_DEFAULT_PATH)
 
@@ -32,6 +35,7 @@ add_executable (${CMAKE_PROJECT_NAME}
 # Add linker options
 target_link_libraries(${CMAKE_PROJECT_NAME}
 CJT
+nlohmann_json::nlohmann_json
 )
 
 foreach (LIB ${OpenCASCADE_LIBRARIES})
