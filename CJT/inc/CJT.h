@@ -559,8 +559,26 @@ namespace CJT {
 		void setBoundaries(json boundaries) { boundaries_ = boundaries; }
 		/// @brief returns the surface data in CityJSON fomat
 		json getSurfaceData() { return surfaceData_; }
+		/// @brief clears the surface data objects, if clearTypes - true, also the type values will be cleared
+		void clearSurfaceData(bool clearTypes = false);
+		/// @brief adds surface data to geoObject
+		void appendSurfaceData(std::map<std::string, std::string> surfaceData);
+		/// @brief adds surface data to geoObject
+		void appendSurfaceData(std::map <std::string, int> surfaceData);
+		/// @brief adds surface data to geoObject
+		void appendSurfaceData(std::map <std::string, double> surfaceData);
+		/// @brief replaces surface data
+		void setSurfaceData(std::vector<json> surfaceData);
+		/// @brief replaces surface data
+		void setSurfaceData(json);
 		/// @brief returns the surface values in CityJSON format
 		json getSurfaceTypeValues() { return surfaceTypeValues_; }
+		/// @brief set the surface value at a certain indx
+		void setSurfaceTypeValue(int idx, int ref);
+		/// @brief set the surface values
+		void setSurfaceTypeValues(std::vector<int> references);
+		/// @brief append a Surface Type value to the list
+		void appendSurfaceTypeValue(int ref);
 		/// @brief returns the id
 		int getId() { return id_; }
 		/// @brief sets the id

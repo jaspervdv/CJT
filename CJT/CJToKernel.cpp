@@ -483,25 +483,35 @@ namespace CJT {
 	{
 		int highestCollectionIdx = 0;
 		double height = -999999999;
+		double count = 0;
 		for (int i = 0; i < edgeCollectionList.size(); i++)
 		{
+			double tempCount = 0;
+			double currentHeight = -999999999;
 			std::vector<gp_Pnt> vertCollection = edgeCollectionList[i]->getStartPoints();
-			double avHeight = 0;
 			for (size_t j = 0; j < vertCollection.size(); j++)
 			{
-				avHeight += vertCollection[j].Z();
-			}
-			double average = avHeight / vertCollection.size();
-
-			if (height < average)
-			{
-				double normalZ = edgeCollectionList[i]->getNormal().Z();
-
-				if (normalZ > 0.2 || normalZ < -0.2)
+				if (currentHeight < vertCollection[j].Z())
 				{
-					height = average;
-					highestCollectionIdx = i;
+					currentHeight = vertCollection[j].Z();
+					tempCount = 0;
 				}
+				if (abs(currentHeight - vertCollection[j].Z()) < 1e-6)
+				{
+					tempCount++;
+				}
+			}
+
+			if (currentHeight > height)
+			{
+				height = currentHeight;
+				count = tempCount;
+				highestCollectionIdx = i;
+			}
+			else if (abs(currentHeight - height) < 1e-6 && tempCount > count)
+			{
+				count = tempCount;
+				highestCollectionIdx = i;
 			}
 		}
 
@@ -708,7 +718,7 @@ namespace CJT {
 	{
 		std::string geomType = "";
 		if (shape.ShapeType() == 2) { geomType = "Solid"; }
-		else if (shape.ShapeType() == 3) { geomType = "MultiSurface"; }
+		else if (shape.ShapeType() == 3 || shape.ShapeType() == 4) { geomType = "MultiSurface"; }
 		else if (shape.ShapeType() == 0) { geomType = "MultiSurface"; }
 		else 
 		{ 

@@ -676,6 +676,65 @@ namespace CJT
 	}
 
 
+	void GeoObject::clearSurfaceData(bool clearTypes) {
+		surfaceData_.clear();
+		if (!clearTypes) { return; }
+		surfaceTypeValues_.clear();
+	}
+
+	void GeoObject::appendSurfaceData(std::map<std::string, std::string> surfaceData) {
+		surfaceData_.emplace_back(surfaceData);
+	}
+
+	void GeoObject::appendSurfaceData(std::map<std::string, int> surfaceData) {
+		surfaceData_.emplace_back(surfaceData);
+	}
+
+	void GeoObject::appendSurfaceData(std::map<std::string, double> surfaceData) {
+		surfaceData_.emplace_back(surfaceData);
+	}
+
+	void GeoObject::setSurfaceTypeValue(int idx, int ref) {
+		if (type_ == "Solid")
+		{
+			if (surfaceTypeValues_[0].size() <= idx ) { return; }
+			surfaceTypeValues_[0][idx] = ref;
+			return;
+		}
+		
+		if (surfaceTypeValues_.size() < idx - 1) { return; }
+		surfaceTypeValues_[idx] = ref;
+	}
+
+
+	void GeoObject::setSurfaceTypeValues(std::vector<int> references) {
+		if (type_ == "Solid")
+		{
+			if (surfaceTypeValues_.size() == 0)
+			{
+				surfaceTypeValues_.emplace_back(json());
+			}
+			surfaceTypeValues_[0] = references;
+		}
+		else {
+			surfaceTypeValues_ = references;
+		}
+	}
+
+	void GeoObject::appendSurfaceTypeValue(int ref) {
+		if (type_ == "Solid")
+		{
+			if (surfaceTypeValues_.size() == 0)
+			{
+				surfaceTypeValues_.emplace_back(json());
+			}
+			surfaceTypeValues_[0].emplace_back(ref);
+		}
+		else {
+			surfaceTypeValues_.emplace_back(ref);
+		}
+	}
+
 
 	bool CityCollection::isValid(json jsonData) {
 		// TODO add validator library
@@ -1639,5 +1698,7 @@ namespace CJT
 	{
 		cullUnreferencedVerices();
 		cullDuplicatedVerices();
-	}//*/
+	}
+
+	//*/
 }
