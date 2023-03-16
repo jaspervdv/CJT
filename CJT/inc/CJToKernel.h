@@ -19,6 +19,9 @@
 #include <BRepMesh_IncrementalMesh.hxx>
 #include <BRepExtrema_DistShapeShape.hxx>
 #include <BRepBuilderAPI_MakeVertex.hxx>
+#include <IntCurvesFace_Intersector.hxx>
+#include <GProp_GProps.hxx>
+#include <BRepGProp.hxx>
 
 
 namespace CJT {
@@ -49,7 +52,7 @@ namespace CJT {
 	private:
 		std::vector<Edge*> ring_;
 		std::vector<EdgeCollection*>  innerRingList_;
-		gp_Vec normal_;
+		gp_Vec normal_ = gp_Vec(0,0,1);
 		TopoDS_Face* originalFace_;
 		bool isInner_ = false;
 	public:
@@ -79,6 +82,8 @@ namespace CJT {
 		bool isInner() { return isInner_; }
 		/// @brief sets the original face
 		void setOriginalFace(TopoDS_Face* face) { originalFace_ = face;}
+		/// @brief get the original face geometry
+		TopoDS_Face& getOriginalFace() { return *originalFace_; }
 		/// @brief orders the edges by connecting the Endpoint to the Startpoint of the next edge, creating an continuous loop
 		void orderEdges();
 		/// @brief flips the normal/Edge order
@@ -93,7 +98,9 @@ namespace CJT {
 		CityCollection* cityCollection_;
 
 		int findTopEdgeCollection(std::vector<EdgeCollection*> edgeCollectionList);
-		void correctFaceDirection(std::vector<EdgeCollection*> edgeCollectionList, int startingIndx);
+		int countNormalIntersections(EdgeCollection& currentCollection, std::vector<EdgeCollection*> edgeCollectionList);
+
+		void correctFaceDirection(std::vector<EdgeCollection*> edgeCollectionList);
 		bool checkIfInit();
 
 	public:

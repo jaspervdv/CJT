@@ -15,6 +15,30 @@ namespace CJT {
 	}
 
 
+	void printFaces(TopoDS_Shape shape)
+	{
+		//std::cout << "Shape:" << std::endl;
+		std::vector<TopoDS_Face> faceList;
+
+		TopExp_Explorer expl;
+		for (expl.Init(shape, TopAbs_FACE); expl.More(); expl.Next())
+		{
+			faceList.emplace_back(TopoDS::Face(expl.Current()));
+		}
+
+		for (size_t i = 0; i < faceList.size(); i++)
+		{
+			std::cout << "new" << std::endl;
+			for (expl.Init(faceList[i], TopAbs_VERTEX); expl.More(); expl.Next())
+			{
+				TopoDS_Vertex vertex = TopoDS::Vertex(expl.Current());
+				gp_Pnt p = BRep_Tool::Pnt(vertex);
+				printPoint(p);
+			}
+		}
+		//std::cout << std::endl;
+	}
+
 	bool isEqual(gp_Pnt p1, gp_Pnt p2) {
 		if (p1.X() == p2.X() && p1.Y() == p2.Y() && p1.Z() == p2.Z()) // TODO add uncertainty 
 		{
@@ -131,8 +155,8 @@ namespace CJT {
 	}
 
 	gp_Vec calculateNormal(gp_Pnt p1, gp_Pnt p2, gp_Pnt p3, bool normalize = false) {
-		gp_Vec v1(p2.X() - p1.X(), p2.Y() - p1.Y(), p2.Z() - p1.Z());
-		gp_Vec v2(p3.X() - p1.X(), p3.Y() - p1.Y(), p3.Z() - p1.Z());
+		gp_Vec v1(p2, p1);
+		gp_Vec v2(p3, p1);
 		gp_Vec normal = v1.Crossed(v2);
 
 		if (normalize)
@@ -278,7 +302,6 @@ namespace CJT {
 
 				double distance = BRepExtrema_DistShapeShape(*originalFace_, BRepBuilderAPI_MakeVertex(pc)).Value();
 				if (distance > 0.001) { continue; }
-
 				for (size_t j = 0; j < ring_.size(); j++)
 				{
 					Edge* edge = ring_[j];
@@ -300,7 +323,10 @@ namespace CJT {
 						return;
 					}
 				}
+
 			}
+			std::cout << "not found" << std::endl;
+			//TODO: find a fix when there is no normal found
 		}
 		else if (isInner_ == true)
 		{
@@ -515,67 +541,125 @@ namespace CJT {
 			}
 		}
 
+		int test = countNormalIntersections(*edgeCollectionList[0], edgeCollectionList);
+
 		std::vector<gp_Pnt> vertCollection = edgeCollectionList[highestCollectionIdx]->getStartPoints();
 		return highestCollectionIdx;
 	}
 
-	void Kernel::correctFaceDirection(std::vector<EdgeCollection*> edgeCollectionList, int startingIndx)
+	int Kernel::countNormalIntersections(EdgeCollection& currentCollection, std::vector<EdgeCollection*> edgeCollectionList)
 	{
-		// set starting info
-		std::vector<int> processedIdx;
-		std::vector<int> stepIdx;
-		processedIdx.emplace_back(startingIndx);
-		stepIdx.emplace_back(startingIndx);
-		bool isFirst = true;
+		if (currentCollection.isInner()) { return -1; }
 
-		EdgeCollection* t = edgeCollectionList[startingIndx];
-		std::vector<Edge*> se = t->getAllEdges();
-		while (true)
-		{
-			std::vector<int> nextStep;
-			nextStep.clear();
+		// get a point on the surface face
+		TopoDS_Face currentface = currentCollection.getOriginalFace();
+		gp_Vec normal = currentCollection.getNormal();
 
-			for (size_t st = 0; st < stepIdx.size(); st++)
-			{
-				// get all edges of self
-				EdgeCollection* currentCollection = edgeCollectionList[stepIdx[st]];
-				std::vector<Edge*> selfEdges = currentCollection->getAllEdges();
+		int maxGuesses = 33;
 
-				// find neighbours
-				for (size_t i = 0; i < edgeCollectionList.size(); i++)
+		gp_Pnt lll(999999, 999999, 999999);
+		gp_Pnt urr(-999999, -999999, -999999);
+
+		for (TopExp_Explorer vertexExp(currentface, TopAbs_VERTEX); vertexExp.More(); vertexExp.Next()) {
+			TopoDS_Vertex vertex = TopoDS::Vertex(vertexExp.Current());
+			gp_Pnt p = BRep_Tool::Pnt(vertex);
+			if (p.X() < lll.X()) { lll.SetX(p.X()); }
+			if (p.Y() < lll.Y()) { lll.SetY(p.Y()); }
+			if (p.Z() < lll.Z()) { lll.SetZ(p.Z()); }
+			if (p.X() > urr.X()) { urr.SetX(p.X()); }
+			if (p.Y() > urr.Y()) { urr.SetY(p.Y()); }
+			if (p.Z() > urr.Z()) { urr.SetZ(p.Z()); }
+		}
+		// Generate a random point on the face
+		std::random_device rd;
+		std::mt19937 gen(rd());
+
+		std::uniform_real_distribution<> xDistr(lll.X(), urr.X());
+		std::uniform_real_distribution<> yDistr(lll.Y(), urr.Y());
+		std::uniform_real_distribution<> zDistr(lll.Z(), urr.Z());
+
+		gp_Pnt randomPoint;
+		bool isOnFace = false;
+		int itt = 0;
+		while (!isOnFace) {
+			randomPoint.SetXYZ(gp_XYZ(xDistr(gen), yDistr(gen), zDistr(gen)));
+
+			BRepExtrema_DistShapeShape distanceCalc(currentface, BRepBuilderAPI_MakeVertex(randomPoint));
+			distanceCalc.Perform();
+
+			randomPoint = distanceCalc.PointOnShape1(1);
+			isOnFace = true;
+
+			for (TopExp_Explorer wireExp(currentface, TopAbs_WIRE); wireExp.More(); wireExp.Next()) {
+				TopoDS_Wire theWire = TopoDS::Wire(wireExp.Current());
+
+				BRepExtrema_DistShapeShape distanceWireCalc(theWire, BRepBuilderAPI_MakeVertex(randomPoint));
+				distanceWireCalc.Perform();
+
+				if (distanceWireCalc.Value() < 0.01)
 				{
-					if (std::count(processedIdx.begin(), processedIdx.end(), i)) { continue; } // pass if self or already processed
-
-					// get all edges of the potental neighbour
-					EdgeCollection* otherEdgeCollection = edgeCollectionList[i];
-					std::vector<Edge*> otherEdges = otherEdgeCollection->getAllEdges();
-					bool isFound = false;
-
-					for (size_t j = 0; j < selfEdges.size(); j++)
-					{
-						for (size_t k = 0; k < otherEdges.size(); k++)
-						{
-							if (selfEdges[j]->getStart().IsEqual(otherEdges[k]->getStart(),0.01) && selfEdges[j]->getEnd().IsEqual(otherEdges[k]->getEnd(), 0.01))
-							{
-								otherEdgeCollection->flipFace();
-								isFound = true;
-								nextStep.emplace_back(i);
-								processedIdx.emplace_back(i);
-								break;
-							}
-							else if (selfEdges[j]->getStart().IsEqual(otherEdges[k]->getEnd(), 0.01) && selfEdges[j]->getEnd().IsEqual(otherEdges[k]->getStart(), 0.01)) {
-								isFound = true;
-								nextStep.emplace_back(i);
-								processedIdx.emplace_back(i);
-								break;
-							}
-						}
-						if (isFound) { break; }
-					}
+					isOnFace = false;
 				}
 			}
-			if (nextStep.size() == 0) { break; }
-			stepIdx = nextStep;
+			if (itt == maxGuesses) { break; } // TODO: prevent hitting this
+			itt++;
+		}
+
+		int intersectionCount = 0;
+		if (normal.Magnitude() == 0)
+		{
+			return -1;
+		}
+		TopoDS_Edge evalEdge = BRepBuilderAPI_MakeEdge(randomPoint, randomPoint.Translated(normal.Multiplied(100)));
+
+		gp_Lin projectionLine(randomPoint, normal);
+		for (size_t i = 0; i < edgeCollectionList.size(); i++)
+		{
+			TopoDS_Face intersectionFace = edgeCollectionList[i]->getOriginalFace();
+			if (currentface.IsSame(intersectionFace)) {
+				continue; 
+			}
+
+			BRepExtrema_DistShapeShape distanceCalc(
+				intersectionFace,
+				evalEdge);
+
+			if (distanceCalc.Value() < 1e-6)
+			{
+				intersectionCount++;
+			}
+		}
+		return intersectionCount;
+	}
+
+	void Kernel::correctFaceDirection(std::vector<EdgeCollection*> edgeCollectionList)
+	{
+		if (edgeCollectionList.size() == 1)
+		{
+			EdgeCollection* groundCollection = edgeCollectionList[0];
+			if (groundCollection->getNormal().Z() > 0) { return; }
+
+			groundCollection->flipFace();
+			return;
+		}
+
+		// set first face
+		int startingIndx = 0;
+		double height = -999999999;
+		double count = 0;
+		for (int i = 0; i < edgeCollectionList.size(); i++)
+		{
+			TopoDS_Face currenFace = edgeCollectionList[i]->getOriginalFace();
+			GProp_GProps props;
+			BRepGProp::SurfaceProperties(currenFace, props);
+
+
+			startingIndx = i;
+			int intersectionCount = countNormalIntersections(*edgeCollectionList[i], edgeCollectionList);
+			if (intersectionCount % 2 != 0)
+			{
+				edgeCollectionList[i]->flipFace();
+			}
 		}
 	}
 
@@ -763,11 +847,8 @@ namespace CJT {
 			edgeCollection->orderEdges();
 			edgeCollectionList.emplace_back(edgeCollection);
 		}
-		// find highest face
-		int highestCollectionIdx = findTopEdgeCollection(edgeCollectionList);
-		if (!edgeCollectionList[highestCollectionIdx]->hasPositiveNormal()) {edgeCollectionList[highestCollectionIdx]->flipFace(); } // TODO find out why normal is reversed
-		correctFaceDirection(edgeCollectionList, highestCollectionIdx);
 
+		correctFaceDirection(edgeCollectionList);
 
 		// find or add the unique verts to the collection
 		std::vector<CJTPoint> cjtUniquePoints;
