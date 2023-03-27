@@ -1,6 +1,12 @@
 #pragma once
 
 #include "CJT.h"
+
+#include <boost/log/core.hpp>
+#include <boost/log/trivial.hpp>
+#include <boost/geometry.hpp>
+#include <boost/geometry/index/rtree.hpp>
+
 #include <nlohmann/json.hpp>
 #include <TopoDS_Solid.hxx>
 #include <TopExp_Explorer.hxx>
@@ -22,7 +28,15 @@
 #include <IntCurvesFace_Intersector.hxx>
 #include <GProp_GProps.hxx>
 #include <BRepGProp.hxx>
+#include <BRepBndLib.hxx>
 
+
+
+namespace bg = boost::geometry;
+namespace bgi = boost::geometry::index;
+
+typedef bg::model::point<double, 3, bg::cs::cartesian> BoostPoint3D;
+typedef std::pair<bg::model::box<BoostPoint3D>, int> Value;
 
 namespace CJT {
 	class Edge 
@@ -97,8 +111,10 @@ namespace CJT {
 		std::map<int, TopoDS_Shape* > internalizedObjectMap_;
 		CityCollection* cityCollection_;
 
+		static const int treeDepth = 25;
+
 		int findTopEdgeCollection(std::vector<EdgeCollection*> edgeCollectionList);
-		int countNormalIntersections(EdgeCollection& currentCollection, std::vector<EdgeCollection*> edgeCollectionList);
+		int countNormalIntersections(EdgeCollection& currentCollection, std::vector<EdgeCollection*> edgeCollectionList, const bgi::rtree<Value, bgi::rstar<treeDepth>>& spatialIndex);
 
 		void correctFaceDirection(std::vector<EdgeCollection*> edgeCollectionList);
 		bool checkIfInit();

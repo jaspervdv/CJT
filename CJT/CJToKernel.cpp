@@ -541,13 +541,11 @@ namespace CJT {
 			}
 		}
 
-		int test = countNormalIntersections(*edgeCollectionList[0], edgeCollectionList);
-
 		std::vector<gp_Pnt> vertCollection = edgeCollectionList[highestCollectionIdx]->getStartPoints();
 		return highestCollectionIdx;
 	}
 
-	int Kernel::countNormalIntersections(EdgeCollection& currentCollection, std::vector<EdgeCollection*> edgeCollectionList)
+	int Kernel::countNormalIntersections(EdgeCollection& currentCollection, std::vector<EdgeCollection*> edgeCollectionList, const bgi::rtree<Value, bgi::rstar<treeDepth>>& spatialIndex)
 	{
 		if (currentCollection.isInner()) { return -1; }
 
@@ -590,6 +588,8 @@ namespace CJT {
 			randomPoint = distanceCalc.PointOnShape1(1);
 			isOnFace = true;
 
+			if (!isOnFace) { continue; }
+
 			for (TopExp_Explorer wireExp(currentface, TopAbs_WIRE); wireExp.More(); wireExp.Next()) {
 				TopoDS_Wire theWire = TopoDS::Wire(wireExp.Current());
 
@@ -612,11 +612,27 @@ namespace CJT {
 		}
 		TopoDS_Edge evalEdge = BRepBuilderAPI_MakeEdge(randomPoint, randomPoint.Translated(normal.Multiplied(100)));
 
-		gp_Lin projectionLine(randomPoint, normal);
-		for (size_t i = 0; i < edgeCollectionList.size(); i++)
+		//printPoint(randomPoint);
+		//printPoint(randomPoint.Translated(normal.Multiplied(100)));
+
+		Bnd_Box bbox;
+		BRepBndLib::Add(evalEdge, bbox);
+
+		gp_Pnt EvalEdgelll = bbox.CornerMin();
+		gp_Pnt EvalEdgeurr = bbox.CornerMax();
+
+		bg::model::box<BoostPoint3D> boostbbox(
+			{ EvalEdgelll.X(), EvalEdgelll.Y(), EvalEdgelll.Z() }, { EvalEdgeurr.X(), EvalEdgeurr.Y(), EvalEdgeurr.Z() }
+		);
+
+		std::vector<Value> qResult;
+		qResult.clear();
+		spatialIndex.query(bgi::intersects(boostbbox), std::back_inserter(qResult));
+
+		for (size_t i = 0; i < qResult.size(); i++)
 		{
-			TopoDS_Face intersectionFace = edgeCollectionList[i]->getOriginalFace();
-			if (currentface.IsSame(intersectionFace)) {
+			TopoDS_Face intersectionFace = edgeCollectionList[qResult[i].second]->getOriginalFace();
+			if (currentface.IsEqual(intersectionFace)) {
 				continue; 
 			}
 
@@ -629,6 +645,7 @@ namespace CJT {
 				intersectionCount++;
 			}
 		}
+		//std::cout << intersectionCount << std::endl;
 		return intersectionCount;
 	}
 
@@ -643,7 +660,25 @@ namespace CJT {
 			return;
 		}
 
-		// set first face
+		// index surfaces
+		bgi::rtree<Value, bgi::rstar<treeDepth>> spatialIndex;
+		
+		for (int i = 0; i < edgeCollectionList.size(); i++)
+		{
+			// make bbox of every surface
+			Bnd_Box bbox;
+			BRepBndLib::Add(edgeCollectionList[i]->getOriginalFace(), bbox);
+			
+			gp_Pnt lll = bbox.CornerMin();
+			gp_Pnt urr = bbox.CornerMax();
+
+			bg::model::box<BoostPoint3D> boostbbox(
+				{ lll.X(), lll.Y(), lll.Z() }, { urr.X(), urr.Y(), urr.Z() }
+			);
+			spatialIndex.insert(std::make_pair(boostbbox, i));
+		}
+
+		// correct normals
 		int startingIndx = 0;
 		double height = -999999999;
 		double count = 0;
@@ -655,7 +690,7 @@ namespace CJT {
 
 
 			startingIndx = i;
-			int intersectionCount = countNormalIntersections(*edgeCollectionList[i], edgeCollectionList);
+			int intersectionCount = countNormalIntersections(*edgeCollectionList[i], edgeCollectionList, spatialIndex);
 			if (intersectionCount % 2 != 0)
 			{
 				edgeCollectionList[i]->flipFace();

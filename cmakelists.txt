@@ -6,9 +6,9 @@ set(CMAKE_CXX_STANDARD 17)
 # OpenCascade
 find_package(OpenCASCADE REQUIRED)
 find_package(nlohmann_json CONFIG REQUIRED)
+find_package(Boost REQUIRED)
 
-include_directories ( SYSTEM ${OpenCASCADE_INCLUDE_DIR} ${nlohmann_json_INCLUDE_DIR})
-message(STATUS  ${nlohmann_json_INCLUDE_DIR})
+include_directories ( SYSTEM ${OpenCASCADE_INCLUDE_DIR} ${nlohmann_json_INCLUDE_DIR} ${Boost_INCLUDE_DIRS})
 
 add_library(${PROJECT_NAME})
 
@@ -25,7 +25,7 @@ foreach (LIB ${OpenCASCADE_LIBRARIES})
   target_link_libraries(${PROJECT_NAME} optimized ${OpenCASCADE_LIBRARY_DIR}/${LIB}.lib)
 endforeach()
 
-target_link_libraries(${PROJECT_NAME} nlohmann_json::nlohmann_json)
+target_link_libraries(${PROJECT_NAME} nlohmann_json::nlohmann_json ${Boost_LIBRARIES})
 
 # Adjust runtime environment
 set_property(TARGET ${PROJECT_NAME} PROPERTY VS_DEBUGGER_ENVIRONMENT "PATH=$<$<CONFIG:DEBUG>:${OpenCASCADE_BINARY_DIR}d>$<$<NOT:$<CONFIG:DEBUG>>:${OpenCASCADE_BINARY_DIR}>;%PATH%")

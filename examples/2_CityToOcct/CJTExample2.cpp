@@ -8,6 +8,8 @@
 // CJToKernel is required for the conversion between the CityJSON format and the OpenCASCADE format
 #include <CJToKernel.h>
 
+#define  _WIN32_WINNT   0x0601
+
 int main()
 {
     // As explained in example 1 a city collection has to be created.

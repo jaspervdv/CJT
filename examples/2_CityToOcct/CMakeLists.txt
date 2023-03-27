@@ -11,7 +11,10 @@ find_package(nlohmann_json REQUIRED)
 find_package(tbb REQUIRED NO_DEFAULT_PATH)
 
 # OpenCascade
-find_package(OpenCASCADE)
+find_package(OpenCASCADE REQUIRED)
+
+# OpenCascade
+find_package(Boost REQUIRED)
 
 # CJT
 find_package(CJT)
@@ -19,6 +22,7 @@ find_package(CJT)
 # Configure C++ compiler's includes dir
 include_directories ( 
     ${OpenCASCADE_INCLUDE_DIR} 
+	${Boost_INCLUDE_DIRS}
     ${CJT_INCLUDE_DIR}    
 )
 
@@ -36,6 +40,7 @@ add_executable (${CMAKE_PROJECT_NAME}
 target_link_libraries(${CMAKE_PROJECT_NAME}
 CJT
 nlohmann_json::nlohmann_json
+${Boost_LIBRARIES}
 )
 
 foreach (LIB ${OpenCASCADE_LIBRARIES})
