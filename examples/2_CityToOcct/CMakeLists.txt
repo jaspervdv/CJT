@@ -5,16 +5,33 @@ project (CJTExample2 CXX)
 set(CMAKE_CXX_STANDARD 17)
 
 #nhollman
-find_package(nlohmann_json REQUIRED)
+find_package(nlohmann_json REQUIRED NO_DEFAULT_PATH)
 
 # Tbb
 find_package(tbb REQUIRED NO_DEFAULT_PATH)
 
 # OpenCascade
-find_package(OpenCASCADE REQUIRED)
+find_package(OpenCASCADE REQUIRED NO_DEFAULT_PATH)
 
-# OpenCascade
-find_package(Boost REQUIRED)
+# Boost
+set(Boost_NO_SYSTEM_PATHS TRUE)
+find_package(Boost REQUIRED log)
+
+if(Boost_DIR STREQUAL "Boost_DIR-NOTFOUND")
+    if(${CMAKE_VS_PLATFORM_TOOLSET} STREQUAL v142)
+        if(${CMAKE_VS_PLATFORM_TOOLSET_HOST_ARCHITECTURE} STREQUAL x64)
+            if(EXISTS "${Boost_INCLUDE_DIRS}/lib64-msvc-14.2")
+                set(Boost_DIR "${Boost_INCLUDE_DIRS}/lib64-msvc-14.2")
+            endif()
+        endif()
+    elseif(${CMAKE_VS_PLATFORM_TOOLSET} STREQUAL v141)
+        if(${CMAKE_VS_PLATFORM_TOOLSET_HOST_ARCHITECTURE} STREQUAL x64)
+            if(EXISTS "${Boost_INCLUDE_DIRS}/lib64-msvc-14.1")
+                set(Boost_DIR "${Boost_INCLUDE_DIRS}/lib64-msvc-14.1")
+            endif()
+        endif()
+    endif()
+endif()
 
 # CJT
 find_package(CJT)
@@ -28,6 +45,7 @@ include_directories (
 
 link_directories(
     ${OpenCASCADE_LIBRARY_DIR}
+    ${Boost_DIR}
     ${CJT_LIBRARY_DIR}
 )
 

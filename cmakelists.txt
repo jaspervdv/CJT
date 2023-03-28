@@ -5,8 +5,17 @@ set(CMAKE_CXX_STANDARD 17)
 
 # OpenCascade
 find_package(OpenCASCADE REQUIRED)
+
+# Nlohmann
 find_package(nlohmann_json CONFIG REQUIRED)
-find_package(Boost REQUIRED)
+
+# boost
+set(Boost_NO_SYSTEM_PATHS TRUE)
+find_package(Boost REQUIRED log)
+
+message(STATUS "Boost include dirs: " ${Boost_INCLUDE_DIRS})
+message(STATUS "Boost library dir: " ${Boost_DIR})
+message(STATUS "Boost libaries dir: " ${Boost_LIBRARIES})
 
 include_directories ( SYSTEM ${OpenCASCADE_INCLUDE_DIR} ${nlohmann_json_INCLUDE_DIR} ${Boost_INCLUDE_DIRS})
 
