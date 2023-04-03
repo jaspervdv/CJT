@@ -134,17 +134,28 @@ namespace CJT {
 		gp_Pnt p1 = pointList[p1Idx];
 		gp_Pnt p2 = pointList[p2Idx];
 
+		gp_Lin lineF(p1, gp_Vec(p1, p2));
+		gp_Lin lineB(p1, gp_Vec(p2, p1));
+
+		TopoDS_Edge edge = BRepBuilderAPI_MakeEdge(p1, p2);
+
 		for (int i = 0; i < pointList.size(); i++)
 		{
 			if (i == p1Idx || i == p2Idx){ continue; }
 
 			gp_Pnt currentPoint = pointList[i];
-			double localDistance = abs(
-				(p2.X() - p1.X()) * (p1.Y() - currentPoint.Y()) -
-				(p1.X() - currentPoint.X()) * (p2.Y() - p1.Y())
-			) / sqrt(
-				pow(p2.X() - p1.X(), 2) + pow(p2.Y() - p1.Y(), 2)
-			);
+			double localDistanceF = lineF.Distance(currentPoint);
+			double localDistanceB = lineB.Distance(currentPoint);
+			double localDistance;
+
+			if (localDistanceF < localDistanceB)
+			{
+				localDistance = localDistanceF;
+			}
+			else {
+				localDistance = localDistanceB;
+			}
+
 			if (localDistance > distance)
 			{
 				distance = localDistance;
@@ -732,19 +743,25 @@ namespace CJT {
 			IntFace currentIntFace = faceIntList[i];
 			std::vector<gp_Pnt> oPointList = intPoint2GpPoint(currentIntFace.outerRing_, cityVerts);
 			TopoDS_Wire topoWire = makeRingWire(oPointList);
+
 			if (topoWire.IsNull()) { 
 				success = false;
 				continue; 
 			}
-			TopoDS_Face topoFace = BRepBuilderAPI_MakeFace(topoWire).Face();
-			
 
+			TopoDS_Face topoFace = BRepBuilderAPI_MakeFace(topoWire).Face();
+	
 			if (topoFace.IsNull())
 			{
 				gp_Pnt basePoint = oPointList[0];
 				int supportPointIdx = furtestPoint(0, oPointList);
 				gp_Pnt supportPoint1 = oPointList[supportPointIdx];
 				gp_Pnt supportPoint2 = oPointList[furtestPointLine(0, supportPointIdx, oPointList)];
+
+				if (supportPoint1.IsEqual(basePoint, 1e-6) || supportPoint2.IsEqual(basePoint, 1e-6) || supportPoint1.IsEqual(supportPoint2, 1e-6))
+				{
+					continue;
+				}
 
 				auto plane = GC_MakePlane(oPointList[0], supportPoint1, supportPoint2);
 				topoFace = BRepBuilderAPI_MakeFace(plane.Value(), topoWire).Face();
@@ -762,7 +779,14 @@ namespace CJT {
 				{
 					std::vector<gp_Pnt> iPointList = intPoint2GpPoint(currentIntFace.innerRingList_[j], cityVerts);
 					TopoDS_Wire innerWire = makeRingWire(iPointList);
-					topoFace = BRepBuilderAPI_MakeFace(topoFace, innerWire).Face();
+
+					if (innerWire.IsNull()) { continue; }
+					
+					BRepBuilderAPI_MakeFace faceCreator(topoFace, innerWire);
+
+					if (faceCreator.Error() != BRepBuilderAPI_FaceDone) { continue; }
+
+					topoFace = faceCreator.Face();
 				}
 			}
 
