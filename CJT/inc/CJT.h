@@ -589,7 +589,7 @@ namespace CJT {
 	class CityObject
 	{
 	private:
-		std::string name_;
+		std::string name_ = "";
 		Building_Type type_;
 
 		std::vector<GeoObject*> geometry_;
@@ -696,7 +696,7 @@ namespace CJT {
 		std::vector<CJTPoint> vertices_;
 		std::string version_ = "";
 
-		metaDataObject* metaData_;
+		metaDataObject* metaData_ = nullptr;
 		ObjectTransformation objectTransformation_= ObjectTransformation(1);
 		AppearanceObject appearance_;
 

@@ -11,6 +11,7 @@
 #include <TopoDS_Solid.hxx>
 #include <TopExp_Explorer.hxx>
 #include <TopoDS_Vertex.hxx>
+#include <gp_Vec.hxx>
 #include <TopoDS.hxx>
 #include <TopoDS_Shape.hxx>
 #include <TopoDS_Face.hxx>
@@ -29,6 +30,7 @@
 #include <GProp_GProps.hxx>
 #include <BRepGProp.hxx>
 #include <BRepBndLib.hxx>
+#include <GeomLProp_SLProps.hxx>
 
 
 

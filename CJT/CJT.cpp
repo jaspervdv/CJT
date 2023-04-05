@@ -1157,10 +1157,20 @@ namespace CJT
 
 		newFile.emplace(fileType);
 		newFile.emplace(version);
-
-		if (metaData_->checkInfo())
+ 
+		if (metaData_ == nullptr)
 		{
-			newFile.emplace("metadata", metaData_->getData());
+			if (!isSilent_)
+			{
+				std::cout << "No Metadata Found!" << std::endl;
+			}
+		}
+		else
+		{
+			if (metaData_->checkInfo())
+			{
+				newFile.emplace("metadata", metaData_->getData());
+			}
 		}
 
 		// transformation data collection
