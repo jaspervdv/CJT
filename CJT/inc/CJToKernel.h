@@ -92,8 +92,6 @@ namespace CJT {
 		void computeNormal();
 		/// @brief get the normal
 		gp_Vec getNormal() { return normal_; }
-		/// @brief set the normal
-		void setNormal(gp_Vec normal) { normal_ = normal; }
 		/// @brief set if ring is inner ring
 		void setIsInner() { isInner_ = true; }
 		/// @brief get if ring is inner ring
