@@ -298,6 +298,7 @@ namespace CJT {
 			int counter = tri->NbTriangles();
 			for (int i = 0; i < counter; i++)
 			{
+
 				int idx = i + 1;
 				Poly_Triangle triangle = tri->Triangle(idx);
 
@@ -338,118 +339,7 @@ namespace CJT {
 			std::cout << "not found" << std::endl;
 			//TODO: find a fix when there is no normal found
 		}
-		else if (isInner_ == true)
-		{
-			double distance = 99999999;
-			TopoDS_Vertex measurePoint = BRepBuilderAPI_MakeVertex(startPoints[0]);
-			TopoDS_Wire originalWire;
-			for (TopExp_Explorer explorer(*originalFace_, TopAbs_WIRE); explorer.More(); explorer.Next())
-			{
-				const TopoDS_Wire& wire = TopoDS::Wire(explorer.Current());
-				double distanceRing = BRepExtrema_DistShapeShape(wire, measurePoint).Value();
-
-				if (distance > distanceRing)
-				{
-					distance = distanceRing;
-					originalWire = wire;
-				}
-			}
-
-			bool large = false;
-			for (int i = 0; i < startPoints.size(); i++) //TODO change this to inner ring normal computation
-			{
-				p1 = startPoints[i];
-
-				for (int j = 1; j < startPoints.size(); j++)
-				{
-					if (i >= j) { continue; }
-					p2 = startPoints[j];
-					for (int k = 2; k < startPoints.size(); k++)
-					{
-						if (j >= k) { continue; }
-						p3 = startPoints[k];
-
-						bool found = false;
-						if (startPoints.size() >= 4)
-						{	
-							// compute distance from face (if not >0 triangle is presumably outside of inner ring)
-							gp_Pnt pc = getMiddlePoint(p1, p2, p3);
-
-							double distc = BRepExtrema_DistShapeShape(*originalFace_, BRepBuilderAPI_MakeVertex(pc)).Value();
-							if (distc < 0.01) { continue; }
-							// compute if any edge of triangle has overlap with edge to correctly find orientation
-							gp_Pnt pc12 = getMiddlePoint(p1, p2);
-							gp_Pnt pc23 = getMiddlePoint(p2, p3);
-							gp_Pnt pc13 = getMiddlePoint(p3, p1);
-
-							int hits = 0;
-							BRepExtrema_DistShapeShape h1(originalWire, BRepBuilderAPI_MakeVertex(pc12));
-							BRepExtrema_DistShapeShape h2(originalWire, BRepBuilderAPI_MakeVertex(pc23));
-							BRepExtrema_DistShapeShape h3(originalWire, BRepBuilderAPI_MakeVertex(pc13));
-
-							if (h1.Value() < 0.01) { hits++;}
-							if (h2.Value() < 0.01) { hits++;}
-							if (h3.Value() < 0.01) { hits++;}
-							if (hits <= 1)  { continue;  }
-							found = true;
-						}
-
-						if (!found) { continue; }
-
-						// compute area of the triangle
-						gp_Vec v1(p2.X() - p1.X(), p2.Y() - p1.Y(), p2.Z() - p1.Z());
-						gp_Vec v2(p3.X() - p1.X(), p3.Y() - p1.Y(), p3.Z() - p1.Z());
-						gp_Vec normal = calculateNormal(p1, p2, p3);
-						double area = normal.Magnitude() * 0.5;
-						if (area > 0.01)
-						{
-							backupIdx1 = i;
-							backupIdx2 = j;
-							backupIdx3 = k;
-							large = true;
-							break;
-						}
-
-						if (area > bigArea)
-						{
-							bigArea = area;
-							backupIdx1 = i;
-							backupIdx2 = j;
-							backupIdx3 = k;
-						}
-					}
-					if (large) { break; }
-				}
-				if (large) { break; }
-			}
-
-			p1 = startPoints[backupIdx1];
-			p2 = startPoints[backupIdx2];
-			p3 = startPoints[backupIdx3];
-
-			for (size_t j = 0; j < ring_.size(); j++)
-			{
-				Edge* edge = ring_[j];
-
-				if (edge->getStart().IsEqual(p1, 0.01) && edge->getEnd().IsEqual(p2, 0.01) ||
-					edge->getStart().IsEqual(p2, 0.01) && edge->getEnd().IsEqual(p3, 0.01) ||
-					edge->getStart().IsEqual(p3, 0.01) && edge->getEnd().IsEqual(p1, 0.01) // correct orientation
-					)
-				{
-					normal_ = calculateNormal(p1, p2, p3, true);
-					return;
-				}
-				else if (edge->getStart().IsEqual(p2, 0.01) && edge->getEnd().IsEqual(p1, 0.01) ||
-					edge->getStart().IsEqual(p3, 0.01) && edge->getEnd().IsEqual(p2, 0.01) ||
-					edge->getStart().IsEqual(p1, 0.01) && edge->getEnd().IsEqual(p3, 0.01) // reversed orientation
-					)
-				{
-					normal_ = calculateNormal(p1, p2, p3, true).Reversed();
-					return;
-				}
-			}
-			return;
-		}
+		return; // Inner rings are ignored
 	}
 
 	void EdgeCollection::orderEdges()
@@ -517,9 +407,9 @@ namespace CJT {
 		for (size_t i = 0; i < innerRingList_.size(); i++)
 		{
 			gp_Vec otherNormal = innerRingList_[i]->normal_;
-			if (otherNormal.IsEqual(normal_, 1e-6, 1e-6))
+			if (otherNormal.Magnitude() == 0)
 			{
-				innerRingList_[i]->flipFace();
+				innerRingList_[i]->setNormal(normal_.Reversed()) ;
 			}
 		}
 	}
@@ -908,9 +798,10 @@ namespace CJT {
 			faceList.emplace_back(face);
 		} 
 		
+		//std::cout << "in" << std::endl;
+		//std::cout << faceList.size() << std::endl;
 		for (size_t i = 0; i < faceList.size(); i++)
 		{
-
 			EdgeCollection* edgeCollection = new EdgeCollection;
 			int c = 0;
 			gp_Pnt lP;
@@ -927,10 +818,12 @@ namespace CJT {
 				lP = p;
 				c++;
 			}
+			//std::cout << c << std::endl;
 			edgeCollection->setOriginalFace(&faceList[i]);
 			edgeCollection->orderEdges();
 			edgeCollectionList.emplace_back(edgeCollection);
 		}
+		//std::cout << "out" << std::endl;
 		correctFaceDirection(edgeCollectionList);
 
 		// find or add the unique verts to the collection
@@ -955,6 +848,7 @@ namespace CJT {
 			// get outer ring
 			std::vector<gp_Pnt> startPointCollection = currentCollection.getStartPoints();
 			std::vector<int> idxList;
+			
 			for (size_t j = 0; j < startPointCollection.size(); j++)
 			{
 				for (size_t k = 0; k < uniquePoints.size(); k++)
