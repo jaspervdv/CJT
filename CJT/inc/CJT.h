@@ -693,7 +693,7 @@ namespace CJT {
 	{
 	private:
 		std::map<std::string, CityObject*> cityObjects_;
-		std::vector<CJTPoint> vertices_;
+		std::vector<CJTPoint>* vertices_ = new std::vector<CJTPoint>;
 		std::string version_ = "";
 
 		metaDataObject* metaData_ = nullptr;
@@ -744,7 +744,7 @@ namespace CJT {
 		void setVersion(std::string version) { version_ = version; }
 
 		/// @brief returns all the vertices that are in the collection
-		std::vector<CJTPoint> getVerices();
+		std::vector<CJTPoint>* getVerices();
 		/// @brief adds a vertex to the collection, returns idx location where point is placed
 		int addVertex(CJTPoint point, bool checkUnique = false);
 		///@brief adds a collection of vertices to the collection, returns idx location where points are placed

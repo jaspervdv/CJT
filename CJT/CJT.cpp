@@ -1088,11 +1088,11 @@ namespace CJT
 
 		// get complete list of all the present vertices
 		objectTransformation_ = fetchTransformation(&completeData["transform"]);
-		vertices_ = fetchPoints(&completeData["vertices"]);
+		vertices_ = &fetchPoints(&completeData["vertices"]);
 
 		if (!isSilent_)
 		{
-			std::cout << "Loaded " << vertices_.size() << " vertices" << std::endl;
+			std::cout << "Loaded " << vertices_->size() << " vertices" << std::endl;
 		}
 
 		cityObjects_ = fetchCityObjects(&completeData["CityObjects"]);
@@ -1112,7 +1112,7 @@ namespace CJT
 
 		if (!isSilent_)
 		{
-			if (vertices_.size() != 0 && cityObjects_.size() != 0)
+			if (vertices_->size() != 0 && cityObjects_.size() != 0)
 			{
 				std::cout << "JSON Loaded succesfully" << std::endl;
 			}
@@ -1199,9 +1199,10 @@ namespace CJT
 		// offload vertices
 		std::vector<std::array<double, 3>> vertList;
 
-		for (size_t i = 0; i < vertices_.size(); i++)
+		for (size_t i = 0; i < vertices_->size(); i++)
 		{
-			auto unscaledCoords = vertices_[i].getCoordinates();
+			CJT::CJTPoint currentVert = vertices_->at(i);
+			std::array<double, 3> unscaledCoords = currentVert.getCoordinates();
 
 			for (size_t j = 0; j < 3; j++)
 			{
@@ -1464,7 +1465,7 @@ namespace CJT
 	}
 
 
-	std::vector<CJTPoint> CityCollection::getVerices()
+	std::vector<CJTPoint>* CityCollection::getVerices()
 	{
 		return vertices_;
 	}
@@ -1475,19 +1476,21 @@ namespace CJT
 		int location = -1;
 		if (unique)
 		{
-			for (int i = 0; i < vertices_.size(); i++)
+			int i = 0;
+			for (std::vector<CJT::CJTPoint>::iterator it = vertices_->begin(); it != vertices_->end(); ++it) 
 			{
-				if (point == vertices_[i])
+				if (point == *it)
 				{
 					location = i;
 					break;
 				}
+				i++;
 			}
 		}
 		if (location == -1)
 		{
-			location = static_cast<int>(vertices_.size());
-			vertices_.emplace_back(point);
+			location = static_cast<int>(vertices_->size());
+			vertices_->emplace_back(point);
 			return location;
 		}
 		return location;
@@ -1514,26 +1517,29 @@ namespace CJT
 
 		// remove dups and make map that maps the correcting locations
 		std::map<int, int> correctingIdxMap;
-		std::vector<CJTPoint> correctedvertices;
+		std::vector<CJTPoint>* correctedvertices = new std::vector<CJTPoint>;
 		int correctionAmount = 0;
-		for (int i = 0; i < vertices_.size(); i++)
+		int i = 0;
+		for (std::vector<CJT::CJTPoint>::iterator it = vertices_->begin(); it != vertices_->end(); ++it)
 		{
+			int j = 0;
 			int doubleIdx = -1;
 			bool found = false;
-			CJTPoint currentPoint = vertices_[i];
+			CJTPoint currentPoint =*it;
 
-			for (int j = 0; j < correctedvertices.size(); j++)
+			for (std::vector<CJTPoint>::iterator it = correctedvertices->begin(); it != correctedvertices->end(); ++it )
 			{
-				if (currentPoint == correctedvertices[j])
+				if (currentPoint == *it)
 				{
 					found = true;
 					doubleIdx = j;
 					break;
 				}
+				j++;
 			}
 			if (!found)
 			{
-				correctedvertices.emplace_back(currentPoint);
+				correctedvertices->emplace_back(currentPoint);
 				correctingIdxMap.emplace(i, i - correctionAmount);
 				
 			}
@@ -1542,10 +1548,11 @@ namespace CJT
 				correctingIdxMap.emplace(i, doubleIdx);
 				correctionAmount++;
 			}
+			i++;
 		}
 
 		// correct geo references
-		if (correctedvertices.size() == vertices_.size()) 
+		if (correctedvertices->size() == vertices_->size()) 
 		{ 
 			std::cout << "No duplicate vertices found" << std::endl;
 			return; 
@@ -1553,11 +1560,13 @@ namespace CJT
 
 		if (!isSilent_)
 		{
-			std::cout << "Reduced vertices count from: " << vertices_.size() << ", to: " << correctedvertices.size() << std::endl;
+			std::cout << "Reduced vertices count from: " << vertices_->size() << ", to: " << correctedvertices->size() << std::endl;
 			std::cout << "Correcting vertices referencing" << std::endl;
 		}
 
+		delete vertices_;
 		vertices_ = correctedvertices;
+		correctedvertices = nullptr;
 
 		for (auto obb = cityObjects_.begin(); obb != cityObjects_.end(); ++obb)
 		{
@@ -1603,11 +1612,11 @@ namespace CJT
 			std::cout << "Culling unreferenced vertices" << std::endl;
 		}
 
-		std::vector<bool> vertreference;
+		std::vector<bool>* vertreference = new std::vector<bool>;
 
-		for (size_t i = 0; i < vertices_.size(); i++)
+		for (std::vector<CJT::CJTPoint>::iterator it = vertices_->begin(); it != vertices_->end(); ++it)
 		{
-			vertreference.emplace_back(false);
+			vertreference->emplace_back(false);
 		}
 
 		for (auto obb = cityObjects_.begin(); obb != cityObjects_.end(); ++obb)
@@ -1616,11 +1625,11 @@ namespace CJT
 
 			if (!currentCityObject->hasGeo()) { continue; }
 
-			std::vector<GeoObject*> curentGeoObjects = currentCityObject->getGeoObjects();
+			std::vector<GeoObject*>* curentGeoObjects = &currentCityObject->getGeoObjects();
 
-			for (size_t i = 0; i < curentGeoObjects.size(); i++)
+			for (std::vector<GeoObject*>::iterator it = curentGeoObjects->begin(); it != curentGeoObjects->end(); ++it)
 			{
-				GeoObject* currentGeoObject = curentGeoObjects[i];
+				GeoObject* currentGeoObject = *it;
 				json boundaries = currentGeoObject->getBoundaries();
 
 				std::string geoType = currentGeoObject->getType();
@@ -1630,26 +1639,35 @@ namespace CJT
 
 				for (size_t j = 0; j < referencesIdx.size(); j++)
 				{
-					vertreference[referencesIdx[j]] = true;
+					(*vertreference)[referencesIdx[j]] = true;
 				}
 			}
 		}
 
-		
-		std::map<int, int> correctingIdxMap;
+		std::map<int, int>* correctingIdxMap = new std::map<int, int>;
 		int correctionAmount = 0;
-		std::vector<CJTPoint> correctedvertices;
+		int currentAmount = 0;
+		std::vector<CJTPoint>* correctedvertices = new std::vector<CJTPoint>;
 
-		for (size_t i = 0; i < vertreference.size(); i++)
+		for (std::vector<bool>::iterator it = vertreference->begin(); it != vertreference->end(); ++it)
 		{
-			if (vertreference[i] == false)
+			if (*it == false)
 			{
 				correctionAmount++;
 			}
-			else {
-				correctedvertices.emplace_back(vertices_[i]);
-				correctingIdxMap.emplace(i, i - correctionAmount);
+			else
+			{
+				correctedvertices->emplace_back((*vertices_)[currentAmount]);
+				correctingIdxMap->emplace(currentAmount, currentAmount - correctionAmount);
 			}
+			currentAmount++;
+		}
+
+		delete vertreference;
+
+		if (correctingIdxMap->size() == 0)
+		{
+			return;
 		}
 
 		if (!isSilent_)
@@ -1666,9 +1684,13 @@ namespace CJT
 		}
 
 		// correct geo references
-		if (correctedvertices.size() == vertices_.size()) { return; }
+		if (correctedvertices->size() == vertices_->size()) { return; }
 
+		delete vertices_;
 		vertices_ = correctedvertices;
+		correctedvertices = nullptr;
+
+		std::cout << cityObjects_.size() << std::endl;
 
 		for (auto obb = cityObjects_.begin(); obb != cityObjects_.end(); ++obb)
 		{
@@ -1680,6 +1702,7 @@ namespace CJT
 
 			for (size_t i = 0; i < curentGeoObjects.size(); i++)
 			{
+				std::cout << i << std::endl;
 				GeoObject* currentGeoObject = curentGeoObjects[i];
 				json boundaries = currentGeoObject->getBoundaries();
 
@@ -1687,21 +1710,27 @@ namespace CJT
 
 				if (geoType == "MultiSurface")
 				{
-					currentGeoObject->setBoundaries(updateVerts(&boundaries, &correctingIdxMap, 3));
+					currentGeoObject->setBoundaries(updateVerts(&boundaries, correctingIdxMap, 3));
 				}
 
 				if (geoType == "Solid")
 				{
-					currentGeoObject->setBoundaries(updateVerts(&boundaries, &correctingIdxMap, 4));
+					updateVerts(&boundaries, correctingIdxMap, 4);
+					std::cout << "reached" << std::endl;
+					currentGeoObject->setBoundaries(updateVerts(&boundaries, correctingIdxMap, 4));
 				}
 			}
 			currentCityObject->setGeo(curentGeoObjects);
+			std::cout << obb->first << std::endl;
 			cityObjects_[obb->first] = currentCityObject;
 		}
+		std::cout << "end" << std::endl;
+
 		if (!isSilent_)
 		{
 			std::cout << "Succesfully corrected" << std::endl;
 		}
+		delete correctingIdxMap;
 	}
 
 	void CityCollection::CleanVertices()
