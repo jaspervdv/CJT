@@ -536,6 +536,7 @@ namespace CJT {
 
 	Kernel::Kernel(CityCollection* cityCollection)
 	{
+		fprecision = cityCollection->getTransformation().getScale()[0];
 		cityCollection_ = cityCollection;
 	}
 
@@ -916,11 +917,18 @@ namespace CJT {
 			{	
 				TopoDS_Vertex vertex = TopoDS::Vertex(expl.Current());
 				gp_Pnt p = BRep_Tool::Pnt(vertex);
-				if (!isPointInList(p, uniqueVerts)) { uniqueVerts.emplace_back(p); }
+				
 				if (c % 2 == 1) 
 				{ 
-					Edge* collectedEdge = new Edge(lP, p);
-					edgeCollection->addEdge(collectedEdge);
+					// TODO: fix the jump that is present here
+					//if (p.Distance(lP) > fprecision)
+					{
+						if (!isPointInList(lP, uniqueVerts)) { uniqueVerts.emplace_back(lP); }
+						if (!isPointInList(p, uniqueVerts)) { uniqueVerts.emplace_back(p); }
+
+						Edge* collectedEdge = new Edge(lP, p);
+						edgeCollection->addEdge(collectedEdge);
+					}
 				}
 				lP = p;
 				c++;
@@ -937,7 +945,7 @@ namespace CJT {
 		for (size_t i = 0; i < uniqueVerts.size(); i++)
 		{
 			const auto& currectPoint = uniqueVerts[i];
-			cjtUniquePoints.emplace_back(CJTPoint(currectPoint.X(), currectPoint.Y(), currectPoint.Z()));
+			cjtUniquePoints.emplace_back( CJTPoint(currectPoint.X(), currectPoint.Y(), currectPoint.Z()));
 			uniquePoints.emplace_back(currectPoint);
 		}
 		std::vector<int> pointLocation = cityCollection_->addVertex(cjtUniquePoints, true);

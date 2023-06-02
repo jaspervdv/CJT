@@ -109,6 +109,7 @@ namespace CJT {
 	class Kernel 
 	{
 	private:
+		double fprecision = 0;
 		int idCounter_ = 10000;
 		std::map<int, TopoDS_Shape* > internalizedObjectMap_;
 		CityCollection* cityCollection_;

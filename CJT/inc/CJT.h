@@ -197,8 +197,6 @@ namespace CJT {
 		/// @brief couts the x, y, z coordinates
 		void print();
 
-		/// @brief evaluates the x, y, z coordinates to see if points are equal
-		bool operator== (CJTPoint other);
 		/// @brief evaluates the x, y, z coordinates to see if points are not equal
 		bool operator!= (CJTPoint other);
 		/// @brief evaluates if the sum of the x, y, z coordinates is smaller 

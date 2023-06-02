@@ -427,16 +427,6 @@ namespace CJT
 		textures_.emplace_back(obb);
 	}
 
-	bool CJTPoint::operator==(CJTPoint other)
-	{
-		if (x_ == other.x_ && y_ == other.y_ && z_ == other.z_)
-		{
-			return true;
-		}
-
-		return false;
-	}
-
 	bool CJTPoint::operator!=(CJTPoint other)
 	{
 		if (x_ == other.x_ && y_ == other.y_ && z_ == other.z_)
@@ -1197,19 +1187,20 @@ namespace CJT
 		newFile.emplace(transformer);
 
 		// offload vertices
-		std::vector<std::array<double, 3>> vertList;
+		std::vector<std::array<int, 3>> vertList;
 
 		for (size_t i = 0; i < vertices_->size(); i++)
 		{
 			CJT::CJTPoint currentVert = vertices_->at(i);
 			std::array<double, 3> unscaledCoords = currentVert.getCoordinates();
+			std::array<int, 3> scaledCoords;
 
 			for (size_t j = 0; j < 3; j++)
 			{
-				unscaledCoords[j] = unscaledCoords[j] / scalingdata[j];
+				scaledCoords[j] = round(unscaledCoords[j] / scalingdata[j]);
 			}
 
-			vertList.emplace_back(unscaledCoords);
+			vertList.emplace_back(scaledCoords);
 		}
 		newFile.emplace("vertices", vertList);
 
@@ -1473,13 +1464,21 @@ namespace CJT
 
 	int CityCollection::addVertex(CJTPoint point, bool unique)
 	{
+		double scaleX = objectTransformation_.getScale()[0];
+		double scaleY = objectTransformation_.getScale()[1];;
+		double scaleZ = objectTransformation_.getScale()[2];;
+
 		int location = -1;
 		if (unique)
 		{
 			int i = 0;
 			for (std::vector<CJT::CJTPoint>::iterator it = vertices_->begin(); it != vertices_->end(); ++it) 
 			{
-				if (point == *it)
+				CJTPoint otherPoint = *it;
+
+				if (std::abs(point.getX() - otherPoint.getX()) <= scaleX &&
+					std::abs(point.getY() - otherPoint.getY()) <= scaleY &&
+					std::abs(point.getZ() - otherPoint.getZ()) <= scaleZ)
 				{
 					location = i;
 					break;
@@ -1520,6 +1519,11 @@ namespace CJT
 		std::vector<CJTPoint>* correctedvertices = new std::vector<CJTPoint>;
 		int correctionAmount = 0;
 		int i = 0;
+
+		double scaleX = objectTransformation_.getScale()[0];
+		double scaleY = objectTransformation_.getScale()[1];;
+		double scaleZ = objectTransformation_.getScale()[2];;
+
 		for (std::vector<CJT::CJTPoint>::iterator it = vertices_->begin(); it != vertices_->end(); ++it)
 		{
 			int j = 0;
@@ -1529,7 +1533,11 @@ namespace CJT
 
 			for (std::vector<CJTPoint>::iterator it = correctedvertices->begin(); it != correctedvertices->end(); ++it )
 			{
-				if (currentPoint == *it)
+				CJTPoint otherPoint = *it;
+
+				if (std::abs(currentPoint.getX() - otherPoint.getX()) <= scaleX &&
+					std::abs(currentPoint.getY() - otherPoint.getY()) <= scaleY &&
+					std::abs(currentPoint.getZ() - otherPoint.getZ()) <= scaleZ)
 				{
 					found = true;
 					doubleIdx = j;
