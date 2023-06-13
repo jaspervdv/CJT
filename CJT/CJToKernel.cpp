@@ -640,16 +640,12 @@ namespace CJT {
 			if (itt == maxGuesses) { break; } // TODO: prevent hitting this
 			itt++;
 		}
-
 		int intersectionCount = 0;
 		if (normal.Magnitude() == 0)
 		{
 			return -1;
 		}
 		TopoDS_Edge evalEdge = BRepBuilderAPI_MakeEdge(randomPoint, randomPoint.Translated(normal.Multiplied(100)));
-
-		//printPoint(randomPoint);
-		//printPoint(randomPoint.Translated(normal.Multiplied(100)));
 
 		Bnd_Box bbox;
 		BRepBndLib::Add(evalEdge, bbox);
@@ -668,20 +664,16 @@ namespace CJT {
 		for (size_t i = 0; i < qResult.size(); i++)
 		{
 			TopoDS_Face intersectionFace = edgeCollectionList[qResult[i].second]->getOriginalFace();
-			if (currentface.IsEqual(intersectionFace)) {
-				continue; 
-			}
+			if (currentface.IsEqual(intersectionFace)) { continue;  }
 
 			BRepExtrema_DistShapeShape distanceCalc(
 				intersectionFace,
 				evalEdge);
 
-			if (distanceCalc.Value() < 1e-6)
-			{
-				intersectionCount++;
-			}
+			if (!distanceCalc.IsDone()) { continue; } // TODO: find alternatives if not done
+			if (distanceCalc.Value() < 1e-6) { intersectionCount++; }
 		}
-		//std::cout << intersectionCount << std::endl;
+
 		return intersectionCount;
 	}
 
