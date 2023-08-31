@@ -13,7 +13,7 @@ namespace CJT {
 	using json = nlohmann::json;
 	
 	// Forward Declaration
-	class CityCollection;
+	//class CityCollection;
 
 	/// @brief enum class representing the possible building types
 	enum class Building_Type
@@ -222,7 +222,7 @@ namespace CJT {
 		/// @brief creates transformation object with, possible, non uniform scale
 		ObjectTransformation(double xScale, double yScale, double zScale) { xScale_ = xScale; yScale = yScale; zScale = zScale; }
 		/// @brief creates transformation object based on CityJSON formatted transformation info
-		ObjectTransformation(json *transformationJson);
+		ObjectTransformation(const json& transformationJson);
 
 		/// @brief returns an array for size 3 representing the translation
 		double* getTranslation();
@@ -252,14 +252,14 @@ namespace CJT {
 		/// @brief creates an empty material object
 		MaterialObject() {};
 		/// @brief creates an material object based on a CityJSON formatted material object
-		MaterialObject(json materialJson);
+		MaterialObject(const json& materialJson);
 		/// @brief creates a complex material object
 		MaterialObject(
-			std::string name,
+			const std::string& name,
 			float ambientIntensity,
-			std::array<float, 3> diffuseColor,
-			std::array<float, 3> emissiveColor,
-			std::array<float, 3> specularColor,
+			const std::array<float, 3>& diffuseColor,
+			const std::array<float, 3>& emissiveColor,
+			const std::array<float, 3>& specularColor,
 			float shininess,
 			float transparency,
 			bool isSmooth
@@ -271,7 +271,7 @@ namespace CJT {
 			std::array<float, 3> diffuseColor
 		);
 		/// @brief creates an copy of an other material object
-		MaterialObject(MaterialObject* other);
+		MaterialObject(const MaterialObject& other);
 
 		/// @brief returns name of the materal object, "" if no name
 		std::string getName() { return name_; }
@@ -336,7 +336,7 @@ namespace CJT {
 		/// @brief creates an empty texture object
 		TextureObject() {};
 		/// @brief creates a texture object based on a CityJSON formatted texture object
-		TextureObject(json textureJson);
+		TextureObject(const json& textureJson);
 
 		/// @brief sets the idx of an material object (do not use)
 		void setIdx(int idx) { idx_ = idx; }
@@ -382,12 +382,15 @@ namespace CJT {
 		void addTexture(TextureObject obb);
 		/// @brief returns all the stored material objects
 		std::vector<MaterialObject> getMaterials() { return materials_; }
+		std::vector<MaterialObject*> getMaterialsPtr();
 		/// @brief returns all the stored texture objects
 		std::vector<TextureObject> getTexures() { return textures_; }
+		std::vector<TextureObject*> getTexuresPtr();
 		/// @brief returns a material object based on its idx
 		MaterialObject getMaterial(int idx) { return materials_[idx]; }
+		MaterialObject* getMaterialPtr(int idx) { return &materials_[idx]; }
 		/// @brief returns a materail object based on its name
-		MaterialObject getMaterial(std::string name);
+		MaterialObject getMaterial(const std::string& name);
 		/// @brief returns the total number of stored materials
 		size_t getMaterialSize() { return materials_.size(); }
 		/// @brief returns the total number of stored textures
@@ -409,15 +412,15 @@ namespace CJT {
 		PointOfContactObject() {};
 
 		PointOfContactObject(
-			std::string contactName,
-			PoC_type contactType,
-			PoC_role role,
-			std::string phone,
-			std::string website,
-			std::string address
+			const std::string& contactName,
+			const PoC_type& contactType,
+			const PoC_role& role,
+			const std::string& phone,
+			const std::string& website,
+			const std::string& address
 			);
 
-		PointOfContactObject(json pointOfContact);
+		PointOfContactObject(const json& pointOfContact);
 
 		/// @brief returns data in CityJSON format
 		json getData();
@@ -455,7 +458,7 @@ namespace CJT {
 	private:
 		std::tuple<CJTPoint, CJTPoint> geographicalExtent_ = { CJTPoint(0,0,0), CJTPoint(0,0,0) };
 		std::string identifier_ = "";
-		PointOfContactObject pointOfContact_ ;
+		PointOfContactObject pointOfContact_ = PointOfContactObject();
 		std::string referenceDate_ = "";
 		std::string referenceSystem_ = "";
 		std::string title_ = "";
@@ -466,16 +469,16 @@ namespace CJT {
 		metaDataObject() {};
 		/// creates a metadata object
 		metaDataObject(
-			std::tuple<CJTPoint, CJTPoint> geographicalExtent,
-			std::string identifier,
-			PointOfContactObject pointOfContact,
-			std::string referenceDate,
-			std::string referenceSystem,
-			std::string title,
-			std::map<std::string, std::string> additionalData = {}
+			const std::tuple<CJTPoint, CJTPoint>& geographicalExtent,
+			const std::string& identifier,
+			const PointOfContactObject& pointOfContact,
+			const std::string& referenceDate,
+			const std::string& referenceSystem,
+			const std::string& title,
+			const std::map<std::string, std::string>& additionalData = {}
 		);
 		/// @brief creates a metadata object based on a CityJSON formatted metadataObject
-		metaDataObject(json metaData);
+		metaDataObject(const json& metaData);
 
 		/// @brief returns data in CityJSON format
 		json getData();
@@ -491,9 +494,10 @@ namespace CJT {
 		/// @brief sets identifier data
 		void setIdentifier(std::string id) { identifier_ = id; }
 		/// @brief returns contact information object
-		PointOfContactObject* getPointOfContact() { return &pointOfContact_; }
+		PointOfContactObject getPointOfContact() { return pointOfContact_; }
+		PointOfContactObject* getPointOfContactPtr() { return &pointOfContact_; }
 		/// @brief sets contact information object
-		void setPointOfcContact(PointOfContactObject* pointOfContact) { pointOfContact_ = *pointOfContact; }
+		void setPointOfcContact(const PointOfContactObject& pointOfContact) { pointOfContact_ = pointOfContact; }
 		/// @brief returns referenceDate information
 		std::string getReferenceDate() { return referenceDate_; }
 		// @brief sets referenceData informaton
@@ -508,6 +512,7 @@ namespace CJT {
 		void setTitle(std::string title) { title_ = title; }
 		/// @brief returns additional stored data
 		json getAdditionalData() { return additionalData_; }
+		json* getAdditionalDataPtr() { return &additionalData_; }
 		/// @brief adds additional stored data
 		void addAdditionalData(json addData, bool overRide);
 		/// @brief removes additional stored data at key
@@ -590,7 +595,7 @@ namespace CJT {
 		std::string name_ = "";
 		Building_Type type_;
 
-		std::vector<GeoObject*> geometry_;
+		std::vector<GeoObject> geometry_;
 
 		bool hasGeo_ = false;
 		bool isParent_ = false;
@@ -607,30 +612,30 @@ namespace CJT {
 		/// @brief construct a simple cityobject
 		CityObject
 		(
-			std::string name,
-			Building_Type type
+			const std::string& name,
+			const Building_Type& type
 		);
 
 		/// @brief construct a cityobject 
 		CityObject
 		(
-			std::string name,
-			Building_Type type,
-			json attributes,
-			std::vector<std::string> parentList,
-			std::vector<std::string> childList
+			const std::string& name,
+			const Building_Type& type,
+			const json& attributes,
+			const std::vector<std::string>& parentList,
+			const std::vector<std::string>& childList
 		);
 
 		/// @brief returns cityObject's name
 		std::string getName() { return name_; }
 		/// @brief set the name of the cityObject
-		void setName(std::string name) { name_ = name; }
+		void setName(const std::string& name) { name_ = name; }
 		/// @brief returns cityObject's type
 		Building_Type getType() { return type_; }
 		/// @brief returns a cityObject's type as string
 		std::string getTypeString();
 		/// @brief set the type of the cityObject
-		void setType(Building_Type type) { type_ = type; }
+		void setType(const Building_Type& type) { type_ = type; }
 
 		/// @brief returns true if the cityobject has one or more attributes
 		bool hasAttributes() { return hasAttributes_; }
@@ -642,40 +647,42 @@ namespace CJT {
 		
 		/// @brief adds an attribute to the cityObject
 		template <typename T>
-		void addAttribute(std::string key, T value, bool overwrite = false);
+		void addAttribute(const std::string& key, const T& value, bool overwrite = false);
 		/// @brief adds multiple attributes of the same type to the cityObject
 		template <typename T>
-		void addAttribute(std::map<std::string, T> keyValueList, bool overwrite = false);
+		void addAttribute(const std::map<std::string, T>& keyValueList, bool overwrite = false);
 		/// @brief removes attribute with given keyName
-		void removeAttribute(std::string keyName);
+		void removeAttribute(const std::string& keyName);
 		/// @brief removes attribute with given keyName
-		void removeAttribute(std::vector<std::string> keyNames);
+		void removeAttribute(const std::vector<std::string>& keyNames);
 		/// @brief removes all attributes
 		void clearAttributes();
 
 		/// @brief returns true if object has geometry
 		bool hasGeo() { return hasGeo_; }
 		/// @brief adds geo object to the cityObject
-		void addGeoObject(GeoObject* geom);
+		void addGeoObject(const GeoObject& geom);
 		/// @brief returns all geoObjects
-		std::vector<GeoObject*> getGeoObjects() { return geometry_; }
+		std::vector<GeoObject> getGeoObjects() { return geometry_; }
+		std::vector<GeoObject*> getGeoObjectsPtr();
 		/// @brief returns all geoObjects with the supplied LoD
-		std::vector<GeoObject*> getGeoObjects(std::string lod);
+		std::vector<GeoObject> getGeoObjects(const std::string& lod);
+		std::vector<GeoObject*> getGeoObjectsPtr(const std::string& lod);
 
 		/// @brief adds parent child relationship to the CityObject, does also update the parentObject
 		void addParent(CityObject* parentObject);
 		/// @brief set the parent child relationships to the cityobject, does NOT update the parentObjects
-		void setParent(std::vector<std::string> parentNames);
+		void setParent(const std::vector<std::string>& parentNames);
 		/// @brief removes the parent chiled relationship from the CityObject, does also update the parentObject
 		void removeParent(CityObject* removeableObject);
 		/// @brief returns a list of all the parents
-		std::vector<std::string> getParents() { return parentList_; }
+		const std::vector<std::string>& getParents() { return parentList_; }
 		/// @brief returns a list of all the parents
 		std::vector<std::string>* getParentsPtr() { return &parentList_; }
 		/// @brief adds a child parent relationship to the CityObject, does also update the childObject
 		void addChild(CityObject* childObject);
 		/// @brief set the child parent relationships to the cityobject, does NOT update the childObjects
-		void setChild(std::vector<std::string> childNames);
+		void setChild(const std::vector<std::string>& childNames);
 		/// @brief removes the child parent relationship from the CityObject, does also update the childObject
 		void removeChild(CityObject* removeableObject);
 		/// @brief returns a list of all the children
@@ -683,70 +690,77 @@ namespace CJT {
 		/// @brief returns a list of all the children
 		std::vector<std::string>* getChildrenPtr() { return &childList_; }
 		/// @brief sets object geometry
-		void setGeo(std::vector<GeoObject*> geometry) { geometry_ = geometry; }
+		void setGeo(std::vector<GeoObject> geometry) { geometry_ = geometry; }
 	};
 
 
 	class CityCollection 
 	{
 	private:
-		std::map<std::string, CityObject*> cityObjects_;
-		std::vector<CJTPoint>* vertices_ = new std::vector<CJTPoint>;
+		std::map<std::string, CityObject> cityObjects_ = {};
+		std::vector<CJTPoint> vertices_ = {};
 		std::string version_ = "";
 
-		metaDataObject* metaData_ = nullptr;
+		metaDataObject metaData_ = metaDataObject();
 		ObjectTransformation objectTransformation_= ObjectTransformation(1);
-		AppearanceObject appearance_;
+		AppearanceObject appearance_ = AppearanceObject();
 
 		bool isSilent_ = true;
 
-		bool isValid(json jsonData);
+		bool isValid(const json& jsonData);
 
-		ObjectTransformation fetchTransformation(json* transJson);
-		std::vector<CJTPoint> fetchPoints(json* pointJson);
-		std::map<std::string, CityObject*> fetchCityObjects(json* cityObjects);
-		AppearanceObject fetchAppearance(json* AppearanceJson);
+		ObjectTransformation fetchTransformation(const json& transJson);
+		std::vector<CJTPoint> fetchPoints(const json& pointJson);
+		std::map<std::string, CityObject> fetchCityObjects(const json& cityObjects);
+		AppearanceObject fetchAppearance(const json& AppearanceJson);
 
 	public:
 		/// @brief read a cityJSON file
-		bool parseJSON(std::string filePath, bool silent);
+		bool parseJSON(const std::string& filePath, bool silent);
 
 		/// @brief dump to a cityJSON file
-		bool dumpJson(std::string filePath);
+		bool dumpJson(const std::string& filePath);
 
 		/// @brief returns all cityObjects
-		std::vector<CityObject*> getAllCityObject();
+		std::vector<CityObject> getAllCityObject();
 		/// @brief returns cityObject based on name
-		CityObject* getCityObject(std::string obName);
+		bool containsCityObject(const std::string& obName);
+		CityObject getCityObject(const std::string& obName);
+		CityObject* getCityObjectPtr(const std::string& obName);
 		/// @brief returns cityObjects based on name
-		std::vector<CityObject*> getCityObject(std::vector<std::string> obNameList);
+		std::vector<CityObject> getCityObject(const std::vector<std::string>& obNameList);
+		std::vector<CityObject*> getCityObjectPtr(const std::vector<std::string>& obNameList);
 		/// @brief returns cityObjects based on type
-		std::vector<CityObject*> getCityObjectTyped(Building_Type typeName);
+		std::vector<CityObject> getCityObjectTyped(const Building_Type& typeName);
+		std::vector<CityObject*> getCityObjectTypedPtr(const Building_Type& typeName);
 		/// @brief adds a cityObject to the collection
-		void addCityObject(CityObject* cityObject);
+		void addCityObject(const CityObject& cityObject);
 		/// @brief removes a cityObject from the collection
-		void removeCityObject(std::string obName);
+		void removeCityObject(const std::string& obName);
 		/// @brief returns all materials
 		std::vector<MaterialObject> getMaterials() { return appearance_.getMaterials(); }
+		std::vector<MaterialObject*> getMaterialsPtr() { return appearance_.getMaterialsPtr(); }
 		/// @brief returns Materialobject based on idx
 		MaterialObject getMaterial(int idx);
+		MaterialObject* getMaterialPtr(int idx);
 		/// @brief returns a list of materialobjects based on material name
 		//std::vector<MaterialObject> getMaterial(std::string);
 
 		/// @brief returns all the textures
 		std::vector<TextureObject> getTextures() { return appearance_.getTexures(); }
+		std::vector<TextureObject*> getTexturesPtr() { return appearance_.getTexuresPtr(); }
  
 		/// @brief get version
 		std::string getVersion() { return version_; }
 		/// @brief set version
-		void setVersion(std::string version) { version_ = version; }
+		void setVersion(const std::string& version) { version_ = version; }
 
 		/// @brief returns all the vertices that are in the collection
-		std::vector<CJTPoint>* getVerices();
+		const std::vector<CJTPoint>& getVerices();
 		/// @brief adds a vertex to the collection, returns idx location where point is placed
-		int addVertex(CJTPoint point, bool checkUnique = false);
+		int addVertex(const CJTPoint& point, bool checkUnique = false);
 		///@brief adds a collection of vertices to the collection, returns idx location where points are placed
-		std::vector<int> addVertex(std::vector<CJTPoint> pointList, bool checkUnique = false);
+		const std::vector<int>& addVertex(const std::vector<CJTPoint>& pointList, bool checkUnique = false);
 		/// @brief removes duplicate vertices in collection, only use this completely before or completely after geometry altering
 		void cullDuplicatedVerices();
 		/// @brief removes unreferenced vertices in collection, only use this completely before or completely after geometry altering
@@ -755,12 +769,14 @@ namespace CJT {
 		void CleanVertices();
 
 		/// @brief returns the full metadata
-		metaDataObject* getMetaData() { return metaData_; }
+		metaDataObject getMetaData() { return metaData_; }
+		metaDataObject* getMetaDataPtr() { return &metaData_; }
 		/// @brief sets the metadata of the collection
-		void setMetaData(metaDataObject* metaData) { metaData_ = metaData; }
+		void setMetaData(const metaDataObject& metaData) { metaData_ = metaData; }
 
 		/// @brief returns the transformation of the collection
 		ObjectTransformation getTransformation() { return objectTransformation_; }
+		ObjectTransformation* getTransformationPtr() { return &objectTransformation_; }
 		/// @brief sets the transfomation object of the collection
 		void setTransformation(ObjectTransformation transformation) { objectTransformation_ = transformation; }
 
@@ -771,7 +787,7 @@ namespace CJT {
 	};
 
 	template<typename T>
-	inline void CityObject::addAttribute(std::string key, T value, bool overwrite)
+	inline void CityObject::addAttribute(const std::string& key, const T& value, bool overwrite)
 	{
 		if (attributes_.contains(key))
 		{
@@ -787,7 +803,7 @@ namespace CJT {
 		hasAttributes_ = true;
 	}
 	template<typename T>
-	inline void CityObject::addAttribute(std::map<std::string, T> keyValueList, bool overwrite)
+	inline void CityObject::addAttribute(const std::map<std::string, T>& keyValueList, bool overwrite)
 	{
 		for (auto pair = keyValueList.begin(); pair != keyValueList.end(); ++pair)
 		{			

@@ -4,6 +4,7 @@
 // Only CJT.h is required for the editing of attributes 
 #include <CJT.h>
 
+
 int main()
 {
     // A city collection has to be created. This collection stores all the City(JSON) data in a easily accessable format
@@ -22,8 +23,8 @@ int main()
     A collection is populated by city objects, to change an attribute a city object has to be accessed.
     A city object can be selected by the name
     */
-    CJT::CityObject* cityObject1 = collection.getCityObject("Building_1");
-    CJT::CityObject* cityObject2 = collection.getCityObject("Building_2");
+    CJT::CityObject* cityObject1 = collection.getCityObjectPtr("Building_1");
+    CJT::CityObject* cityObject2 = collection.getCityObjectPtr("Building_2");
 
     /*
     Names can be easily be changed with the setName() function.
@@ -81,7 +82,7 @@ int main()
     These can be accessed with the getGeoObjects() function, this function als takes a variable, allowing for filtering of the the geoobjects based on their LoD
     For every Geoobject the LoD can be easily edited with the setLoD() function
     */
-    std::vector<CJT::GeoObject*> geoObjectList = cityObject1->getGeoObjects();
+    std::vector<CJT::GeoObject*> geoObjectList = cityObject1->getGeoObjectsPtr();
 
     for (std::vector< CJT::GeoObject*>::iterator ptr = geoObjectList.begin(); ptr < geoObjectList.end(); ptr++)
     {

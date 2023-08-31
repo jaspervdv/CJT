@@ -234,10 +234,10 @@ namespace CJT
 		return PoC_type_Map()[stringType];
 	}
 
-	ObjectTransformation::ObjectTransformation(json* transformationJson)
+	ObjectTransformation::ObjectTransformation(const json& transformationJson)
 	{
-		auto scaler = transformationJson->at("scale");
-		auto translater = transformationJson->at("translate");
+		auto scaler = transformationJson.at("scale");
+		auto translater = transformationJson.at("translate");
 
 		xScale_ = scaler[0];
 		yScale_ = scaler[1];
@@ -272,7 +272,7 @@ namespace CJT
 		return true;
 	}
 
-	MaterialObject::MaterialObject(json materialJson)
+	MaterialObject::MaterialObject(const json& materialJson)
 	{
 		if (materialJson.contains("name")) { name_ = materialJson["name"]; }
 		if (materialJson.contains("ambientIntensity")) { ambientIntensity_ = materialJson["ambientIntensity"]; }
@@ -284,14 +284,16 @@ namespace CJT
 		if (materialJson.contains("isSmooth")) { isSmooth_ = materialJson["isSmooth"]; }
 	}
 
-	MaterialObject::MaterialObject(std::string name,
+	MaterialObject::MaterialObject(
+		const std::string& name,
 		float ambientIntensity,
-		std::array<float, 3> diffuseColor,
-		std::array<float, 3> emissiveColor,
-		std::array<float, 3> specularColor,
+		const std::array<float, 3>& diffuseColor,
+		const std::array<float, 3>& emissiveColor,
+		const std::array<float, 3>& specularColor,
 		float shininess,
 		float transparency,
-		bool isSmooth) 
+		bool isSmooth
+	)
 	{
 		name_ = name;
 		ambientIntensity_ = ambientIntensity;
@@ -314,16 +316,18 @@ namespace CJT
 		diffuseColor_ = diffuseColor;
 	}
 
-	MaterialObject::MaterialObject(MaterialObject* other) 
+	MaterialObject::MaterialObject(const MaterialObject& other)
 	{
-		name_ = other->getName();
-		ambientIntensity_ = other->getAmbientIntensity();
-		diffuseColor_ = other->getDiffuseColor();
-		emissiveColor_ = other->getEmissiveColor();
-		specularColor_ = other->getSpecularColor();
-		shininess_ = other->getShininess();
-		transparency_ = other->getTransparency();
-		isSmooth_ = other->isSmooth_;
+		MaterialObject tempOther = other;
+
+		name_ = tempOther.getName();
+		ambientIntensity_ = tempOther.getAmbientIntensity();
+		diffuseColor_ = tempOther.getDiffuseColor();
+		emissiveColor_ = tempOther.getEmissiveColor();
+		specularColor_ = tempOther.getSpecularColor();
+		shininess_ = tempOther.getShininess();
+		transparency_ = tempOther.getTransparency();
+		isSmooth_ = tempOther.isSmooth_;
 	}
 
 	bool MaterialObject::hasName()
@@ -371,7 +375,7 @@ namespace CJT
 		return true;
 	}
 
-	TextureObject::TextureObject(json textureJson)
+	TextureObject::TextureObject(const json& textureJson)
 	{
 		if (textureJson.contains("type")) { type_ = textureJson["type"]; }
 		if (textureJson.contains("image")) 
@@ -427,6 +431,20 @@ namespace CJT
 		textures_.emplace_back(obb);
 	}
 
+	std::vector<MaterialObject*> AppearanceObject::getMaterialsPtr()
+	{
+		std::vector<MaterialObject*> materialptr;
+		for (size_t i = 0; i < materials_.size(); i++) { materialptr.emplace_back(&materials_[i]); }
+		return materialptr;
+	}
+
+	std::vector<TextureObject*> AppearanceObject::getTexuresPtr()
+	{
+		std::vector<TextureObject*> texturePtr;
+		for (size_t i = 0; i < textures_.size(); i++) { texturePtr.emplace_back(&textures_[i]); }
+		return texturePtr;
+	}
+
 	bool CJTPoint::operator!=(CJTPoint other)
 	{
 		if (x_ == other.x_ && y_ == other.y_ && z_ == other.z_)
@@ -446,7 +464,13 @@ namespace CJT
 	}
 
 
-	PointOfContactObject::PointOfContactObject(std::string contactName, PoC_type contactType, PoC_role role, std::string phone, std::string website, std::string address)
+	PointOfContactObject::PointOfContactObject(
+		const std::string& contactName,
+		const PoC_type& contactType,
+		const PoC_role& role,
+		const std::string& phone,
+		const std::string& website,
+		const std::string& address)
 	{
 		contactName_ = contactName;
 		contactType_ = contactType;
@@ -456,7 +480,7 @@ namespace CJT
 		address_ = address;
 	}
 
-	PointOfContactObject::PointOfContactObject(json pointOfContact)
+	PointOfContactObject::PointOfContactObject(const json& pointOfContact)
 	{
 		for (auto obb = pointOfContact.begin(); obb != pointOfContact.end(); ++obb)
 		{
@@ -491,13 +515,13 @@ namespace CJT
 		return outputJson;
 	}
 	metaDataObject::metaDataObject(
-		std::tuple<CJTPoint, CJTPoint> geographicalExtent,
-		std::string identifier,
-		PointOfContactObject pointOfContact,
-		std::string referenceDate,
-		std::string referenceSystem,
-		std::string title,
-		std::map<std::string, std::string> additionalData
+		const std::tuple<CJTPoint, CJTPoint>& geographicalExtent,
+		const std::string& identifier,
+		const PointOfContactObject& pointOfContact,
+		const std::string& referenceDate,
+		const std::string& referenceSystem,
+		const std::string& title,
+		const std::map<std::string, std::string>& additionalData
 	)
 	{
 		geographicalExtent_ = geographicalExtent;
@@ -509,7 +533,7 @@ namespace CJT
 		additionalData_ = additionalData;
 	}
 
-	metaDataObject::metaDataObject(json metaData)
+	metaDataObject::metaDataObject(const json& metaData)
 	{
 		for (auto obb = metaData.begin(); obb != metaData.end(); ++obb)
 		{
@@ -599,10 +623,11 @@ namespace CJT
 		if (referenceSystem_.size() > 0) { return true; };
 		if (title_.size() > 0) { return true; };
 		if (additionalData_.size() > 0) { return true; };
-		if (getPointOfContact() != nullptr) 
-		{	
-			if (!getPointOfContact()->getData().is_null()) { return true; }
-		}
+		//if (getPointOfContactPtr() != nullptr)
+		//{	
+		//	if (!getPointOfContactPtr()->getData().is_null()) { return true; }
+		//}
+		// TODO: check this
 		return false;
 	}
 
@@ -726,7 +751,7 @@ namespace CJT
 	}
 
 
-	bool CityCollection::isValid(json jsonData) {
+	bool CityCollection::isValid(const json& jsonData) {
 		// TODO add validator library
 		if (!jsonData.contains("CityObjects") || !jsonData.contains("version") || !jsonData.contains("transform") || !jsonData.contains("vertices"))
 		{
@@ -747,7 +772,7 @@ namespace CJT
 		return true;
 	}
 
-	ObjectTransformation CityCollection::fetchTransformation(json* transJson)
+	ObjectTransformation CityCollection::fetchTransformation(const json& transJson)
 	{		
 		ObjectTransformation transformation(transJson);
 
@@ -760,13 +785,21 @@ namespace CJT
 		type_ = Building_Type::none;
 	}
 
-	CityObject::CityObject(std::string name, Building_Type type)
+	CityObject::CityObject(
+		const std::string& name,
+		const Building_Type& type
+	)
 	{
 		name_ = name;
 		type_ = type;
 	}
 
-	CityObject::CityObject(std::string name, Building_Type type, json attributes, std::vector<std::string> parentList, std::vector<std::string> childList)
+	CityObject::CityObject(
+		const std::string& name,
+		const Building_Type& type,
+		const json& attributes,
+		const std::vector<std::string>& parentList,
+		const std::vector<std::string>& childList)
 	{
 		name_ = name;
 		type_ = type;
@@ -800,7 +833,7 @@ namespace CJT
 		std::vector<float> loDList = {};
 		for (size_t i = 0; i < geometry_.size(); i++)
 		{
-			float lod = std::stof(geometry_[i]->getLoD());
+			float lod = std::stof(geometry_[i].getLoD());
 
 			if (!std::count(loDList.begin(), loDList.end(), lod))
 			{
@@ -812,7 +845,7 @@ namespace CJT
 		return loDList;
 	}
 
-	void CityObject::removeAttribute(std::string keyName)
+	void CityObject::removeAttribute(const std::string& keyName)
 	{
 		if (!attributes_.contains(keyName))
 		{
@@ -822,7 +855,7 @@ namespace CJT
 		attributes_.erase(keyName);
 	}
 
-	void CityObject::removeAttribute(std::vector<std::string> keyNames)
+	void CityObject::removeAttribute(const std::vector<std::string>& keyNames)
 	{		
 		for (size_t i = 0; i < keyNames.size(); i++)
 		{
@@ -836,26 +869,43 @@ namespace CJT
 		hasAttributes_ = false;
 	}
 
-	void CityObject::addGeoObject(GeoObject* geom)
+	void CityObject::addGeoObject(const GeoObject& geom)
 	{
-		GeoObject* newGeo = new GeoObject();
-		*newGeo = *geom;
-
-		geometry_.emplace_back(newGeo);
+		geometry_.emplace_back(geom);
 		hasGeo_ = true;
 	}
 
-	std::vector<GeoObject*> CityObject::getGeoObjects(std::string lod)
+	std::vector<GeoObject*> CityObject::getGeoObjectsPtr()
 	{
-		std::vector<GeoObject*> geoObjectList;
+		std::vector<GeoObject*> ptrVector;
+		for (size_t i = 0; i < geometry_.size(); i++) { ptrVector.emplace_back(&geometry_[i]); }
+		return ptrVector;
+	}
+
+	std::vector<GeoObject> CityObject::getGeoObjects(const std::string& lod)
+	{
+		std::vector<GeoObject> geoObjectList;
 		for (size_t i = 0; i < geometry_.size(); i++)
 		{
-			if (geometry_[i]->getLoD() == lod)
+			if (geometry_[i].getLoD() == lod)
 			{
 				geoObjectList.emplace_back(geometry_[i]);
 			}
 		}
 
+		return geoObjectList;
+	}
+
+	std::vector<GeoObject*> CityObject::getGeoObjectsPtr(const std::string& lod)
+	{
+		std::vector<GeoObject*> geoObjectList;
+		for (size_t i = 0; i < geometry_.size(); i++)
+		{
+			if (geometry_[i].getLoD() == lod)
+			{
+				geoObjectList.emplace_back(&geometry_[i]);
+			}
+		}
 		return geoObjectList;
 	}
 
@@ -869,7 +919,7 @@ namespace CJT
 		}
 	}
 
-	void CityObject::setParent(std::vector<std::string> parentNames)
+	void CityObject::setParent(const std::vector<std::string>& parentNames)
 	{
 		parentList_ = parentNames;
 	}
@@ -897,7 +947,7 @@ namespace CJT
 		}
 	}
 
-	void CityObject::setChild(std::vector<std::string> childNames)
+	void CityObject::setChild(const std::vector<std::string>& childNames)
 	{
 		childList_ = childNames;
 	}
@@ -914,12 +964,12 @@ namespace CJT
 		if (loc != -1) { otherParentList->erase(otherParentList->begin() + loc); }
 	}
 
-	std::vector<CJTPoint> CityCollection::fetchPoints(json* pointJson)
+	std::vector<CJTPoint> CityCollection::fetchPoints(const json& pointJson)
 	{
 		std::vector<CJTPoint> vertList;
 		double* scaler = objectTransformation_.getScale();
 
-		for (auto point = pointJson->begin(); point != pointJson->end(); ++point)
+		for (auto point = pointJson.begin(); point != pointJson.end(); ++point)
 		{
 			auto coord = point.value();
 			vertList.emplace_back(CJTPoint(coord[0] * scaler[0], coord[1] * scaler[1], coord[2] * scaler[2]));
@@ -927,11 +977,11 @@ namespace CJT
 		return vertList;
 	}
 
-	std::map<std::string, CityObject*> CityCollection::fetchCityObjects(json* cityObjects)
+	std::map<std::string, CityObject> CityCollection::fetchCityObjects(const json& cityObjects)
 	{
-		std::map<std::string, CityObject*> collection;
+		std::map<std::string, CityObject> collection;
 
-		for (auto cityObject = cityObjects->begin(); cityObject != cityObjects->end(); ++cityObject)
+		for (auto cityObject = cityObjects.begin(); cityObject != cityObjects.end(); ++cityObject)
 		{
 			std::string objectName = cityObject.key();
 			json attributes = {};
@@ -943,13 +993,14 @@ namespace CJT
 			if (objectValue.contains("parents")) { parents = objectValue["parents"]; }
 			if (objectValue.contains("children")) { children = objectValue["children"]; }
 
-			CityObject* CCityObject = new CityObject(
+			CityObject CCityObject = CityObject(
 				objectName, 
 				stringToBuildingType(objectValue["type"]), //TODO: make less crash prone and more effective
 				attributes,
 				parents,
 				children
 			);
+
 			auto geoObjects = objectValue["geometry"];
 
 			if (geoObjects.size() == 0)
@@ -1006,7 +1057,7 @@ namespace CJT
 					if (semanticData.contains("surfaces")) { surfaceData = semanticData["surfaces"]; }
 
 				}
-				GeoObject* geoObjectP = new GeoObject(
+				GeoObject geoObjectP = GeoObject(
 					boundaries,
 					lod,
 					surfaceData,
@@ -1014,28 +1065,28 @@ namespace CJT
 					geoType
 				);
 
-				CCityObject->addGeoObject(geoObjectP);
+				CCityObject.addGeoObject(geoObjectP);
 			}
 			collection.emplace(objectName, CCityObject);
 		}
 		return collection;
 	}
 
-	AppearanceObject CityCollection::fetchAppearance(json* AppearanceJson)
+	AppearanceObject CityCollection::fetchAppearance(const json& AppearanceJson)
 	{
 		AppearanceObject newAppearanceObject;
-		if (AppearanceJson->contains("materials"))
+		if (AppearanceJson.contains("materials"))
 		{
-			json materials = AppearanceJson->at("materials");
+			json materials = AppearanceJson.at("materials");
 			for (size_t i = 0; i < materials.size(); i++)
 			{
 				newAppearanceObject.addMaterial(MaterialObject(materials[i]));
 			}
 		}
 
-		if (AppearanceJson->contains("textures"))
+		if (AppearanceJson.contains("textures"))
 		{
-			json textures = AppearanceJson->at("textures");
+			json textures = AppearanceJson.at("textures");
 			for (size_t i = 0; i < textures.size(); i++)
 			{
 				newAppearanceObject.addTexture(TextureObject(textures[i]));
@@ -1046,7 +1097,7 @@ namespace CJT
 		return newAppearanceObject;
 	}
 	
-	bool CityCollection::parseJSON(std::string filePath, bool silent)
+	bool CityCollection::parseJSON(const std::string& filePath, bool silent)
 	{
 		// set initial booleans
 		isSilent_ = silent;
@@ -1077,22 +1128,24 @@ namespace CJT
 		}
 
 		// get complete list of all the present vertices
-		objectTransformation_ = fetchTransformation(&completeData["transform"]);
-		vertices_ = &fetchPoints(&completeData["vertices"]);
+		objectTransformation_ = fetchTransformation(completeData["transform"]);
+		vertices_ = fetchPoints(completeData["vertices"]);
 
 		if (!isSilent_)
 		{
-			std::cout << "Loaded " << vertices_->size() << " vertices" << std::endl;
+			std::cout << "Loaded " << vertices_.size() << " vertices" << std::endl;
 		}
 
-		cityObjects_ = fetchCityObjects(&completeData["CityObjects"]);
+		cityObjects_ = fetchCityObjects(completeData["CityObjects"]);
 
 		if (!isSilent_)
 		{
 			std::cout << "Loaded " << cityObjects_.size() << " City Objects" << std::endl;
 		}
 
-		appearance_ = fetchAppearance(&completeData["appearance"]);
+		std::cout << "click" << std::endl;
+
+		appearance_ = fetchAppearance(completeData["appearance"]);
 
 		if (!isSilent_)
 		{
@@ -1102,7 +1155,7 @@ namespace CJT
 
 		if (!isSilent_)
 		{
-			if (vertices_->size() != 0 && cityObjects_.size() != 0)
+			if (vertices_.size() != 0 && cityObjects_.size() != 0)
 			{
 				std::cout << "JSON Loaded succesfully" << std::endl;
 			}
@@ -1111,11 +1164,11 @@ namespace CJT
 			}
 		}
 
-		appearance_ = fetchAppearance(&completeData["appearance"]);
+		appearance_ = fetchAppearance(completeData["appearance"]);
 
 
 		version_ = completeData["version"];
-		metaData_ = new metaDataObject(completeData["metadata"]);
+		metaData_ = metaDataObject(completeData["metadata"]);
 
 		if (!isSilent_)
 		{
@@ -1126,7 +1179,7 @@ namespace CJT
 	}
 
 
-	bool CityCollection::dumpJson(std::string filePath)
+	bool CityCollection::dumpJson(const std::string& filePath)
 	{
 		if (!isSilent_)
 		{
@@ -1147,20 +1200,10 @@ namespace CJT
 
 		newFile.emplace(fileType);
 		newFile.emplace(version);
- 
-		if (metaData_ == nullptr)
+
+		if (metaData_.checkInfo())
 		{
-			if (!isSilent_)
-			{
-				std::cout << "No Metadata Found!" << std::endl;
-			}
-		}
-		else
-		{
-			if (metaData_->checkInfo())
-			{
-				newFile.emplace("metadata", metaData_->getData());
-			}
+			newFile.emplace("metadata", metaData_.getData());
 		}
 
 		// transformation data collection
@@ -1189,9 +1232,9 @@ namespace CJT
 		// offload vertices
 		std::vector<std::array<int, 3>> vertList;
 
-		for (size_t i = 0; i < vertices_->size(); i++)
+		for (size_t i = 0; i < vertices_.size(); i++)
 		{
-			CJT::CJTPoint currentVert = vertices_->at(i);
+			CJT::CJTPoint currentVert = vertices_[i];
 			std::array<double, 3> unscaledCoords = currentVert.getCoordinates();
 			std::array<int, 3> scaledCoords;
 
@@ -1207,48 +1250,48 @@ namespace CJT
 		// offload cityobjects
 		json cityGeoCollection;
 		std::map<std::string, json> objectCollection;
-		for (std::pair<std::string, CityObject*> cityObject : cityObjects_)
+		for (std::pair<std::string, CityObject> cityObject : cityObjects_)
 		{
 			auto currentObject = cityObject.second;
-			std::string objectName = currentObject->getName();
-			std::string objectType = buildingTypeToString(currentObject->getType());
-			std::vector<GeoObject*> geoObjectList = currentObject->getGeoObjects();
+			std::string objectName = currentObject.getName();
+			std::string objectType = buildingTypeToString(currentObject.getType());
+			std::vector<GeoObject> geoObjectList = currentObject.getGeoObjects();
 			std::map<std::string, json> cityObject;
 
 			cityObject.emplace("type", objectType);
 
-			if (currentObject->hasAttributes())
+			if (currentObject.hasAttributes())
 			{
-				cityObject.emplace("attributes", currentObject->getAttributes());
+				cityObject.emplace("attributes", currentObject.getAttributes());
 			}
 
 			// get geometry
-			if (currentObject->hasGeo())
+			if (currentObject.hasGeo())
 			{
 				std::list<json> geoGroup;
 
 				for (size_t i = 0; i < geoObjectList.size(); i++)
 				{
 					std::map<std::string, json> geoCollection;
-					geoCollection.emplace("boundaries", geoObjectList[i]->getBoundaries());
+					geoCollection.emplace("boundaries", geoObjectList[i].getBoundaries());
 
 					if (stringLoD)
 					{
-						geoCollection.emplace("lod", geoObjectList[i]->getLoD());
+						geoCollection.emplace("lod", geoObjectList[i].getLoD());
 					}
 					else
 					{
-						geoCollection.emplace("lod", std::stod(geoObjectList[i]->getLoD()));
+						geoCollection.emplace("lod", std::stod(geoObjectList[i].getLoD()));
 					}
 
 
-					geoCollection.emplace("type", geoObjectList[i]->getType());
+					geoCollection.emplace("type", geoObjectList[i].getType());
 
-					auto surfaceSemData = geoObjectList[i]->getSurfaceData();
+					auto surfaceSemData = geoObjectList[i].getSurfaceData();
 					if (!surfaceSemData.is_null()) // if no surface semantic data is supplied
 					{
 						std::pair surfaceTypePair{ "surfaces", surfaceSemData };
-						std::pair surfaceValuePair{ "values", geoObjectList[i]->getSurfaceTypeValues() };
+						std::pair surfaceValuePair{ "values", geoObjectList[i].getSurfaceTypeValues() };
 						geoCollection.emplace("semantics", std::pair{ surfaceTypePair, surfaceValuePair });
 					}
 					geoGroup.emplace_back(geoCollection);
@@ -1257,8 +1300,8 @@ namespace CJT
 			}
 
 			// get parents/children
-			std::vector<std::string> parentList = currentObject->getParents();
-			std::vector<std::string> childList = currentObject->getChildren();
+			std::vector<std::string> parentList = currentObject.getParents();
+			std::vector<std::string> childList = currentObject.getChildren();
 
 			if (parentList.size())
 			{
@@ -1377,63 +1420,88 @@ namespace CJT
 	}
 
 
-	std::vector<CityObject*> CityCollection::getAllCityObject()
+	std::vector<CityObject> CityCollection::getAllCityObject()
 	{
-		std::vector<CityObject*> outputList;
-		for (std::pair<std::string, CityObject*> data : cityObjects_)
+		std::vector<CityObject> outputList;
+		for (std::pair<std::string, CityObject> data : cityObjects_)
 		{
 			outputList.emplace_back(data.second);
 		}
 		return outputList;
 	}
 
-
-	CityObject* CityCollection::getCityObject(std::string obName)
+	bool CityCollection::containsCityObject(const std::string& obName)
 	{
-		if (cityObjects_.find(obName) == cityObjects_.end())
-		{
-			std::cout << "Object Name not found" << std::endl;
-			return nullptr;
-		}
+		if (cityObjects_.find(obName) == cityObjects_.end()) { return false; }
+		return true;
+	}
+
+	CityObject CityCollection::getCityObject(const std::string& obName)
+	{
 		return cityObjects_[obName];
 	}
-	
 
-	std::vector<CityObject*> CityCollection::getCityObject(std::vector<std::string> obNameList)
+	CityObject* CityCollection::getCityObjectPtr(const std::string& obName)
+	{
+		return &cityObjects_[obName];
+	}
+
+	std::vector<CityObject> CityCollection::getCityObject(const std::vector<std::string>& obNameList)
+	{
+		std::vector<CityObject> cityObjectList;
+		for (size_t i = 0; i < obNameList.size(); i++)
+		{
+			if (!containsCityObject(obNameList[i])) { continue; }
+			auto tempCityObject = getCityObject(obNameList[i]);
+			cityObjectList.emplace_back(tempCityObject);
+		}
+		return cityObjectList;
+	}
+
+	std::vector<CityObject*> CityCollection::getCityObjectPtr(const std::vector<std::string>& obNameList)
 	{
 		std::vector<CityObject*> cityObjectList;
 		for (size_t i = 0; i < obNameList.size(); i++)
 		{
-			auto tempCityObject = getCityObject(obNameList[i]);
-
-			if (tempCityObject == nullptr)
-			{
-				std::cout << obNameList[i] + " not found" << std::endl;
-				continue;
-			}
+			if (!containsCityObject(obNameList[i])) { continue; }
+			auto tempCityObject = getCityObjectPtr(obNameList[i]);
 			cityObjectList.emplace_back(tempCityObject);
 		}
-
 		return cityObjectList;
 	}
+
 	
-	std::vector<CityObject*> CityCollection::getCityObjectTyped(Building_Type typeName)
+	std::vector<CityObject> CityCollection::getCityObjectTyped(const Building_Type& typeName)
 	{
-		std::vector<CityObject*> cityObjectList;
+		std::vector<CityObject> cityObjectList;
 		for (auto obb = cityObjects_.begin(); obb != cityObjects_.end(); ++obb)
 		{
-			if (obb->second->getType() == typeName)
+			if (obb->second.getType() == typeName)
 			{
 				cityObjectList.emplace_back(obb->second);
 			}
 		}
-
 		return cityObjectList;
 	}
 
-	void CityCollection::addCityObject(CityObject* cityObject)
+	std::vector<CityObject*> CityCollection::getCityObjectTypedPtr(const Building_Type& typeName)
 	{
-		cityObjects_.emplace(cityObject->getName(), cityObject);
+		std::vector<CityObject*> cityObjectList;
+		for (auto obb = cityObjects_.begin(); obb != cityObjects_.end(); ++obb)
+		{
+			if (obb->second.getType() == typeName)
+			{
+				cityObjectList.emplace_back(&obb->second);
+			}
+		}
+		return cityObjectList;
+	}
+
+
+	void CityCollection::addCityObject(const CityObject& cityObject)
+	{
+		CityObject tempObject = cityObject;
+		cityObjects_.emplace(tempObject.getName(), tempObject);
 	}
 
 	MaterialObject CityCollection::getMaterial(int idx)
@@ -1447,7 +1515,7 @@ namespace CJT
 		return MaterialObject();
 	}
 	
-	void CityCollection::removeCityObject(std::string obName)
+	void CityCollection::removeCityObject(const std::string& obName)
 	{
 		if (cityObjects_.find(obName) != cityObjects_.end())
 		{
@@ -1456,29 +1524,31 @@ namespace CJT
 	}
 
 
-	std::vector<CJTPoint>* CityCollection::getVerices()
+	const std::vector<CJTPoint>& CityCollection::getVerices()
 	{
 		return vertices_;
 	}
 
 
-	int CityCollection::addVertex(CJTPoint point, bool unique)
+	int CityCollection::addVertex(const CJTPoint& point, bool unique)
 	{
 		double scaleX = objectTransformation_.getScale()[0];
-		double scaleY = objectTransformation_.getScale()[1];;
-		double scaleZ = objectTransformation_.getScale()[2];;
+		double scaleY = objectTransformation_.getScale()[1];
+		double scaleZ = objectTransformation_.getScale()[2];
+
+		CJTPoint p = point;
 
 		int location = -1;
 		if (unique)
 		{
 			int i = 0;
-			for (std::vector<CJT::CJTPoint>::iterator it = vertices_->begin(); it != vertices_->end(); ++it) 
+			for (std::vector<CJT::CJTPoint>::iterator it = vertices_.begin(); it != vertices_.end(); ++it) 
 			{
 				CJTPoint otherPoint = *it;
 
-				if (std::abs(point.getX() - otherPoint.getX()) <= scaleX &&
-					std::abs(point.getY() - otherPoint.getY()) <= scaleY &&
-					std::abs(point.getZ() - otherPoint.getZ()) <= scaleZ)
+				if (std::abs(p.getX() - otherPoint.getX()) <= scaleX &&
+					std::abs(p.getY() - otherPoint.getY()) <= scaleY &&
+					std::abs(p.getZ() - otherPoint.getZ()) <= scaleZ)
 				{
 					location = i;
 					break;
@@ -1488,15 +1558,15 @@ namespace CJT
 		}
 		if (location == -1)
 		{
-			location = static_cast<int>(vertices_->size());
-			vertices_->emplace_back(point);
+			location = static_cast<int>(vertices_.size());
+			vertices_.emplace_back(point);
 			return location;
 		}
 		return location;
 	}
 
 
-	std::vector<int> CityCollection::addVertex(std::vector<CJTPoint> pointList, bool checkUnique)
+	const std::vector<int>& CityCollection::addVertex(const std::vector<CJTPoint>& pointList, bool checkUnique)
 	{
 		std::vector<int> locationList;
 		for (size_t i = 0; i < pointList.size(); i++)
@@ -1516,7 +1586,7 @@ namespace CJT
 
 		// remove dups and make map that maps the correcting locations
 		std::map<int, int> correctingIdxMap;
-		std::vector<CJTPoint>* correctedvertices = new std::vector<CJTPoint>;
+		std::vector<CJTPoint> correctedvertices;
 		int correctionAmount = 0;
 		int i = 0;
 
@@ -1524,14 +1594,14 @@ namespace CJT
 		double scaleY = objectTransformation_.getScale()[1];;
 		double scaleZ = objectTransformation_.getScale()[2];;
 
-		for (std::vector<CJT::CJTPoint>::iterator it = vertices_->begin(); it != vertices_->end(); ++it)
+		for (std::vector<CJT::CJTPoint>::iterator it = vertices_.begin(); it != vertices_.end(); ++it)
 		{
 			int j = 0;
 			int doubleIdx = -1;
 			bool found = false;
 			CJTPoint currentPoint =*it;
 
-			for (std::vector<CJTPoint>::iterator it = correctedvertices->begin(); it != correctedvertices->end(); ++it )
+			for (std::vector<CJTPoint>::iterator it = correctedvertices.begin(); it != correctedvertices.end(); ++it )
 			{
 				CJTPoint otherPoint = *it;
 
@@ -1547,7 +1617,7 @@ namespace CJT
 			}
 			if (!found)
 			{
-				correctedvertices->emplace_back(currentPoint);
+				correctedvertices.emplace_back(currentPoint);
 				correctingIdxMap.emplace(i, i - correctionAmount);
 				
 			}
@@ -1560,7 +1630,7 @@ namespace CJT
 		}
 
 		// correct geo references
-		if (correctedvertices->size() == vertices_->size()) 
+		if (correctedvertices.size() == vertices_.size()) 
 		{ 
 			std::cout << "No duplicate vertices found" << std::endl;
 			return; 
@@ -1568,40 +1638,40 @@ namespace CJT
 
 		if (!isSilent_)
 		{
-			std::cout << "Reduced vertices count from: " << vertices_->size() << ", to: " << correctedvertices->size() << std::endl;
+			std::cout << "Reduced vertices count from: " << vertices_.size() << ", to: " << correctedvertices.size() << std::endl;
 			std::cout << "Correcting vertices referencing" << std::endl;
 		}
 
-		delete vertices_;
+		//delete vertices_;
 		vertices_ = correctedvertices;
-		correctedvertices = nullptr;
+		//correctedvertices = nullptr;
 
 		for (auto obb = cityObjects_.begin(); obb != cityObjects_.end(); ++obb)
 		{
-			CityObject* currentCityObject = obb->second;
+			CityObject currentCityObject = obb->second;
 
-			if (!currentCityObject->hasGeo()) { continue; }
+			if (!currentCityObject.hasGeo()) { continue; }
 
-			std::vector<GeoObject*> curentGeoObjects = currentCityObject->getGeoObjects();
+			std::vector<GeoObject> curentGeoObjects = currentCityObject.getGeoObjects();
 
 			for (size_t i = 0; i < curentGeoObjects.size(); i++)
 			{
-				GeoObject* currentGeoObject = curentGeoObjects[i];
-				json boundaries = currentGeoObject->getBoundaries();
+				GeoObject currentGeoObject = curentGeoObjects[i];
+				json boundaries = currentGeoObject.getBoundaries();
 
-				std::string geoType = currentGeoObject->getType();
+				std::string geoType = currentGeoObject.getType();
 
 				if (geoType == "MultiSurface")
 				{
-					currentGeoObject->setBoundaries(updateVerts(&boundaries, &correctingIdxMap, 3));
+					currentGeoObject.setBoundaries(updateVerts(&boundaries, &correctingIdxMap, 3));
 				}	
 
 				if (geoType == "Solid")
 				{
-					currentGeoObject->setBoundaries(updateVerts(&boundaries, &correctingIdxMap, 4));
+					currentGeoObject.setBoundaries(updateVerts(&boundaries, &correctingIdxMap, 4));
 				}
 			}
-			currentCityObject->setGeo(curentGeoObjects);
+			currentCityObject.setGeo(curentGeoObjects);
 			cityObjects_[obb->first] = currentCityObject;
 		}
 
@@ -1622,25 +1692,25 @@ namespace CJT
 
 		std::vector<bool>* vertreference = new std::vector<bool>;
 
-		for (std::vector<CJT::CJTPoint>::iterator it = vertices_->begin(); it != vertices_->end(); ++it)
+		for (std::vector<CJT::CJTPoint>::iterator it = vertices_.begin(); it != vertices_.end(); ++it)
 		{
 			vertreference->emplace_back(false);
 		}
 
 		for (auto obb = cityObjects_.begin(); obb != cityObjects_.end(); ++obb)
 		{
-			CityObject* currentCityObject = obb->second;
+			CityObject currentCityObject = obb->second;
 
-			if (!currentCityObject->hasGeo()) { continue; }
+			if (!currentCityObject.hasGeo()) { continue; }
 
-			std::vector<GeoObject*>* curentGeoObjects = &currentCityObject->getGeoObjects();
+			std::vector<GeoObject> curentGeoObjects = currentCityObject.getGeoObjects();
 
-			for (std::vector<GeoObject*>::iterator it = curentGeoObjects->begin(); it != curentGeoObjects->end(); ++it)
+			for (std::vector<GeoObject>::iterator it = curentGeoObjects.begin(); it != curentGeoObjects.end(); ++it)
 			{
-				GeoObject* currentGeoObject = *it;
-				json boundaries = currentGeoObject->getBoundaries();
+				GeoObject currentGeoObject = *it;
+				json boundaries = currentGeoObject.getBoundaries();
 
-				std::string geoType = currentGeoObject->getType();
+				std::string geoType = currentGeoObject.getType();
 				std::vector<int> referencesIdx;
 
 				referencesIdx = getFlatVerts(&boundaries);
@@ -1655,7 +1725,7 @@ namespace CJT
 		std::map<int, int>* correctingIdxMap = new std::map<int, int>;
 		int correctionAmount = 0;
 		int currentAmount = 0;
-		std::vector<CJTPoint>* correctedvertices = new std::vector<CJTPoint>;
+		std::vector<CJTPoint> correctedvertices;
 
 		for (std::vector<bool>::iterator it = vertreference->begin(); it != vertreference->end(); ++it)
 		{
@@ -1665,7 +1735,7 @@ namespace CJT
 			}
 			else
 			{
-				correctedvertices->emplace_back((*vertices_)[currentAmount]);
+				correctedvertices.emplace_back(vertices_[currentAmount]);
 				correctingIdxMap->emplace(currentAmount, currentAmount - correctionAmount);
 			}
 			currentAmount++;
@@ -1692,43 +1762,41 @@ namespace CJT
 		}
 
 		// correct geo references
-		if (correctedvertices->size() == vertices_->size()) { return; }
+		if (correctedvertices.size() == vertices_.size()) { return; }
 
-		delete vertices_;
 		vertices_ = correctedvertices;
-		correctedvertices = nullptr;
+		//correctedvertices = nullptr;
 
 		std::cout << cityObjects_.size() << std::endl;
 
 		for (auto obb = cityObjects_.begin(); obb != cityObjects_.end(); ++obb)
 		{
-			CityObject* currentCityObject = obb->second;
+			CityObject currentCityObject = obb->second;
 
-			if (!currentCityObject->hasGeo()) { continue; }
+			if (!currentCityObject.hasGeo()) { continue; }
 
-			std::vector<GeoObject*> curentGeoObjects = currentCityObject->getGeoObjects();
+			std::vector<GeoObject> curentGeoObjects = currentCityObject.getGeoObjects();
 
 			for (size_t i = 0; i < curentGeoObjects.size(); i++)
 			{
 				std::cout << i << std::endl;
-				GeoObject* currentGeoObject = curentGeoObjects[i];
-				json boundaries = currentGeoObject->getBoundaries();
+				GeoObject currentGeoObject = curentGeoObjects[i];
+				json boundaries = currentGeoObject.getBoundaries();
 
-				std::string geoType = currentGeoObject->getType();
+				std::string geoType = currentGeoObject.getType();
 
 				if (geoType == "MultiSurface")
 				{
-					currentGeoObject->setBoundaries(updateVerts(&boundaries, correctingIdxMap, 3));
+					currentGeoObject.setBoundaries(updateVerts(&boundaries, correctingIdxMap, 3));
 				}
 
 				if (geoType == "Solid")
 				{
 					updateVerts(&boundaries, correctingIdxMap, 4);
-					std::cout << "reached" << std::endl;
-					currentGeoObject->setBoundaries(updateVerts(&boundaries, correctingIdxMap, 4));
+					currentGeoObject.setBoundaries(updateVerts(&boundaries, correctingIdxMap, 4));
 				}
 			}
-			currentCityObject->setGeo(curentGeoObjects);
+			currentCityObject.setGeo(curentGeoObjects);
 			std::cout << obb->first << std::endl;
 			cityObjects_[obb->first] = currentCityObject;
 		}

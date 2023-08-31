@@ -41,21 +41,21 @@ int main()
 	However to keep it clear we do for some variables step by step with the supplied methods. 
 	Note that by not filling in all the metadata info (like in this example), this is not creating a valid CityJSON file. For more info: https://www.cityjson.org/specs
 	*/
-	std::unique_ptr <CJT::metaDataObject> metaData = std::make_unique<CJT::metaDataObject>();
-	metaData->setTitle("OpenCASCADE box");
-	metaData->setExtend(CJT::CJTPoint(-5,-5,0), CJT::CJTPoint(5,5,0));
+	CJT::metaDataObject metaData;
+	metaData.setTitle("OpenCASCADE box");
+	metaData.setExtend(CJT::CJTPoint(-5,-5,0), CJT::CJTPoint(5,5,0));
 
 	/*
 	The point of contact information can be added with a point of contact object.
 	*/
-	std::unique_ptr<CJT::PointOfContactObject> contactObject = std::make_unique<CJT::PointOfContactObject>();
-	contactObject->setConactName("User Name");
-	contactObject->setConactType(CJT::PoC_type::individual);
-	contactObject->setRole(CJT::PoC_role::user);
-	contactObject->setWebsite("https://github.com/jaspervdv/CJT");
+	CJT::PointOfContactObject contactObject;
+	contactObject.setConactName("User Name");
+	contactObject.setConactType(CJT::PoC_type::individual);
+	contactObject.setRole(CJT::PoC_role::user);
+	contactObject.setWebsite("https://github.com/jaspervdv/CJT");
 
-	metaData->setPointOfcContact(contactObject.get());
-	collection.setMetaData(metaData.get());
+	metaData.setPointOfcContact(contactObject);
+	collection.setMetaData(metaData);
 
 	/*
 	The collection now has a transformation and metadata, but it does not yet have the shape included.
@@ -68,15 +68,15 @@ int main()
 	/*
 	A new city object has to be created to which the geo object can be added to.
 	*/
-	std::unique_ptr<CJT::CityObject> cityObject = std::make_unique<CJT::CityObject>();
-	cityObject->setName("Box");
-	cityObject->addGeoObject(geoObject);
-	cityObject->setType(CJT::Building_Type::Building);
+	CJT::CityObject cityObject;
+	cityObject.setName("Box");
+	cityObject.addGeoObject(*geoObject);
+	cityObject.setType(CJT::Building_Type::Building);
 
 	/*
 	This city object can be added to the collection. and the collection can be dumped to a JSON.
 	*/
-	collection.addCityObject(cityObject.get());
+	collection.addCityObject(cityObject);
 
 	std::string filepath = std::filesystem::current_path().remove_filename().string();
 	std::string exportPath = filepath + "/box_export.city.json";

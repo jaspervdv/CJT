@@ -733,7 +733,7 @@ namespace CJT {
 			std::cout << "Kernel has not been initialized, add cityCollection to kernel before retrieving a shape" << std::endl;
 			return false;
 		}
-		if (cityCollection_->getVerices()->size() == 0)
+		if (cityCollection_->getVerices().size() == 0)
 		{
 			std::cout << "Kernel has not been initialized, add pointlist to cityCollection before retrieving a shape" << std::endl;
 			return false;
@@ -749,7 +749,7 @@ namespace CJT {
 
 		// construct facelist 		
 		std::vector<IntFace> faceIntList = getSurfaceIdx(&geoObject.getBoundaries());
-		std::vector<CJTPoint>* cityVerts = cityCollection_->getVerices();
+		std::vector<CJTPoint> cityVerts = cityCollection_->getVerices();
 
 		BRep_Builder brepBuilder;
 		BRepBuilderAPI_Sewing brepSewer;
@@ -758,7 +758,7 @@ namespace CJT {
 		for (size_t i = 0; i < faceIntList.size(); i++)
 		{
 			IntFace currentIntFace = faceIntList[i];
-			std::vector<gp_Pnt> oPointList = intPoint2GpPoint(currentIntFace.outerRing_, *cityVerts);
+			std::vector<gp_Pnt> oPointList = intPoint2GpPoint(currentIntFace.outerRing_, cityVerts);
 			TopoDS_Wire topoWire = makeRingWire(oPointList);
 
 			if (topoWire.IsNull()) { 
@@ -794,7 +794,7 @@ namespace CJT {
 			{
 				for (size_t j = 0; j < currentIntFace.innerRingList_.size(); j++)
 				{
-					std::vector<gp_Pnt> iPointList = intPoint2GpPoint(currentIntFace.innerRingList_[j], *cityVerts);
+					std::vector<gp_Pnt> iPointList = intPoint2GpPoint(currentIntFace.innerRingList_[j], cityVerts);
 					TopoDS_Wire innerWire = makeRingWire(iPointList);
 
 					if (innerWire.IsNull()) { continue; }
@@ -846,7 +846,7 @@ namespace CJT {
 		
 		if (!checkIfInit()) { return shapeList; }
 
-		std::vector<GeoObject*> geoObjectList = cityObject.getGeoObjects();
+		std::vector<GeoObject*> geoObjectList = cityObject.getGeoObjectsPtr();
 		for (size_t i = 0; i < geoObjectList.size(); i++)
 		{
 			GeoObject* currentObject = geoObjectList[i];

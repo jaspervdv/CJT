@@ -28,14 +28,14 @@ int main()
     /*
     An object that is desired for conversion to the OpenCASCADE format has to be isolated, this is explained in example 1
     */
-    CJT::CityObject* cityObject1 = collection.getCityObject("Building_1");
+    CJT::CityObject cityObject1 = collection.getCityObject("Building_1");
 
     /*
     The object can be converted to the OpenCASCADE format with the convertToCascade function. This function accepts both a CJT city object or a geo object.
     The output is a TopoDS shape object. It will attempt to create a TopoDS_Solid, if this is not succesfull it will output a TopoDS_Composit. 
     */
 
-    std::vector<TopoDS_Shape*> shapeList =  kernel.convertToCascade(*cityObject1);
+    std::vector<TopoDS_Shape*> shapeList =  kernel.convertToCascade(cityObject1);
 
     /*
     To visualize the output will be written to a STEP file
