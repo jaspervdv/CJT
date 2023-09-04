@@ -760,7 +760,7 @@ namespace CJT {
 		/// @brief adds a vertex to the collection, returns idx location where point is placed
 		int addVertex(const CJTPoint& point, bool checkUnique = false);
 		///@brief adds a collection of vertices to the collection, returns idx location where points are placed
-		const std::vector<int>& addVertex(const std::vector<CJTPoint>& pointList, bool checkUnique = false);
+		const std::vector<int> addVertex(const std::vector<CJTPoint>& pointList, bool checkUnique = false);
 		/// @brief removes duplicate vertices in collection, only use this completely before or completely after geometry altering
 		void cullDuplicatedVerices();
 		/// @brief removes unreferenced vertices in collection, only use this completely before or completely after geometry altering

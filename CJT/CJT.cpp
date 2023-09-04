@@ -1566,12 +1566,12 @@ namespace CJT
 	}
 
 
-	const std::vector<int>& CityCollection::addVertex(const std::vector<CJTPoint>& pointList, bool checkUnique)
+	const std::vector<int> CityCollection::addVertex(const std::vector<CJTPoint>& pointList, bool checkUnique)
 	{
 		std::vector<int> locationList;
 		for (size_t i = 0; i < pointList.size(); i++)
 		{
-			locationList.emplace_back(addVertex(pointList[i]));
+			locationList.emplace_back(addVertex(pointList[i], checkUnique));
 		}
 		return locationList;
 	}
