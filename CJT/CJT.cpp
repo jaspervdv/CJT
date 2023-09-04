@@ -22,7 +22,7 @@ namespace CJT
 
 	std::vector<int> getFlatVerts(json* boundaries) {
 		std::vector<int> collection;
-		if (boundaries[0].type() == json::value_t::number_unsigned)
+		if (boundaries[0].type() == json::value_t::number_unsigned || boundaries[0].type() == json::value_t::number_integer)
 		{
 			for (size_t i = 0; i < boundaries->size(); i++)
 			{
@@ -1690,11 +1690,11 @@ namespace CJT
 			std::cout << "Culling unreferenced vertices" << std::endl;
 		}
 
-		std::vector<bool>* vertreference = new std::vector<bool>;
+		std::vector<bool> vertreference;
 
 		for (std::vector<CJT::CJTPoint>::iterator it = vertices_.begin(); it != vertices_.end(); ++it)
 		{
-			vertreference->emplace_back(false);
+			vertreference.emplace_back(false);
 		}
 
 		for (auto obb = cityObjects_.begin(); obb != cityObjects_.end(); ++obb)
@@ -1717,17 +1717,17 @@ namespace CJT
 
 				for (size_t j = 0; j < referencesIdx.size(); j++)
 				{
-					(*vertreference)[referencesIdx[j]] = true;
+					vertreference[referencesIdx[j]] = true;
 				}
 			}
 		}
 
-		std::map<int, int>* correctingIdxMap = new std::map<int, int>;
+		std::map<int, int> correctingIdxMap;;
 		int correctionAmount = 0;
 		int currentAmount = 0;
 		std::vector<CJTPoint> correctedvertices;
 
-		for (std::vector<bool>::iterator it = vertreference->begin(); it != vertreference->end(); ++it)
+		for (std::vector<bool>::iterator it = vertreference.begin(); it != vertreference.end(); ++it)
 		{
 			if (*it == false)
 			{
@@ -1736,14 +1736,12 @@ namespace CJT
 			else
 			{
 				correctedvertices.emplace_back(vertices_[currentAmount]);
-				correctingIdxMap->emplace(currentAmount, currentAmount - correctionAmount);
+				correctingIdxMap.emplace(currentAmount, currentAmount - correctionAmount);
 			}
 			currentAmount++;
 		}
 
-		delete vertreference;
-
-		if (correctingIdxMap->size() == 0)
+		if (correctingIdxMap.size() == 0)
 		{
 			return;
 		}
@@ -1787,13 +1785,13 @@ namespace CJT
 
 				if (geoType == "MultiSurface")
 				{
-					currentGeoObject.setBoundaries(updateVerts(&boundaries, correctingIdxMap, 3));
+					currentGeoObject.setBoundaries(updateVerts(&boundaries, &correctingIdxMap, 3));
 				}
 
 				if (geoType == "Solid")
 				{
-					updateVerts(&boundaries, correctingIdxMap, 4);
-					currentGeoObject.setBoundaries(updateVerts(&boundaries, correctingIdxMap, 4));
+					updateVerts(&boundaries, &correctingIdxMap, 4);
+					currentGeoObject.setBoundaries(updateVerts(&boundaries, &correctingIdxMap, 4));
 				}
 			}
 			currentCityObject.setGeo(curentGeoObjects);
@@ -1806,7 +1804,6 @@ namespace CJT
 		{
 			std::cout << "Succesfully corrected" << std::endl;
 		}
-		delete correctingIdxMap;
 	}
 
 	void CityCollection::CleanVertices()
