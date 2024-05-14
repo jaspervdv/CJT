@@ -4,12 +4,24 @@ project("CJT")
 set(CMAKE_CXX_STANDARD 17)
 
 # OpenCascade
-find_package(OpenCASCADE REQUIRED)
+# find_package(OpenCASCADE REQUIRED)
+
+set(OpenCASCADE_INCLUDE_DIR "C:/Users/Jasper/Documents/IfcOpenShell/IfcOpenshell0.7/IfcOpenshell/_deps-vs2019-x64-installed/opencascade-7.5.3/inc")
+set(OpenCASCADEC_LIBRARY_DIR "C:/Users/Jasper/Documents/IfcOpenShell/IfcOpenshell0.7/IfcOpenshell/_deps-vs2019-x64-installed/opencascade-7.5.3/win64/lib")
+
 
 # Nlohmann
 find_package(nlohmann_json CONFIG REQUIRED)
 
 # boost
+option(USE_STATIC_BOOST "Link Boost libraries statically" OFF)
+
+set(Boost_NO_SYSTEM_PATHS TRUE)
+if(USE_STATIC_BOOST)
+    set(Boost_USE_STATIC_LIBS ON)
+endif()
+find_package(Boost REQUIRED COMPONENTS log)
+
 set(Boost_NO_SYSTEM_PATHS TRUE)
 find_package(Boost REQUIRED log)
 
@@ -31,9 +43,35 @@ endif()
 
 message(STATUS "Boost include dirs: " ${Boost_INCLUDE_DIRS})
 message(STATUS "Boost library dir: " ${Boost_DIR})
-message(STATUS "Boost libaries dir: " ${Boost_LIBRARIES})
+
+set(counter 0)
+set(prev_item "")
+# Loop through the Boost libraries
+foreach(LIB ${Boost_LIBRARIES})
+    # Increment counter
+    math(EXPR counter "${counter}+1")
+
+    # Print every two entries on one line
+    if (counter EQUAL 2)
+        message(STATUS "Boost libraries dir ${prev_item} : ${LIB}")
+        # Reset counter
+        set(counter 0)
+        set(prev_item "")
+    else()
+        # Store previous item
+        set(prev_item "${LIB}")
+    endif()
+endforeach()
+
+# If there's a remaining item
+if (NOT "${prev_item}" STREQUAL "")
+    message(STATUS "Boost libraries dir: ${prev_item}")
+endif()
 
 include_directories ( SYSTEM ${OpenCASCADE_INCLUDE_DIR} ${nlohmann_json_INCLUDE_DIR} ${Boost_INCLUDE_DIRS})
+link_directories(${OpenCASCADEC_LIBRARY_DIR})
+
+file(GLOB OCC_LIBRARY_FILES "${OpenCASCADEC_LIBRARY_DIR}/*.lib")
 
 add_library(${PROJECT_NAME})
 
@@ -45,10 +83,10 @@ target_sources(${PROJECT_NAME}
     CJT/CJToKernel.cpp
 )
 
-foreach (LIB ${OpenCASCADE_LIBRARIES})
-  target_link_libraries(${PROJECT_NAME} debug ${OpenCASCADE_LIBRARY_DIR}d/${LIB}.lib)
-  target_link_libraries(${PROJECT_NAME} optimized ${OpenCASCADE_LIBRARY_DIR}/${LIB}.lib)
-endforeach()
+#foreach (LIB ${OpenCASCADE_LIBRARIES})
+#  target_link_libraries(${PROJECT_NAME} debug ${OpenCASCADE_LIBRARY_DIR}d/${LIB}.lib)
+#  target_link_libraries(${PROJECT_NAME} optimized ${OpenCASCADE_LIBRARY_DIR}/${LIB}.lib)
+#endforeach()
 
 target_link_libraries(${PROJECT_NAME} nlohmann_json::nlohmann_json ${Boost_LIBRARIES})
 

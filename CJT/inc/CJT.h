@@ -230,6 +230,8 @@ namespace CJT {
 		void setTranslation(double x, double y, double z) { xTrans_ = x; yTrans_ = y; zTrans_ = z; };
 		/// @brief returns an array for size 3 representing the scaling
 		double* getScale();
+		/// @brief set a unifrom scale
+		void setScale(double scale) { xScale_ = scale; yScale_ = scale; zScale_ = scale; }
 	};
 
 

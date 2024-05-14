@@ -1629,15 +1629,16 @@ namespace CJT
 			i++;
 		}
 
-		// correct geo references
-		if (correctedvertices.size() == vertices_.size()) 
-		{ 
-			std::cout << "No duplicate vertices found" << std::endl;
-			return; 
-		}
-
 		if (!isSilent_)
 		{
+			// correct geo references
+			if (correctedvertices.size() == vertices_.size())
+			{
+				std::cout << "No duplicate vertices found" << std::endl;
+				return;
+			}
+
+
 			std::cout << "Reduced vertices count from: " << vertices_.size() << ", to: " << correctedvertices.size() << std::endl;
 			std::cout << "Correcting vertices referencing" << std::endl;
 		}
@@ -1765,8 +1766,6 @@ namespace CJT
 		vertices_ = correctedvertices;
 		//correctedvertices = nullptr;
 
-		std::cout << cityObjects_.size() << std::endl;
-
 		for (auto obb = cityObjects_.begin(); obb != cityObjects_.end(); ++obb)
 		{
 			CityObject currentCityObject = obb->second;
@@ -1777,7 +1776,6 @@ namespace CJT
 
 			for (size_t i = 0; i < curentGeoObjects.size(); i++)
 			{
-				std::cout << i << std::endl;
 				GeoObject currentGeoObject = curentGeoObjects[i];
 				json boundaries = currentGeoObject.getBoundaries();
 
@@ -1795,10 +1793,8 @@ namespace CJT
 				}
 			}
 			currentCityObject.setGeo(curentGeoObjects);
-			std::cout << obb->first << std::endl;
 			cityObjects_[obb->first] = currentCityObject;
 		}
-		std::cout << "end" << std::endl;
 
 		if (!isSilent_)
 		{
@@ -1809,6 +1805,7 @@ namespace CJT
 	void CityCollection::CleanVertices()
 	{
 		cullUnreferencedVerices();
+		std::cout << "reached" << std::endl;
 		cullDuplicatedVerices();
 	}
 

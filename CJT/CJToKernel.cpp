@@ -1,5 +1,7 @@
 #include "inc/CJT.h"
 #include "inc/CJToKernel.h"
+#include <BRepGProp.hxx>
+#include <gp_Lin.hxx>
 
 namespace CJT {
 
@@ -134,8 +136,8 @@ namespace CJT {
 		gp_Pnt p1 = pointList[p1Idx];
 		gp_Pnt p2 = pointList[p2Idx];
 
-		gp_Lin lineF(p1, gp_Vec(p1, p2));
-		gp_Lin lineB(p1, gp_Vec(p2, p1));
+		gp_Lin lineF (p1, gp_Vec(p1, p2));
+		gp_Lin lineB (p1, gp_Vec(p2, p1));
 
 		TopoDS_Edge edge = BRepBuilderAPI_MakeEdge(p1, p2);
 
@@ -874,10 +876,12 @@ namespace CJT {
 	}
 
 
-	GeoObject* Kernel::convertToJSON(const TopoDS_Shape& shape, std::string lod)
+	GeoObject* Kernel::convertToJSON(const TopoDS_Shape& shape, std::string lod, bool trustedSolid)
 	{
 		std::string geomType = "";
-		if (shape.ShapeType() == 2) { geomType = "Solid"; }
+
+		if (trustedSolid) { geomType = "Solid"; }
+		else if (shape.ShapeType() == 2) { geomType = "Solid"; }
 		else if (shape.ShapeType() == 3 || shape.ShapeType() == 4) { geomType = "MultiSurface"; }
 		else if (shape.ShapeType() == 0) { geomType = "MultiSurface"; }
 		else 
