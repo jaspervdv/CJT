@@ -63,25 +63,23 @@ namespace CJT {
 	}
 
 
-	std::vector<IntFace> getSurfaceIdx(json* boundaries) {
+	std::vector<IntFace> getSurfaceIdx(const json& boundaries) {
 		std::vector<IntFace> collection;
 		bool isInt = false;
 
-		if (boundaries->begin().value().begin().value().is_number_integer()) { isInt = true; }
+		if (boundaries.begin().value().begin().value().is_number_integer()) { isInt = true; }
 		if (isInt)
 		{
 			IntFace intFace;
 
 			int ringCount = 0;
-			for (json::iterator ringItt = boundaries->begin(); ringItt != boundaries->end(); ++ringItt)
+			for (json ring : boundaries)
 			{
 				std::vector<int> surfaceIdx;
 				surfaceIdx.clear();
-				json* ring = &ringItt.value();
-				for (json::iterator intItt = ring->begin(); intItt != ring->end(); ++intItt)
+				for (json subvalue : ring)
 				{
-					json* subvalue = &intItt.value();
-					surfaceIdx.emplace_back(*subvalue);
+					surfaceIdx.emplace_back(subvalue);
 				}
 				if (ringCount == 0)
 				{
@@ -97,9 +95,8 @@ namespace CJT {
 			collection.emplace_back(intFace);
 		}
 		else {
-			for (json::iterator obb = boundaries->begin(); obb != boundaries->end(); ++obb)
+			for (json subvalue : boundaries)
 			{
-				json* subvalue = &obb.value();
 				std::vector<IntFace> outputboundaries = getSurfaceIdx(subvalue);
 				for (size_t i = 0; i < outputboundaries.size(); i++)
 				{
@@ -750,7 +747,7 @@ namespace CJT {
 		if (!checkIfInit()) { return occtShape; }
 
 		// construct facelist
-		std::vector<IntFace> faceIntList = getSurfaceIdx(&geoObject.getBoundaries());
+		std::vector<IntFace> faceIntList = getSurfaceIdx(geoObject.getBoundaries());
 		std::vector<CJTPoint> cityVerts = cityCollection_->getVerices();
 
 		BRep_Builder brepBuilder;

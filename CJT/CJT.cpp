@@ -1,4 +1,5 @@
 #include "inc/CJT.h"
+#include <list>
 
 namespace CJT
 {
@@ -79,6 +80,25 @@ namespace CJT
 			}
 		}
 		return -1;
+	}
+
+
+	std::vector<std::string> jsonToStringVector(const json& jsonObject, const std::string& filterString)
+	{
+		json filteredJson = jsonObject[filterString];
+		if (filteredJson.type() != nlohmann::detail::value_t::array)
+		{
+			return {};
+		}
+
+		std::vector<std::string> outputVec;
+
+		for (json parentName : filteredJson)
+		{
+			if (!parentName.is_string()) { continue; }
+			outputVec.emplace_back(parentName);
+		}
+		return outputVec;
 	}
 
 
@@ -1024,7 +1044,7 @@ namespace CJT
 		for (auto point = pointJson.begin(); point != pointJson.end(); ++point)
 		{
 			auto coord = point.value();
-			vertList.emplace_back(CJTPoint(coord[0] * scaler[0], coord[1] * scaler[1], coord[2] * scaler[2]));
+			vertList.emplace_back(CJTPoint((double) coord[0] * scaler[0], (double) coord[1] * scaler[1], (double) coord[2] * scaler[2]));
 		}
 		return vertList;
 	}
@@ -1042,8 +1062,8 @@ namespace CJT
 
 			json objectValue = cityObject.value();
 			if (objectValue.contains("attributes")) { attributes = objectValue["attributes"]; }
-			if (objectValue.contains("parents")) { parents = objectValue["parents"]; }
-			if (objectValue.contains("children")) { children = objectValue["children"]; }
+			if (objectValue.contains("parents")) { parents = jsonToStringVector(objectValue, "parents");}
+			if (objectValue.contains("children")) { children = jsonToStringVector(objectValue, "children"); }
 
 			CityObject CCityObject = CityObject(
 				objectName, 
