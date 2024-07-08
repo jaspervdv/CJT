@@ -35,17 +35,16 @@ int main()
     The output is a TopoDS shape object. It will attempt to create a TopoDS_Solid, if this is not succesfull it will output a TopoDS_Composit. 
     */
 
-    std::vector<TopoDS_Shape*> shapeList =  kernel.convertToCascade(cityObject1);
+    std::vector<TopoDS_Shape> shapeList =  kernel.convertToCascade(cityObject1);
 
     /*
     To visualize the output will be written to a STEP file
     */
     STEPControl_Writer writer;
     
-    for (std::vector<TopoDS_Shape*>::iterator ptr = shapeList.begin(); ptr < shapeList.end(); ptr++)
+    for (TopoDS_Shape geoObject : shapeList)
     {
-        TopoDS_Shape* geoObject = *ptr;
-        writer.Transfer(*geoObject, STEPControl_AsIs);
+        writer.Transfer(geoObject, STEPControl_AsIs);
     }
 
     std::string exportPath = filepath + "/twobuildings_step_export.step";

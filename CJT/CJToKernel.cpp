@@ -262,12 +262,12 @@ namespace CJT {
 		return false;
 	}
 
-	std::vector<Edge*> EdgeCollection::getAllEdges() {
-		std::vector<Edge*> selfEdges = ring_;
-		std::vector<EdgeCollection*> selfRings = innerRingList_;
+	std::vector<std::shared_ptr<Edge>> EdgeCollection::getAllEdges() {
+		std::vector<std::shared_ptr<Edge>> selfEdges = ring_;
+		std::vector<std::shared_ptr<EdgeCollection>> selfRings = innerRingList_;
 		for (size_t j = 0; j < selfRings.size(); j++)
 		{
-			std::vector<Edge*> selfInnerEdges = selfRings[j]->getEdges();
+			std::vector<std::shared_ptr<Edge>> selfInnerEdges = selfRings[j]->getEdges();
 			for (size_t k = 0; k < selfInnerEdges.size(); k++)
 			{
 				selfEdges.emplace_back(selfInnerEdges[k]);
@@ -293,7 +293,7 @@ namespace CJT {
 		if (isInner_ == false)
 		{
 			TopLoc_Location loc;
-			Handle(Poly_Triangulation) tri = BRep_Tool::Triangulation(*originalFace_, loc);
+			Handle(Poly_Triangulation) tri = BRep_Tool::Triangulation(originalFace_, loc);
 
 			if (tri.IsNull()) { return; }
 
@@ -312,11 +312,11 @@ namespace CJT {
 
 				gp_Pnt pc = getMiddlePoint(p1, p2, p3);
 
-				double distance = BRepExtrema_DistShapeShape(*originalFace_, BRepBuilderAPI_MakeVertex(pc)).Value();
+				double distance = BRepExtrema_DistShapeShape(originalFace_, BRepBuilderAPI_MakeVertex(pc)).Value();
 				if (distance > 0.001) { continue; }
 				for (size_t j = 0; j < ring_.size(); j++)
 				{
-					Edge* edge = ring_[j];
+					std::shared_ptr<Edge> edge = ring_[j];
 
 					if (edge->getStart().IsEqual(p1, 0.01) && edge->getEnd().IsEqual(p2, 0.01) ||
 						edge->getStart().IsEqual(p2, 0.01) && edge->getEnd().IsEqual(p3, 0.01) ||
@@ -345,7 +345,7 @@ namespace CJT {
 			double distance = 99999999;
 			TopoDS_Vertex measurePoint = BRepBuilderAPI_MakeVertex(startPoints[0]);
 			TopoDS_Wire originalWire;
-			for (TopExp_Explorer explorer(*originalFace_, TopAbs_WIRE); explorer.More(); explorer.Next())
+			for (TopExp_Explorer explorer(originalFace_, TopAbs_WIRE); explorer.More(); explorer.Next())
 			{
 				const TopoDS_Wire& wire = TopoDS::Wire(explorer.Current());
 				double distanceRing = BRepExtrema_DistShapeShape(wire, measurePoint).Value();
@@ -378,7 +378,7 @@ namespace CJT {
 							// compute distance from face (if not >0 triangle is presumably outside of inner ring)
 							gp_Pnt pc = getMiddlePoint(p1, p2, p3);
 
-							double distc = BRepExtrema_DistShapeShape(*originalFace_, BRepBuilderAPI_MakeVertex(pc)).Value();
+							double distc = BRepExtrema_DistShapeShape(originalFace_, BRepBuilderAPI_MakeVertex(pc)).Value();
 							if (distc < 0.0001) { continue; }
 							// compute if any edge of triangle has overlap with edge to correctly find orientation
 
@@ -429,7 +429,7 @@ namespace CJT {
 
 			for (size_t j = 0; j < ring_.size(); j++)
 			{
-				Edge* edge = ring_[j];
+				std::shared_ptr<Edge> edge = ring_[j];
 
 				if (edge->getStart().IsEqual(p1, 0.01) && edge->getEnd().IsEqual(p2, 0.01) ||
 					edge->getStart().IsEqual(p2, 0.01) && edge->getEnd().IsEqual(p3, 0.01) ||
@@ -455,23 +455,23 @@ namespace CJT {
 	void EdgeCollection::orderEdges()
 	{
 		int falsePresent = static_cast<int>(ring_.size());
-		Edge* startEdge = ring_[0];
-		Edge* currentEdge = ring_[0];
-		std::vector<Edge*> cleanedList;
+		std::shared_ptr<Edge> startEdge = ring_[0];
+		std::shared_ptr<Edge> currentEdge = ring_[0];
+		std::vector<std::shared_ptr<Edge>> cleanedList;
 		while (falsePresent != 0)
 		{
 			if (currentEdge->isProcessed())
 			{
 				if (!isInner_)
 				{
-					EdgeCollection* innerRing = new EdgeCollection;
+					std::shared_ptr<EdgeCollection> innerRing = std::make_shared<EdgeCollection>(EdgeCollection());
 					innerRing->setOriginalFace(originalFace_);
 					for (size_t i = 0; i < ring_.size(); i++)
 					{
 						if (ring_[i]->isProcessed() == false)
 						{
-							Edge& tempEdge = *ring_[i];
-							innerRing->addEdge(&tempEdge);
+							std::shared_ptr<Edge> tempEdge = ring_[i];
+							innerRing->addEdge(tempEdge);
 						}
 					}
 					innerRing->setIsInner();
@@ -536,14 +536,14 @@ namespace CJT {
 	}
 
 
-	Kernel::Kernel(CityCollection* cityCollection)
+	Kernel::Kernel(std::shared_ptr<CityCollection> cityCollection)
 	{
 		fprecision = cityCollection->getTransformation().getScale()[0];
 		cityCollection_ = cityCollection;
 	}
 
 
-	int Kernel::findTopEdgeCollection(std::vector<EdgeCollection*> edgeCollectionList)
+	int Kernel::findTopEdgeCollection(std::vector<std::shared_ptr<EdgeCollection>> edgeCollectionList)
 	{
 		int highestCollectionIdx = 0;
 		double height = -999999999;
@@ -583,7 +583,7 @@ namespace CJT {
 		return highestCollectionIdx;
 	}
 
-	int Kernel::countNormalIntersections(EdgeCollection& currentCollection, std::vector<EdgeCollection*> edgeCollectionList, const bgi::rtree<Value, bgi::rstar<treeDepth>>& spatialIndex)
+	int Kernel::countNormalIntersections(EdgeCollection& currentCollection, std::vector<std::shared_ptr<EdgeCollection>> edgeCollectionList, const bgi::rtree<Value, bgi::rstar<treeDepth>>& spatialIndex)
 	{
 		if (currentCollection.isInner()) { return -1; }
 
@@ -679,11 +679,11 @@ namespace CJT {
 		return intersectionCount;
 	}
 
-	void Kernel::correctFaceDirection(std::vector<EdgeCollection*> edgeCollectionList)
+	void Kernel::correctFaceDirection(std::vector<std::shared_ptr<EdgeCollection>> edgeCollectionList)
 	{
 		if (edgeCollectionList.size() == 1)
 		{
-			EdgeCollection* groundCollection = edgeCollectionList[0];
+			std::shared_ptr<EdgeCollection> groundCollection = edgeCollectionList[0];
 			if (groundCollection->getNormal().Z() > 0) { return; }
 
 			groundCollection->flipFace();
@@ -743,13 +743,13 @@ namespace CJT {
 		return true;
 	}
 
-	TopoDS_Shape* Kernel::convertToCascade(GeoObject& geoObject) {
-		TopoDS_Shape* occtShape = nullptr;
+	TopoDS_Shape Kernel::convertToCascade(GeoObject& geoObject) {
+		TopoDS_Shape occtShape;
 		bool success = true;
 
 		if (!checkIfInit()) { return occtShape; }
 
-		// construct facelist 		
+		// construct facelist
 		std::vector<IntFace> faceIntList = getSurfaceIdx(&geoObject.getBoundaries());
 		std::vector<CJTPoint> cityVerts = cityCollection_->getVerices();
 
@@ -820,38 +820,38 @@ namespace CJT {
 
 		if (geoObject.getType() == "Solid" && success)
 		{
-			TopoDS_Solid* solidShape = new TopoDS_Solid();
-			brepBuilder.MakeSolid(*solidShape);
+			TopoDS_Solid solidShape;
+			brepBuilder.MakeSolid(solidShape);
 			brepSewer.Perform();
-			brepBuilder.Add(*solidShape, brepSewer.SewedShape());
+			brepBuilder.Add(solidShape, brepSewer.SewedShape());
 			return solidShape;
 		}
 		if (geoObject.getType() == "MultiSurface" || !success)
 		{
-			TopoDS_Compound* shellShape = new TopoDS_Compound();
-			brepBuilder.MakeCompound(*shellShape);
+			TopoDS_Compound shellShape;
+			brepBuilder.MakeCompound(shellShape);
 			brepSewer.Perform();
-			brepBuilder.Add(*shellShape, brepSewer.SewedShape());
+			brepBuilder.Add(shellShape, brepSewer.SewedShape());
 			return shellShape;
 		}
 
-		TopoDS_Solid* solidShape = new TopoDS_Solid();
-		brepBuilder.MakeSolid(*solidShape);
+		TopoDS_Solid solidShape;
+		brepBuilder.MakeSolid(solidShape);
 		brepSewer.Perform();
-		brepBuilder.Add(*solidShape, brepSewer.SewedShape());
+		brepBuilder.Add(solidShape, brepSewer.SewedShape());
 		return solidShape;
 	}
 
 
-	std::vector<TopoDS_Shape*> Kernel::convertToCascade(CityObject& cityObject) {
-		std::vector<TopoDS_Shape*> shapeList;
+	std::vector<TopoDS_Shape> Kernel::convertToCascade(CityObject& cityObject) {
+		std::vector<TopoDS_Shape> shapeList;
 		
 		if (!checkIfInit()) { return shapeList; }
 
-		std::vector<GeoObject*> geoObjectList = cityObject.getGeoObjectsPtr();
+		std::vector<std::shared_ptr<GeoObject>> geoObjectList = cityObject.getGeoObjectsPtr();
 		for (size_t i = 0; i < geoObjectList.size(); i++)
 		{
-			GeoObject* currentObject = geoObjectList[i];
+			std::shared_ptr<GeoObject> currentObject = geoObjectList[i];
 			int geoId = currentObject->getId();
 
 			if (geoId == -1)
@@ -862,7 +862,8 @@ namespace CJT {
 			{
 				if (internalizedObjectMap_.find(geoId) != internalizedObjectMap_.end())
 				{
-					shapeList.emplace_back(internalizedObjectMap_[geoId]);
+					//TODO: check for the need of this map 
+					//shapeList.emplace_back(internalizedObjectMap_[geoId]);
 					continue;
 				}
 				else
@@ -876,7 +877,7 @@ namespace CJT {
 	}
 
 
-	GeoObject* Kernel::convertToJSON(const TopoDS_Shape& shape, std::string lod, bool trustedSolid)
+	GeoObject Kernel::convertToJSON(const TopoDS_Shape& shape, std::string lod, bool trustedSolid)
 	{
 		std::string geomType = "";
 
@@ -893,7 +894,7 @@ namespace CJT {
 		// mapping of the verts and get unique verts 
 		std::vector<gp_Pnt> uniqueVerts;
 		std::vector<TopoDS_Face> faceList;
-		std::vector<EdgeCollection*> edgeCollectionList;
+		std::vector<std::shared_ptr<EdgeCollection>> edgeCollectionList;
 		TopExp_Explorer expl;
 		BRepMesh_IncrementalMesh(shape, 0.001);
 
@@ -906,7 +907,7 @@ namespace CJT {
 		for (size_t i = 0; i < faceList.size(); i++)
 		{
 
-			EdgeCollection* edgeCollection = new EdgeCollection;
+			std::shared_ptr<EdgeCollection> edgeCollection = std::make_shared<EdgeCollection>(EdgeCollection());
 			int c = 0;
 			gp_Pnt lP;
 			for (expl.Init(faceList[i], TopAbs_VERTEX); expl.More(); expl.Next())
@@ -922,14 +923,14 @@ namespace CJT {
 						if (!isPointInList(lP, uniqueVerts)) { uniqueVerts.emplace_back(lP); }
 						if (!isPointInList(p, uniqueVerts)) { uniqueVerts.emplace_back(p); }
 
-						Edge* collectedEdge = new Edge(lP, p);
+						std::shared_ptr<Edge> collectedEdge = std::make_shared<Edge>(Edge(lP, p));
 						edgeCollection->addEdge(collectedEdge);
 					}
 				}
 				lP = p;
 				c++;
 			}
-			edgeCollection->setOriginalFace(&faceList[i]);
+			edgeCollection->setOriginalFace(faceList[i]);
 			edgeCollection->orderEdges();
 			edgeCollectionList.emplace_back(edgeCollection);
 		}
@@ -972,11 +973,11 @@ namespace CJT {
 			ShapeCollection.emplace_back(idxList);
 
 			// get inner rings
-			std::vector<EdgeCollection*> innerRingsCollection = currentCollection.getInnerRings();
+			std::vector<std::shared_ptr<EdgeCollection>> innerRingsCollection = currentCollection.getInnerRings();
 
 			for (size_t j = 0; j < innerRingsCollection.size(); j++)
 			{
-				EdgeCollection* currentInnerCollection = innerRingsCollection[j];
+				std::shared_ptr<EdgeCollection> currentInnerCollection = innerRingsCollection[j];
 				std::vector<gp_Pnt> innerStartPointCollection = currentInnerCollection->getStartPoints();
 				std::vector<int> innerIdxList;
 				for (size_t k = 0; k < innerStartPointCollection.size(); k++)
@@ -995,23 +996,17 @@ namespace CJT {
 			boundaries.emplace_back(ShapeCollection);
 		}
 
-
-		for (size_t i = 0; i < edgeCollectionList.size(); i++)
-		{
-			delete edgeCollectionList[i];
-		}
-
 		if (geomType == "Solid")
 		{
 			json solidCollection;
 			solidCollection.emplace_back(boundaries);
-			return new GeoObject(solidCollection, lod, geomType);
+			return GeoObject(solidCollection, lod, geomType);
 		}
 		if (geomType == "MultiSurface")
 		{
-			return new GeoObject(boundaries, lod, geomType);
+			return GeoObject(boundaries, lod, geomType);
 		}
 
-		return new GeoObject(boundaries, lod, geomType); // TODO: add more types
+		return GeoObject(boundaries, lod, geomType); // TODO: add more types
 	}
 }

@@ -372,9 +372,9 @@ namespace CJT {
 	class AppearanceObject
 	{
 	private:
-		std::vector<MaterialObject> materials_ = {};
-		std::vector<TextureObject> textures_ = {};
-		std::map<std::string, TextureObject> verticesTextures_ = {};
+		std::vector<std::shared_ptr<MaterialObject>> materials_ = {};
+		std::vector<std::shared_ptr<TextureObject>> textures_ = {};
+		std::map<std::string, std::shared_ptr<TextureObject>> verticesTextures_ = {}; //TODO: implement
 		std::string defaultThemeTexture_ = "";
 		std::string defaultThemeMaterial_ = "";
 	public:
@@ -383,14 +383,12 @@ namespace CJT {
 		/// @brief adds a texture object to the appearance object
 		void addTexture(TextureObject obb);
 		/// @brief returns all the stored material objects
-		std::vector<MaterialObject> getMaterials() { return materials_; }
-		std::vector<MaterialObject*> getMaterialsPtr();
+		std::vector<std::shared_ptr<MaterialObject>> getMaterialsPtr() { return materials_; }
 		/// @brief returns all the stored texture objects
-		std::vector<TextureObject> getTexures() { return textures_; }
-		std::vector<TextureObject*> getTexuresPtr();
+		std::vector<std::shared_ptr<TextureObject>> getTexuresPtr() { return textures_; }
 		/// @brief returns a material object based on its idx
-		MaterialObject getMaterial(int idx) { return materials_[idx]; }
-		MaterialObject* getMaterialPtr(int idx) { return &materials_[idx]; }
+		MaterialObject getMaterial(int idx) { return *materials_[idx]; }
+		std::shared_ptr<MaterialObject> getMaterialPtr(int idx) { return materials_.at(idx); }
 		/// @brief returns a materail object based on its name
 		MaterialObject getMaterial(const std::string& name);
 		/// @brief returns the total number of stored materials
@@ -409,7 +407,7 @@ namespace CJT {
 		std::string phone_ = "";
 		std::string website_ = "";
 		std::string address_ = "";
-		json additionalData_ = {};
+		json additionalData_ = {}; //TODO: make pointer as well?
 	public:
 		PointOfContactObject() {};
 
@@ -460,11 +458,11 @@ namespace CJT {
 	private:
 		std::tuple<CJTPoint, CJTPoint> geographicalExtent_ = { CJTPoint(0,0,0), CJTPoint(0,0,0) };
 		std::string identifier_ = "";
-		PointOfContactObject pointOfContact_ = PointOfContactObject();
+		std::shared_ptr<PointOfContactObject> pointOfContact_ = std::make_shared<PointOfContactObject>();
 		std::string referenceDate_ = "";
 		std::string referenceSystem_ = "";
 		std::string title_ = "";
-		json additionalData_ = {};
+		json additionalData_ = {}; //TODO: make pointer?
 
 	public:
 		/// creates an empty metadata object
@@ -496,10 +494,10 @@ namespace CJT {
 		/// @brief sets identifier data
 		void setIdentifier(std::string id) { identifier_ = id; }
 		/// @brief returns contact information object
-		PointOfContactObject getPointOfContact() { return pointOfContact_; }
-		PointOfContactObject* getPointOfContactPtr() { return &pointOfContact_; }
+		PointOfContactObject getPointOfContact() { return *pointOfContact_; }
+		std::shared_ptr<PointOfContactObject> getPointOfContactPtr() { return pointOfContact_; }
 		/// @brief sets contact information object
-		void setPointOfcContact(const PointOfContactObject& pointOfContact) { pointOfContact_ = pointOfContact; }
+		void setPointOfcContact(const PointOfContactObject& pointOfContact) { pointOfContact_ = std::make_shared<PointOfContactObject>(pointOfContact); }
 		/// @brief returns referenceDate information
 		std::string getReferenceDate() { return referenceDate_; }
 		// @brief sets referenceData informaton
@@ -550,7 +548,7 @@ namespace CJT {
 			std::string type
 		);
 		/// @brief creates a new empty geoObject
-		GeoObject() {};
+		GeoObject();
 
 		/// @brief returns the LOD
 		std::string getLoD() { return lod_; }
@@ -594,19 +592,19 @@ namespace CJT {
 	class CityObject
 	{
 	private:
-		std::string name_ = "";
+		std::string name_;
 		Building_Type type_;
 
-		std::vector<GeoObject> geometry_;
+		std::vector<std::shared_ptr<GeoObject>> geometry_;
 
-		bool hasGeo_ = false;
-		bool isParent_ = false;
-		bool isChild_ = false;
-		bool hasAttributes_ = false;
+		bool hasGeo_;
+		bool isParent_;
+		bool isChild_;
+		bool hasAttributes_;
 
-		json attributes_ = {};
-		std::vector<std::string> parentList_ = {};
-		std::vector<std::string> childList_ = {};
+		json attributes_;
+		std::vector<std::string> parentList_;
+		std::vector<std::string> childList_;
 
 	public:
 		CityObject();
@@ -665,47 +663,49 @@ namespace CJT {
 		/// @brief adds geo object to the cityObject
 		void addGeoObject(const GeoObject& geom);
 		/// @brief returns all geoObjects
-		std::vector<GeoObject> getGeoObjects() { return geometry_; }
-		std::vector<GeoObject*> getGeoObjectsPtr();
+		//std::vector<GeoObject> getGeoObjects() { return geometry_; }
+		std::vector<std::shared_ptr<GeoObject>> getGeoObjectsPtr();
 		/// @brief returns all geoObjects with the supplied LoD
 		std::vector<GeoObject> getGeoObjects(const std::string& lod);
-		std::vector<GeoObject*> getGeoObjectsPtr(const std::string& lod);
+		std::vector<std::shared_ptr<GeoObject>> getGeoObjectsPtr(const std::string& lod);
 
 		/// @brief adds parent child relationship to the CityObject, does also update the parentObject
+		void addParent(std::shared_ptr<CityObject> parentObject);
 		void addParent(CityObject* parentObject);
 		/// @brief set the parent child relationships to the cityobject, does NOT update the parentObjects
 		void setParent(const std::vector<std::string>& parentNames);
 		/// @brief removes the parent chiled relationship from the CityObject, does also update the parentObject
-		void removeParent(CityObject* removeableObject);
+		void removeParent(std::shared_ptr<CityObject> removeableObject);
 		/// @brief returns a list of all the parents
 		const std::vector<std::string>& getParents() { return parentList_; }
 		/// @brief returns a list of all the parents
 		std::vector<std::string>* getParentsPtr() { return &parentList_; }
 		/// @brief adds a child parent relationship to the CityObject, does also update the childObject
+		void addChild(std::shared_ptr<CityObject> childObject);
 		void addChild(CityObject* childObject);
 		/// @brief set the child parent relationships to the cityobject, does NOT update the childObjects
 		void setChild(const std::vector<std::string>& childNames);
 		/// @brief removes the child parent relationship from the CityObject, does also update the childObject
-		void removeChild(CityObject* removeableObject);
+		void removeChild(std::shared_ptr<CityObject> removeableObject);
 		/// @brief returns a list of all the children
 		std::vector<std::string> getChildren() { return childList_; }
 		/// @brief returns a list of all the children
 		std::vector<std::string>* getChildrenPtr() { return &childList_; }
 		/// @brief sets object geometry
-		void setGeo(std::vector<GeoObject> geometry) { geometry_ = geometry; }
+		void setGeo(const std::vector<GeoObject>& geometry);
 	};
 
 
 	class CityCollection 
 	{
 	private:
-		std::map<std::string, CityObject> cityObjects_ = {};
-		std::vector<CJTPoint> vertices_ = {};
-		std::string version_ = "";
+		std::map<std::string, std::shared_ptr<CityObject>> cityObjects_ = {};
+		std::shared_ptr<std::vector<CJTPoint>> vertices_ = std::make_shared<std::vector<CJTPoint>>();
+		std::shared_ptr<std::string> version_ = std::make_shared<std::string>("");
 
-		metaDataObject metaData_ = metaDataObject();
-		ObjectTransformation objectTransformation_= ObjectTransformation(1);
-		AppearanceObject appearance_ = AppearanceObject();
+		std::shared_ptr<metaDataObject> metaData_ = std::make_shared<metaDataObject>(metaDataObject());
+		std::shared_ptr<ObjectTransformation> objectTransformation_= std::make_shared< ObjectTransformation>(ObjectTransformation(1));
+		std::shared_ptr<AppearanceObject> appearance_ = std::make_shared<AppearanceObject>(AppearanceObject());
 
 		bool isSilent_ = true;
 
@@ -713,7 +713,7 @@ namespace CJT {
 
 		ObjectTransformation fetchTransformation(const json& transJson);
 		std::vector<CJTPoint> fetchPoints(const json& pointJson);
-		std::map<std::string, CityObject> fetchCityObjects(const json& cityObjects);
+		std::map<std::string, std::shared_ptr<CityObject>> fetchCityObjects(const json& cityObjects);
 		AppearanceObject fetchAppearance(const json& AppearanceJson);
 
 	public:
@@ -728,20 +728,19 @@ namespace CJT {
 		/// @brief returns cityObject based on name
 		bool containsCityObject(const std::string& obName);
 		CityObject getCityObject(const std::string& obName);
-		CityObject* getCityObjectPtr(const std::string& obName);
+		std::shared_ptr<CityObject> getCityObjectPtr(const std::string& obName);
 		/// @brief returns cityObjects based on name
 		std::vector<CityObject> getCityObject(const std::vector<std::string>& obNameList);
-		std::vector<CityObject*> getCityObjectPtr(const std::vector<std::string>& obNameList);
+		std::vector<std::shared_ptr<CityObject>> getCityObjectPtr(const std::vector<std::string>& obNameList);
 		/// @brief returns cityObjects based on type
 		std::vector<CityObject> getCityObjectTyped(const Building_Type& typeName);
-		std::vector<CityObject*> getCityObjectTypedPtr(const Building_Type& typeName);
+		std::vector<std::shared_ptr<CityObject>> getCityObjectTypedPtr(const Building_Type& typeName);
 		/// @brief adds a cityObject to the collection
 		void addCityObject(const CityObject& cityObject);
 		/// @brief removes a cityObject from the collection
 		void removeCityObject(const std::string& obName);
 		/// @brief returns all materials
-		std::vector<MaterialObject> getMaterials() { return appearance_.getMaterials(); }
-		std::vector<MaterialObject*> getMaterialsPtr() { return appearance_.getMaterialsPtr(); }
+		std::vector<std::shared_ptr<MaterialObject>> getMaterialsPtr() { return appearance_->getMaterialsPtr(); }
 		/// @brief returns Materialobject based on idx
 		MaterialObject getMaterial(int idx);
 		MaterialObject* getMaterialPtr(int idx);
@@ -749,16 +748,16 @@ namespace CJT {
 		//std::vector<MaterialObject> getMaterial(std::string);
 
 		/// @brief returns all the textures
-		std::vector<TextureObject> getTextures() { return appearance_.getTexures(); }
-		std::vector<TextureObject*> getTexturesPtr() { return appearance_.getTexuresPtr(); }
+		std::vector<std::shared_ptr<TextureObject>> getTexturesPtr() { return appearance_->getTexuresPtr(); }
  
 		/// @brief get version
-		std::string getVersion() { return version_; }
+		std::string getVersion() { return *version_; }
 		/// @brief set version
-		void setVersion(const std::string& version) { version_ = version; }
+		void setVersion(const std::string& version) { version_ = std::make_shared<std::string>(version); }
 
 		/// @brief returns all the vertices that are in the collection
-		const std::vector<CJTPoint>& getVerices();
+		const std::vector<CJTPoint> getVerices();
+		std::shared_ptr<std::vector<CJTPoint>> getVericesPtr();
 		/// @brief adds a vertex to the collection, returns idx location where point is placed
 		int addVertex(const CJTPoint& point, bool checkUnique = false);
 		///@brief adds a collection of vertices to the collection, returns idx location where points are placed
@@ -771,16 +770,16 @@ namespace CJT {
 		void CleanVertices();
 
 		/// @brief returns the full metadata
-		metaDataObject getMetaData() { return metaData_; }
-		metaDataObject* getMetaDataPtr() { return &metaData_; }
+		metaDataObject getMetaData() { return *metaData_; }
+		std::shared_ptr<metaDataObject> getMetaDataPtr() { return metaData_; }
 		/// @brief sets the metadata of the collection
-		void setMetaData(const metaDataObject& metaData) { metaData_ = metaData; }
+		void setMetaData(const metaDataObject& metaData) { metaData_ = std::make_shared<metaDataObject>(metaData); }
 
 		/// @brief returns the transformation of the collection
-		ObjectTransformation getTransformation() { return objectTransformation_; }
-		ObjectTransformation* getTransformationPtr() { return &objectTransformation_; }
+		ObjectTransformation getTransformation() { return *objectTransformation_; }
+		std::shared_ptr<ObjectTransformation> getTransformationPtr() { return objectTransformation_; }
 		/// @brief sets the transfomation object of the collection
-		void setTransformation(ObjectTransformation transformation) { objectTransformation_ = transformation; }
+		void setTransformation(ObjectTransformation transformation) { objectTransformation_ = std::make_shared<ObjectTransformation>(transformation); }
 
 		/// @brief returns object to stop printing information about processes
 		void silence() { isSilent_ = true; }

@@ -22,7 +22,7 @@ int main()
 	/*
 	A new city collection has to be created to be able to store the shape in the CityJSON format
 	*/
-	CJT::CityCollection collection;
+	std::shared_ptr<CJT::CityCollection> collection = std::make_shared<CJT::CityCollection>();
 	
 	/*
 	This city collection requires a transformation object. (if not supplied it defaults to scale = uniform 1, translation = {0, 0, 0})
@@ -32,8 +32,8 @@ int main()
 	*/
 	CJT::ObjectTransformation objectTransformation(0.001);
 	objectTransformation.setTranslation(-size / 2, -size / 2, 0);
-	collection.setTransformation(objectTransformation);
-	collection.setVersion("1.1");
+	collection->setTransformation(objectTransformation);
+	collection->setVersion("1.1");
 
 	/*
 	Optionally metadata can be added to the collection via a metadata object.
@@ -55,30 +55,30 @@ int main()
 	contactObject.setWebsite("https://github.com/jaspervdv/CJT");
 
 	metaData.setPointOfcContact(contactObject);
-	collection.setMetaData(metaData);
+	collection->setMetaData(metaData);
 
 	/*
 	The collection now has a transformation and metadata, but it does not yet have the shape included.
 	It can be converted to a geoobject with the help of the Kernel class.
 	There is currently no way to set semantic data of the surfaces of a geo object
 	*/
-	CJT::Kernel kernel(&collection);
-	CJT::GeoObject* geoObject = kernel.convertToJSON(boxShape, "1");
+	CJT::Kernel kernel(collection);
+	CJT::GeoObject geoObject = kernel.convertToJSON(boxShape, "1");
 
 	/*
 	A new city object has to be created to which the geo object can be added to.
 	*/
 	CJT::CityObject cityObject;
 	cityObject.setName("Box");
-	cityObject.addGeoObject(*geoObject);
+	cityObject.addGeoObject(geoObject);
 	cityObject.setType(CJT::Building_Type::Building);
 
 	/*
 	This city object can be added to the collection. and the collection can be dumped to a JSON.
 	*/
-	collection.addCityObject(cityObject);
+	collection->addCityObject(cityObject);
 
 	std::string filepath = std::filesystem::current_path().remove_filename().string();
 	std::string exportPath = filepath + "/box_export.city.json";
-	collection.dumpJson(exportPath);
+	collection->dumpJson(exportPath);
 }

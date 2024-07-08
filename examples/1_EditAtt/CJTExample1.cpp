@@ -23,8 +23,8 @@ int main()
     A collection is populated by city objects, to change an attribute a city object has to be accessed.
     A city object can be selected by the name
     */
-    CJT::CityObject* cityObject1 = collection.getCityObjectPtr("Building_1");
-    CJT::CityObject* cityObject2 = collection.getCityObjectPtr("Building_2");
+    std::shared_ptr<CJT::CityObject> cityObject1 = collection.getCityObjectPtr("Building_1");
+    std::shared_ptr<CJT::CityObject> cityObject2 = collection.getCityObjectPtr("Building_2");
 
     /*
     Names can be easily be changed with the setName() function.
@@ -82,14 +82,12 @@ int main()
     These can be accessed with the getGeoObjects() function, this function als takes a variable, allowing for filtering of the the geoobjects based on their LoD
     For every Geoobject the LoD can be easily edited with the setLoD() function
     */
-    std::vector<CJT::GeoObject*> geoObjectList = cityObject1->getGeoObjectsPtr();
+    std::vector<std::shared_ptr<CJT::GeoObject>> geoObjectList = cityObject1->getGeoObjectsPtr();
 
-    for (std::vector< CJT::GeoObject*>::iterator ptr = geoObjectList.begin(); ptr < geoObjectList.end(); ptr++)
+    for (std::shared_ptr<CJT::GeoObject> geoObject : geoObjectList)
     {
-        CJT::GeoObject* geoObject = *ptr;
         geoObject->setLoD("2.2");
     }
-
     collection.dumpJson(filepath + "/twobuildings_exported_5.city.json");
 }
 

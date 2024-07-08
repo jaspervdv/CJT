@@ -64,28 +64,28 @@ namespace CJT {
 	class EdgeCollection 
 	{
 	private:
-		std::vector<Edge*> ring_;
-		std::vector<EdgeCollection*>  innerRingList_;
+		std::vector<std::shared_ptr<Edge>> ring_;
+		std::vector<std::shared_ptr<EdgeCollection>>  innerRingList_;
 		gp_Vec normal_ = gp_Vec(0,0,1);
-		TopoDS_Face* originalFace_;
+		TopoDS_Face originalFace_;
 		bool isInner_ = false;
 	public:
 		// @brief returns the Edge objects from the outer ring of the Edgecollection
-		std::vector<Edge*> getEdges() { return ring_; }
+		std::vector<std::shared_ptr<Edge>> getEdges() { return ring_; }
 		/// @brief returns the Edgecollection objects make up the inner rings of the Edgecollection
-		std::vector<EdgeCollection*> getInnerRings() { return innerRingList_; }
+		std::vector<std::shared_ptr<EdgeCollection>> getInnerRings() { return innerRingList_; }
 		/// @brief sets the Edge objects of the outer ring
-		void setEdges(std::vector<Edge*> edgeList) { ring_ = edgeList; }
+		void setEdges(std::vector<std::shared_ptr<Edge>> edgeList) { ring_ = edgeList; }
 		/// @brief adds an Edge object to the outer ring
-		void addEdge(Edge* edge) { ring_.emplace_back(edge); }
+		void addEdge(std::shared_ptr<Edge> edge) { ring_.emplace_back(edge); }
 		/// @brief returns the start points of every Edge object in the outer ring
 		std::vector<gp_Pnt> getStartPoints();
 		/// @brief adds an Edgecollection representing an inner ring 
-		void addInnerRing(EdgeCollection* innerRing) { innerRingList_.emplace_back(innerRing); }
+		void addInnerRing(std::shared_ptr<EdgeCollection> innerRing) { innerRingList_.emplace_back(innerRing); }
 		/// @brief returns true if the normal has a positive Z direction
 		bool hasPositiveNormal();
 		/// @brief gets the Edge object from all the rings of the collection
-		std::vector<Edge*> getAllEdges();
+		std::vector<std::shared_ptr<Edge>> getAllEdges();
 		/// @bief computes the normal of the Edgecollection
 		void computeNormal();
 		/// @brief get the normal
@@ -95,9 +95,9 @@ namespace CJT {
 		/// @brief get if ring is inner ring
 		bool isInner() { return isInner_; }
 		/// @brief sets the original face
-		void setOriginalFace(TopoDS_Face* face) { originalFace_ = face;}
+		void setOriginalFace(const TopoDS_Face& face) { originalFace_ = face;}
 		/// @brief get the original face geometry
-		TopoDS_Face& getOriginalFace() { return *originalFace_; }
+		TopoDS_Face& getOriginalFace() { return originalFace_; }
 		/// @brief orders the edges by connecting the Endpoint to the Startpoint of the next edge, creating an continuous loop
 		void orderEdges();
 		/// @brief flips the normal/Edge order
@@ -110,26 +110,26 @@ namespace CJT {
 		double fprecision = 0;
 		int idCounter_ = 10000;
 		std::map<int, TopoDS_Shape* > internalizedObjectMap_;
-		CityCollection* cityCollection_;
+		std::shared_ptr<CityCollection> cityCollection_;
 
 		static const int treeDepth = 25;
 
-		int findTopEdgeCollection(std::vector<EdgeCollection*> edgeCollectionList);
-		int countNormalIntersections(EdgeCollection& currentCollection, std::vector<EdgeCollection*> edgeCollectionList, const bgi::rtree<Value, bgi::rstar<treeDepth>>& spatialIndex);
+		int findTopEdgeCollection(std::vector<std::shared_ptr<EdgeCollection>> edgeCollectionList);
+		int countNormalIntersections(EdgeCollection& currentCollection, std::vector<std::shared_ptr<EdgeCollection>> edgeCollectionList, const bgi::rtree<Value, bgi::rstar<treeDepth>>& spatialIndex);
 
-		void correctFaceDirection(std::vector<EdgeCollection*> edgeCollectionList);
+		void correctFaceDirection(std::vector<std::shared_ptr<EdgeCollection>> edgeCollectionList);
 		bool checkIfInit();
 
 	public:
 		/// @brief constructs kernel and internaliz the cityCollection, required to convert.
-		Kernel(CityCollection* cityCollection);
+		Kernel(std::shared_ptr<CityCollection> cityCollection);
 
 		/// @brief create OpenCASCADE TopoDS_Shape from CityJSON GeoObject
-		TopoDS_Shape* convertToCascade(GeoObject& geoObject);
+		TopoDS_Shape convertToCascade(GeoObject& geoObject);
 		/// @brief create multiple OpenCASCADE TopoDS_shape objects from CityJSON CityObject
-		std::vector<TopoDS_Shape*> convertToCascade(CityObject& cityObject);
+		std::vector<TopoDS_Shape> convertToCascade(CityObject& cityObject);
 
 		/// @brief places the shape into the internalized cityObject as geoObject, the geoobject itself is not placed in the cityObject!
-		GeoObject* convertToJSON(const TopoDS_Shape& shape, std::string lod, bool trustedSolid = false);
+		GeoObject convertToJSON(const TopoDS_Shape& shape, std::string lod, bool trustedSolid = false);
 	};
 }
