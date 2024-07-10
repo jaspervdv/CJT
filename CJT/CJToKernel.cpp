@@ -246,14 +246,14 @@ namespace CJT {
 	}
 
 
-	std::vector<gp_Pnt> EdgeCollection::getStartPoints()
+	std::vector<gp_Pnt> EdgeCollection::getStartPoints() const
 	{
 		std::vector<gp_Pnt> startPoints;
 		for (size_t i = 0; i < ring_.size(); i++) { startPoints.emplace_back(ring_[i]->getStart()); }
 		return startPoints;
 	}
 
-	bool EdgeCollection::hasPositiveNormal()
+	bool EdgeCollection::hasPositiveNormal() const
 	{
 		if (normal_.Z() > 0) { return true; }
 		return false;
@@ -533,14 +533,14 @@ namespace CJT {
 	}
 
 
-	Kernel::Kernel(std::shared_ptr<CityCollection> cityCollection)
+	Kernel::Kernel(const std::shared_ptr<CityCollection>& cityCollection)
 	{
 		fprecision = cityCollection->getTransformation().getScale()[0];
 		cityCollection_ = cityCollection;
 	}
 
 
-	int Kernel::findTopEdgeCollection(std::vector<std::shared_ptr<EdgeCollection>> edgeCollectionList)
+	int Kernel::findTopEdgeCollection(const std::vector<std::shared_ptr<EdgeCollection>>& edgeCollectionList)
 	{
 		int highestCollectionIdx = 0;
 		double height = -999999999;
@@ -580,7 +580,7 @@ namespace CJT {
 		return highestCollectionIdx;
 	}
 
-	int Kernel::countNormalIntersections(EdgeCollection& currentCollection, std::vector<std::shared_ptr<EdgeCollection>> edgeCollectionList, const bgi::rtree<Value, bgi::rstar<treeDepth>>& spatialIndex)
+	int Kernel::countNormalIntersections(const EdgeCollection& currentCollection, const std::vector<std::shared_ptr<EdgeCollection>>& edgeCollectionList, const bgi::rtree<Value, bgi::rstar<treeDepth>>& spatialIndex)
 	{
 		if (currentCollection.isInner()) { return -1; }
 

@@ -21,57 +21,32 @@ namespace CJT
 		return {};
 	}
 
-	std::vector<int> getFlatVerts(json* boundaries) {
+	std::vector<int> getFlatVerts(const json& boundaries) {
 		std::vector<int> collection;
 		if (boundaries[0].type() == json::value_t::number_unsigned || boundaries[0].type() == json::value_t::number_integer)
 		{
-			for (size_t i = 0; i < boundaries->size(); i++)
+			for (json boundary : boundaries)
 			{
-				collection.emplace_back(boundaries[i]);
+				collection.emplace_back(boundary);
 			}
 		}
 		else
 		{
-			for (json::iterator obb = boundaries->begin(); obb != boundaries->end(); ++obb)
+			for (json subvalue : boundaries)
 			{
-				json* subvalue = &obb.value();
-				
 				std::vector<int> outputboundaries = getFlatVerts(subvalue);
-				for (size_t i = 0; i < outputboundaries.size(); i++)
+
+				for (json boundary : outputboundaries)
 				{
-					collection.emplace_back(outputboundaries[i]);
+					collection.emplace_back(boundary);
 				}
 			}
 		}
 		return collection;
 	}
-	
-	std::array<double, 3> CJTPoint::getCoordinates()
-	{
-		return { x_ , y_, z_ };
-	}
 
-	double CJTPoint::getX()
+	int findIdxVector(const std::vector<std::string>& searchVector, const std::string& name) 
 	{
-		return x_;
-	}
-
-	double CJTPoint::getY()
-	{
-		return y_;
-	}
-
-	double CJTPoint::getZ()
-	{
-		return z_;
-	}
-
-	void CJTPoint::print()
-	{
-		std::cout << "{" << x_ << ", " << y_ << ", " << z_ << "}" << std::endl;
-	}
-
-	int findIdxVector(std::vector<std::string> searchVector, std::string name) {
 		for (int i = 0; i < searchVector.size(); i++)
 		{
 			if (searchVector[i] == name)
@@ -81,7 +56,31 @@ namespace CJT
 		}
 		return -1;
 	}
+	
+	std::array<double, 3> CJTPoint::getCoordinates() const
+	{
+		return { x_ , y_, z_ };
+	}
 
+	double CJTPoint::getX() const
+	{
+		return x_;
+	}
+
+	double CJTPoint::getY() const
+	{
+		return y_;
+	}
+
+	double CJTPoint::getZ() const
+	{
+		return z_;
+	}
+
+	void CJTPoint::print() const
+	{
+		std::cout << "{" << x_ << ", " << y_ << ", " << z_ << "}\n";
+	}
 
 	std::vector<std::string> jsonToStringVector(const json& jsonObject, const std::string& filterString)
 	{
@@ -268,19 +267,17 @@ namespace CJT
 		zTrans_ = translater[2];
 	}
 
-	double* ObjectTransformation::getTranslation()
+	std::array<double, 3> ObjectTransformation::getTranslation() const
 	{
-		static double trans[3] = { xTrans_ , yTrans_, zTrans_ };
-		return trans;
+		return { xTrans_ , yTrans_, zTrans_ };
 	}
 
-	double* ObjectTransformation::getScale()
+	std::array<double, 3> ObjectTransformation::getScale() const
 	{
-		static double scaler[3] = { xScale_ , yScale_, zScale_ };
-		return scaler;
+		return { xScale_ , yScale_, zScale_ };
 	}
 
-	bool MaterialObject::checkArrayValidity(std::array<float, 3> a)
+	bool MaterialObject::checkArrayValidity(const std::array<float, 3>& a) const
 	{
 		for (size_t i = 0; i < a.size(); i++)
 		{
@@ -326,9 +323,9 @@ namespace CJT
 	}
 
 	MaterialObject::MaterialObject(
-		std::string name,
+		const std::string& name,
 		float ambientIntensity,
-		std::array<float, 3> diffuseColor
+		const std::array<float, 3>& diffuseColor
 	)
 	{
 		name_ = name;
@@ -350,46 +347,46 @@ namespace CJT
 		isSmooth_ = tempOther.isSmooth_;
 	}
 
-	bool MaterialObject::hasName()
+	bool MaterialObject::hasName() const
 	{
 		if (name_ == ""){ return false; }
 		return true;
 	}
 
-	bool MaterialObject::hasAmbientIntensity()
+	bool MaterialObject::hasAmbientIntensity() const
 	{
 		if (ambientIntensity_ == -1) { return false; }
 		return true;
 	}
 
-	bool MaterialObject::hasDiffuseColor()
+	bool MaterialObject::hasDiffuseColor() const
 	{
 		return checkArrayValidity(diffuseColor_);
 	}
 
-	bool MaterialObject::hasEmissiveColor()
+	bool MaterialObject::hasEmissiveColor() const
 	{
 		return checkArrayValidity(emissiveColor_);
 	}
 
-	bool MaterialObject::hasSpecularColor()
+	bool MaterialObject::hasSpecularColor() const
 	{
 		return checkArrayValidity(specularColor_);
 	}
 
-	bool MaterialObject::hasShininess()
+	bool MaterialObject::hasShininess() const
 	{
 		if (shininess_ == -1) { return false; };
 		return true;
 	}
 
-	bool MaterialObject::hasTransparency()
+	bool MaterialObject::hasTransparency() const
 	{
 		if (transparency_ == -1) { return false; };
 		return true;
 	}
 
-	bool TextureObject::checkStringValidity(std::string a) 
+	bool TextureObject::checkStringValidity(std::string a) const
 	{
 		if (a == "") { return false; }
 		return true;
@@ -410,24 +407,28 @@ namespace CJT
 		if (textureJson.contains("borderColor")) { borderColor_ = textureJson["borderColor"]; }
 	}
 
-	bool TextureObject::hasName() 
+	bool TextureObject::hasName() const
 	{
 		return checkStringValidity(name_);
 	}
 
-	bool TextureObject::hasType() {
+	bool TextureObject::hasType() const
+	{
 		return checkStringValidity(type_);
 	}
 
-	bool TextureObject::hasImage() {
+	bool TextureObject::hasImage() const 
+	{
 		return checkStringValidity(image_);
 	}
 
-	bool TextureObject::hasWrapmode() {
+	bool TextureObject::hasWrapmode() const
+	{
 		return checkStringValidity(wrapMode_);
 	}
 
-	bool TextureObject::hasBorderColor() {
+	bool TextureObject::hasBorderColor() const
+	{
 		for (size_t i = 0; i < borderColor_.size(); i++)
 		{
 			if (borderColor_[i] == -1)
@@ -451,7 +452,7 @@ namespace CJT
 		textures_.emplace_back(std::make_shared<TextureObject>(obb));
 	}
 
-	bool CJTPoint::operator!=(CJTPoint other)
+	bool CJTPoint::operator!=(CJTPoint other) const
 	{
 		if (x_ == other.x_ && y_ == other.y_ && z_ == other.z_)
 		{
@@ -460,7 +461,7 @@ namespace CJT
 		return true;
 	}
 
-	bool CJTPoint::operator<(CJTPoint other)
+	bool CJTPoint::operator<(CJTPoint other) const
 	{
 		if (x_ + y_ + z_ < other.x_ + other.y_ + other.z_)
 		{
@@ -502,7 +503,7 @@ namespace CJT
 		}
 	}
 
-	json PointOfContactObject::getData()
+	json PointOfContactObject::getData() const
 	{
 		json outputJson;
 		if (contactName_.size() != 0) { outputJson.emplace("contactName", contactName_); }
@@ -571,7 +572,7 @@ namespace CJT
 		}
 	}
 
-	json metaDataObject::getData()
+	json metaDataObject::getData() const
 	{
 		json outputJson;
 
@@ -637,7 +638,7 @@ namespace CJT
 		return false;
 	}
 
-	void metaDataObject::setExtend(CJTPoint minPoint, CJTPoint maxPoint)
+	void metaDataObject::setExtend(const CJTPoint& minPoint, const CJTPoint& maxPoint)
 	{
 		auto minPointVec = minPoint.getCoordinates();
 		auto maxPointVec = maxPoint.getCoordinates();
@@ -653,7 +654,7 @@ namespace CJT
 		geographicalExtent_ = std::tuple<CJTPoint, CJTPoint>(minPoint, maxPoint);
 	}
 
-	void metaDataObject::addAdditionalData(json addData, bool overRide)
+	void metaDataObject::addAdditionalData(const json& addData, bool overRide)
 	{
 		for (auto obb = addData.begin(); obb != addData.end(); ++obb)
 		{
@@ -672,7 +673,7 @@ namespace CJT
 		}
 	}
 
-	void metaDataObject::removeAdditionalData(std::string keyName)
+	void metaDataObject::removeAdditionalData(const std::string& keyName)
 	{
 		if (additionalData_.contains(keyName))
 		{
@@ -680,7 +681,7 @@ namespace CJT
 		}
 	}
 
-	GeoObject::GeoObject(json boundaries, std::string lod, json surfaceData, json surfaceTypeValues, std::string type)
+	GeoObject::GeoObject(const json& boundaries, const std::string& lod, const json& surfaceData, const json& surfaceTypeValues, const std::string& type)
 	{
 		boundaries_ = boundaries;
 		lod_ = lod;
@@ -689,7 +690,7 @@ namespace CJT
 		type_ = type;
 	}
 
-	GeoObject::GeoObject(json boundaries, std::string lod, std::string type)
+	GeoObject::GeoObject(const json& boundaries, const std::string& lod, const std::string& type)
 	{
 		boundaries_ = boundaries;
 		lod_ = lod;
@@ -715,15 +716,15 @@ namespace CJT
 		surfaceTypeValues_.clear();
 	}
 
-	void GeoObject::appendSurfaceData(std::map<std::string, std::string> surfaceData) {
+	void GeoObject::appendSurfaceData(const std::map<std::string, std::string>& surfaceData) {
 		surfaceData_.emplace_back(surfaceData);
 	}
 
-	void GeoObject::appendSurfaceData(std::map<std::string, int> surfaceData) {
+	void GeoObject::appendSurfaceData(const std::map<std::string, int>& surfaceData) {
 		surfaceData_.emplace_back(surfaceData);
 	}
 
-	void GeoObject::appendSurfaceData(std::map<std::string, double> surfaceData) {
+	void GeoObject::appendSurfaceData(const std::map<std::string, double>& surfaceData) {
 		surfaceData_.emplace_back(surfaceData);
 	}
 
@@ -740,7 +741,7 @@ namespace CJT
 	}
 
 
-	void GeoObject::setSurfaceTypeValues(std::vector<int> references) {
+	void GeoObject::setSurfaceTypeValues(const std::vector<int>& references) {
 		if (type_ == "Solid")
 		{
 			if (surfaceTypeValues_.size() == 0)
@@ -934,7 +935,7 @@ namespace CJT
 		return geometry_;
 	}
 
-	std::vector<GeoObject> CityObject::getGeoObjects(const std::string& lod)
+	std::vector<GeoObject> CityObject::getGeoObjects(const std::string& lod) const
 	{
 		std::vector<GeoObject> geoObjectList;
 		for (size_t i = 0; i < geometry_.size(); i++)
@@ -1039,7 +1040,7 @@ namespace CJT
 	std::vector<CJTPoint> CityCollection::fetchPoints(const json& pointJson)
 	{
 		std::vector<CJTPoint> vertList;
-		double* scaler = objectTransformation_->getScale();
+		std::array<double, 3> scaler = objectTransformation_->getScale();
 
 		for (auto point = pointJson.begin(); point != pointJson.end(); ++point)
 		{
@@ -1276,8 +1277,8 @@ namespace CJT
 		}
 
 		// transformation data collection
-		double* scalingdata = objectTransformation_->getScale();
-		double* translatordata = objectTransformation_->getTranslation();
+		std::array<double,3> scalingdata = objectTransformation_->getScale();
+		std::array<double, 3> translatordata = objectTransformation_->getTranslation();
 		std::pair scaler { "scale", std::vector<double>(
 			{
 				scalingdata[0],
@@ -1486,7 +1487,7 @@ namespace CJT
 		return true;
 	}
 
-	std::vector<CityObject> CityCollection::getAllCityObject()
+	std::vector<CityObject> CityCollection::getAllCityObject() const
 	{
 		std::vector<CityObject> outputList;
 		for (std::pair<std::string, std::shared_ptr<CityObject>> data : cityObjects_)
@@ -1496,15 +1497,15 @@ namespace CJT
 		return outputList;
 	}
 
-	bool CityCollection::containsCityObject(const std::string& obName)
+	bool CityCollection::containsCityObject(const std::string& obName) const
 	{
 		if (cityObjects_.find(obName) == cityObjects_.end()) { return false; }
 		return true;
 	}
 
-	CityObject CityCollection::getCityObject(const std::string& obName)
+	CityObject CityCollection::getCityObject(const std::string& obName) const
 	{
-		return *cityObjects_[obName].get();
+		return *cityObjects_.at(obName).get();
 	}
 
 	std::shared_ptr<CityObject> CityCollection::getCityObjectPtr(const std::string& obName)
@@ -1512,7 +1513,7 @@ namespace CJT
 		return cityObjects_[obName];
 	}
 
-	std::vector<CityObject> CityCollection::getCityObject(const std::vector<std::string>& obNameList)
+	std::vector<CityObject> CityCollection::getCityObject(const std::vector<std::string>& obNameList) const
 	{
 		std::vector<CityObject> cityObjectList;
 		for (size_t i = 0; i < obNameList.size(); i++)
@@ -1537,7 +1538,7 @@ namespace CJT
 	}
 
 	
-	std::vector<CityObject> CityCollection::getCityObjectTyped(const Building_Type& typeName)
+	std::vector<CityObject> CityCollection::getCityObjectTyped(const Building_Type& typeName) const
 	{
 		std::vector<CityObject> cityObjectList;
 		for (auto obb = cityObjects_.begin(); obb != cityObjects_.end(); ++obb)
@@ -1566,7 +1567,7 @@ namespace CJT
 		cityObjects_.emplace(tempObject.getName(), std::make_shared<CityObject>(tempObject));
 	}
 
-	MaterialObject CityCollection::getMaterial(int idx)
+	MaterialObject CityCollection::getMaterial(int idx) const
 	{
 		int buffer = 1;
 		if (appearance_->getMaterialSize() >= idx + buffer)
@@ -1586,7 +1587,7 @@ namespace CJT
 	}
 
 
-	const std::vector<CJTPoint> CityCollection::getVerices()
+	std::vector<CJTPoint> CityCollection::getVerices() const
 	{
 		return *vertices_;
 	}
@@ -1781,7 +1782,7 @@ namespace CJT
 				std::string geoType = currentGeoObject->getType();
 				std::vector<int> referencesIdx;
 
-				referencesIdx = getFlatVerts(&boundaries);
+				referencesIdx = getFlatVerts(boundaries);
 
 				for (size_t j = 0; j < referencesIdx.size(); j++)
 				{

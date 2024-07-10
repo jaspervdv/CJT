@@ -75,29 +75,29 @@ namespace CJT {
 		/// @brief returns the Edgecollection objects make up the inner rings of the Edgecollection
 		std::vector<std::shared_ptr<EdgeCollection>> getInnerRings() { return innerRingList_; }
 		/// @brief sets the Edge objects of the outer ring
-		void setEdges(std::vector<std::shared_ptr<Edge>> edgeList) { ring_ = edgeList; }
+		void setEdges(const std::vector<std::shared_ptr<Edge>>& edgeList) { ring_ = edgeList; }
 		/// @brief adds an Edge object to the outer ring
 		void addEdge(std::shared_ptr<Edge> edge) { ring_.emplace_back(edge); }
 		/// @brief returns the start points of every Edge object in the outer ring
-		std::vector<gp_Pnt> getStartPoints();
+		std::vector<gp_Pnt> getStartPoints() const;
 		/// @brief adds an Edgecollection representing an inner ring 
 		void addInnerRing(std::shared_ptr<EdgeCollection> innerRing) { innerRingList_.emplace_back(innerRing); }
 		/// @brief returns true if the normal has a positive Z direction
-		bool hasPositiveNormal();
+		bool hasPositiveNormal() const;
 		/// @brief gets the Edge object from all the rings of the collection
 		std::vector<std::shared_ptr<Edge>> getAllEdges();
 		/// @bief computes the normal of the Edgecollection
 		void computeNormal();
 		/// @brief get the normal
-		gp_Vec getNormal() { return normal_; }
+		gp_Vec getNormal() const { return normal_; }
 		/// @brief set if ring is inner ring
 		void setIsInner() { isInner_ = true; }
 		/// @brief get if ring is inner ring
-		bool isInner() { return isInner_; }
+		bool isInner() const { return isInner_; }
 		/// @brief sets the original face
 		void setOriginalFace(const TopoDS_Face& face) { originalFace_ = face;}
 		/// @brief get the original face geometry
-		TopoDS_Face& getOriginalFace() { return originalFace_; }
+		TopoDS_Face getOriginalFace() const { return originalFace_; }
 		/// @brief orders the edges by connecting the Endpoint to the Startpoint of the next edge, creating an continuous loop
 		void orderEdges();
 		/// @brief flips the normal/Edge order
@@ -114,15 +114,15 @@ namespace CJT {
 
 		static const int treeDepth = 25;
 
-		int findTopEdgeCollection(std::vector<std::shared_ptr<EdgeCollection>> edgeCollectionList);
-		int countNormalIntersections(EdgeCollection& currentCollection, std::vector<std::shared_ptr<EdgeCollection>> edgeCollectionList, const bgi::rtree<Value, bgi::rstar<treeDepth>>& spatialIndex);
+		int findTopEdgeCollection(const std::vector<std::shared_ptr<EdgeCollection>>& edgeCollectionList);
+		int countNormalIntersections(const EdgeCollection& currentCollection, const std::vector<std::shared_ptr<EdgeCollection>>& edgeCollectionList, const bgi::rtree<Value, bgi::rstar<treeDepth>>& spatialIndex);
 
 		void correctFaceDirection(std::vector<std::shared_ptr<EdgeCollection>> edgeCollectionList);
 		bool checkIfInit();
 
 	public:
 		/// @brief constructs kernel and internaliz the cityCollection, required to convert.
-		Kernel(std::shared_ptr<CityCollection> cityCollection);
+		Kernel(const std::shared_ptr<CityCollection>& cityCollection);
 
 		/// @brief create OpenCASCADE TopoDS_Shape from CityJSON GeoObject
 		TopoDS_Shape convertToCascade(GeoObject& geoObject);

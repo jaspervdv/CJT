@@ -186,21 +186,21 @@ namespace CJT {
 		CJTPoint(double x, double y, double z) { x_ = x; y_ = y; z_ = z; }
 		
 		/// @brief returns an array representing the x,y and z coordinates
-		std::array<double, 3> getCoordinates();
+		std::array<double, 3> getCoordinates() const;
 		/// @brief returns the x coordinate
-		double getX();
+		double getX() const;
 		/// @brief returns the y coordinate
-		double getY();
+		double getY() const;
 		/// @brief returns the z coordinate
-		double getZ();
+		double getZ() const;
 
 		/// @brief couts the x, y, z coordinates
-		void print();
+		void print() const;
 
 		/// @brief evaluates the x, y, z coordinates to see if points are not equal
-		bool operator!= (CJTPoint other);
+		bool operator!= (CJTPoint other) const;
 		/// @brief evaluates if the sum of the x, y, z coordinates is smaller 
-		bool operator< (CJTPoint other);
+		bool operator< (CJTPoint other) const;
 	};
 
 	class ObjectTransformation
@@ -225,13 +225,15 @@ namespace CJT {
 		ObjectTransformation(const json& transformationJson);
 
 		/// @brief returns an array for size 3 representing the translation
-		double* getTranslation();
+		std::array<double, 3> getTranslation() const;
 		/// @brief set the translation of the transformation
 		void setTranslation(double x, double y, double z) { xTrans_ = x; yTrans_ = y; zTrans_ = z; };
 		/// @brief returns an array for size 3 representing the scaling
-		double* getScale();
+		std::array<double, 3> getScale() const;
 		/// @brief set a unifrom scale
 		void setScale(double scale) { xScale_ = scale; yScale_ = scale; zScale_ = scale; }
+		/// @brief set scale
+		void setScale(const std::array<double, 3>& scaleArray) { xScale_ = scaleArray[0]; yScale_ = scaleArray[1]; zScale_ = scaleArray[2]; }
 	};
 
 
@@ -248,7 +250,7 @@ namespace CJT {
 		bool isSmooth_ = false;
 		int idx_ = -1;
 
-		bool checkArrayValidity(std::array<float, 3> a);
+		bool checkArrayValidity(const std::array<float, 3>& a) const;
 
 	public:
 		/// @brief creates an empty material object
@@ -268,53 +270,53 @@ namespace CJT {
 		);
 		/// @brief creates a simple material object
 		MaterialObject(
-			std::string name,
+			const std::string& name,
 			float ambientIntensity,
-			std::array<float, 3> diffuseColor
+			const std::array<float, 3>& diffuseColor
 		);
 		/// @brief creates an copy of an other material object
 		MaterialObject(const MaterialObject& other);
 
 		/// @brief returns name of the materal object, "" if no name
-		std::string getName() { return name_; }
+		std::string getName() const { return name_; }
 		/// @brief returns true if material object has a name
-		bool hasName();
+		bool hasName() const;
 
 		/// @brief returns the ambient intensity of the materal object, -1 if no data is present
-		float getAmbientIntensity() { return ambientIntensity_; }
+		float getAmbientIntensity() const { return ambientIntensity_; }
 		/// @brief returns true if material object has an ambient intensity
-		bool hasAmbientIntensity();
+		bool hasAmbientIntensity() const;
 
 		/// @brief returns the diffuse color of the materal object, populated with -1 if no data is present
-		std::array<float, 3> getDiffuseColor(){ return diffuseColor_; }
+		std::array<float, 3> getDiffuseColor() const { return diffuseColor_; }
 		/// @brief returns true if material object has a diffuse color
-		bool hasDiffuseColor();
+		bool hasDiffuseColor() const;
 
 		/// @brief returns the emmisve color of the materal object, populated with -1 if no data is present
-		std::array<float, 3> getEmissiveColor() { return emissiveColor_; }
+		std::array<float, 3> getEmissiveColor() const { return emissiveColor_; }
 		/// @brief returns true if material object has an emmisve color
-		bool hasEmissiveColor();
+		bool hasEmissiveColor() const;
 
 		/// @brief returns the specular color of the materal object, populated with -1 if no data is present
-		std::array<float, 3> getSpecularColor() { return specularColor_; }
+		std::array<float, 3> getSpecularColor() const { return specularColor_; }
 		/// @brief returns true if material object has a specular color
-		bool hasSpecularColor();
+		bool hasSpecularColor() const;
 
 		/// @brief returns the shininess of the material object, -1 if no data is present
-		float getShininess() {return shininess_;}
+		float getShininess() const {return shininess_;}
 		/// @brief returns true if material object has a shininess value
-		bool hasShininess();
+		bool hasShininess() const;
 
 		/// @brief returns the transparancy of the material object, -1 if no data is present
-		float getTransparency() { return transparency_; }
+		float getTransparency() const { return transparency_; }
 		/// @brief returns true if material object has a Transparency value
-		bool hasTransparency();
+		bool hasTransparency() const;
 
 		/// @brief returns if material object is smooth
-		bool getIsSmooth() { return isSmooth_; }
+		bool getIsSmooth() const { return isSmooth_; }
 
 		/// @brief returns the index of the object (location in list), -1 is no data is present
-		int getIdx() { return idx_; }
+		int getIdx() const { return idx_; }
 
 		/// @brief returns the index of the object
 		void setIdx(int idx) { idx_ = idx; }
@@ -332,7 +334,7 @@ namespace CJT {
 		std::array<float, 3> borderColor_ = { -1, -1, -1 };
 		int idx_ = -1; 
 
-		bool checkStringValidity(std::string s);
+		bool checkStringValidity(std::string s) const;
 
 	public:
 		/// @brief creates an empty texture object
@@ -344,29 +346,29 @@ namespace CJT {
 		void setIdx(int idx) { idx_ = idx; }
 
 		/// @brief returns name of the texture object, "" if no name
-		std::string getName() { return name_; }
+		std::string getName() const { return name_; }
 		/// @brief returns true if texture object has a name
-		bool hasName();
+		bool hasName() const;
 
 		/// @brief returns type of the texture object, "" if no name
-		std::string getType() { return type_; }
+		std::string getType() const { return type_; }
 		/// @brief returns true if texture object has a type
-		bool hasType();
+		bool hasType() const;
 
 		/// @brief returns image path of the texture object, "" if no name
-		std::string getImage() { return image_; }
+		std::string getImage() const { return image_; }
 		/// @brief returns true if texture object has a image path
-		bool hasImage();
+		bool hasImage() const;
 
 		/// @brief returns wrapmode of the texture object, "" if no name
-		std::string getWrapmode() { return wrapMode_; }
+		std::string getWrapmode() const { return wrapMode_; }
 		/// @brief returns true if texture object has a wrapmode
-		bool hasWrapmode();
+		bool hasWrapmode() const;
 
 		/// @brief returns the border color of the texture object, populated with -1 if no data is present
-		std::array<float, 3> getBorderColor() { return borderColor_; }
+		std::array<float, 3> getBorderColor() const { return borderColor_; }
 		/// @brief returns true if texture object has a border color
-		bool hasBorderColor();
+		bool hasBorderColor() const;
 	};
 
 	class AppearanceObject
@@ -387,14 +389,14 @@ namespace CJT {
 		/// @brief returns all the stored texture objects
 		std::vector<std::shared_ptr<TextureObject>> getTexuresPtr() { return textures_; }
 		/// @brief returns a material object based on its idx
-		MaterialObject getMaterial(int idx) { return *materials_[idx]; }
+		MaterialObject getMaterial(int idx) const { return *materials_[idx]; }
 		std::shared_ptr<MaterialObject> getMaterialPtr(int idx) { return materials_.at(idx); }
 		/// @brief returns a materail object based on its name
-		MaterialObject getMaterial(const std::string& name);
+		MaterialObject getMaterial(const std::string& name) const; //TODO: implement
 		/// @brief returns the total number of stored materials
-		size_t getMaterialSize() { return materials_.size(); }
+		size_t getMaterialSize() const { return materials_.size(); }
 		/// @brief returns the total number of stored textures
-		size_t getTextureSize() { return textures_.size(); }
+		size_t getTextureSize() const { return textures_.size(); }
 	};
 
 
@@ -423,33 +425,33 @@ namespace CJT {
 		PointOfContactObject(const json& pointOfContact);
 
 		/// @brief returns data in CityJSON format
-		json getData();
+		json getData() const;
 		/// @brief returns contactName data
-		std::string getContactName() { return contactName_; }
+		std::string getContactName() const { return contactName_; }
 		/// @brief sets the contactNama data
-		void setConactName(std::string contactName) { contactName_ = contactName; }
+		void setConactName(const std::string& contactName) { contactName_ = contactName; }
 		/// @brief returns contactType data
-		PoC_type getContactType() { return contactType_; }
+		PoC_type getContactType() const { return contactType_; }
 		/// @brief sets the conactType data
-		void setConactType(PoC_type contactType) { contactType_ = contactType; }
+		void setConactType(const PoC_type& contactType) { contactType_ = contactType; }
 		/// @brief returns role data
-		PoC_role getRole() { return role_; }
+		PoC_role getRole() const { return role_; }
 		/// @brief set role data
-		void setRole(PoC_role role) { role_ = role; }
+		void setRole(const PoC_role& role) { role_ = role; }
 		/// @brief returns phone data
-		std::string getPhone() { return phone_; }
+		std::string getPhone() const { return phone_; }
 		/// @brief set phone data
-		void setPhone(std::string phoneNr) { phone_ = phoneNr; }
+		void setPhone(const std::string& phoneNr) { phone_ = phoneNr; }
 		/// @brief returns website data
-		std::string getWebsite() { return website_; }
+		std::string getWebsite() const { return website_; }
 		/// @brief set website data
-		void setWebsite(std::string url) { website_ = url; }
+		void setWebsite(const std::string& url) { website_ = url; }
 		/// @brief returns address data
-		std::string getAddress() { return address_; }
+		std::string getAddress() const { return address_; }
 		/// @brief set address data
-		void setAddress(std::string address) { address_ = address; }
+		void setAddress(const std::string& address) { address_ = address; }
 		/// @brief returns additional stored data
-		json getAdditionalData() { return additionalData_; }
+		json getAdditionalData() const { return additionalData_; }
 	};
 
 
@@ -481,42 +483,42 @@ namespace CJT {
 		metaDataObject(const json& metaData);
 
 		/// @brief returns data in CityJSON format
-		json getData();
+		json getData() const;
 
 		/// @brief returns geographicalExtent data
-		std::tuple<CJTPoint, CJTPoint> getExtend() { return geographicalExtent_; }
+		std::tuple<CJTPoint, CJTPoint> getExtend() const { return geographicalExtent_; }
 		/// @brief returns point of geographicalExtent, 0 == lll, 1 == rrr
 		CJTPoint getExtend(int idx);
 		/// @brief sets geographicalExtent data
-		void setExtend(CJTPoint minPoint, CJTPoint maxPoint);
+		void setExtend(const CJTPoint& minPoint, const CJTPoint& maxPoint);
 		/// @brief returns identifier data
-		std::string getIdentifier() { return identifier_; }
+		std::string getIdentifier() const { return identifier_; }
 		/// @brief sets identifier data
-		void setIdentifier(std::string id) { identifier_ = id; }
+		void setIdentifier(const std::string& id) { identifier_ = id; }
 		/// @brief returns contact information object
-		PointOfContactObject getPointOfContact() { return *pointOfContact_; }
+		PointOfContactObject getPointOfContact() const { return *pointOfContact_; }
 		std::shared_ptr<PointOfContactObject> getPointOfContactPtr() { return pointOfContact_; }
 		/// @brief sets contact information object
 		void setPointOfcContact(const PointOfContactObject& pointOfContact) { pointOfContact_ = std::make_shared<PointOfContactObject>(pointOfContact); }
 		/// @brief returns referenceDate information
-		std::string getReferenceDate() { return referenceDate_; }
+		std::string getReferenceDate() const { return referenceDate_; }
 		// @brief sets referenceData informaton
-		void setReferenceData(std::string date) { referenceDate_ = date; }
+		void setReferenceData(const std::string& date) { referenceDate_ = date; }
 		/// @brief returns referenceSystem information
-		std::string getReferenceSystem() { return referenceSystem_; }
+		std::string getReferenceSystem() const { return referenceSystem_; }
 		/// @brief sets referenceSystem information
-		void setReferenceSystem(std::string sys) { referenceSystem_ = sys; }
+		void setReferenceSystem(const std::string& sys) { referenceSystem_ = sys; }
 		/// @brief returns title information
-		std::string getTitle() { return title_; }
+		std::string getTitle() const { return title_; }
 		/// @brief sets title information
-		void setTitle(std::string title) { title_ = title; }
+		void setTitle(const std::string& title) { title_ = title; }
 		/// @brief returns additional stored data
-		json getAdditionalData() { return additionalData_; }
+		json getAdditionalData() const { return additionalData_; }
 		json* getAdditionalDataPtr() { return &additionalData_; }
 		/// @brief adds additional stored data
-		void addAdditionalData(json addData, bool overRide);
+		void addAdditionalData(const json& addData, bool overRide);
 		/// @brief removes additional stored data at key
-		void removeAdditionalData(std::string keyName);
+		void removeAdditionalData(const std::string& keyName);
 		/// @brief returns true if data is stored in object
 		bool checkInfo();
 	};
@@ -535,55 +537,55 @@ namespace CJT {
 	public:
 		/// @brief creates a new geoObject
 		GeoObject(
-			json boundaries,
-			std::string lod,
-			json surfaceData,
-			json surfaceTypeValues,
-			std::string type
+			const json& boundaries,
+			const std::string& lod,
+			const json& surfaceData,
+			const json& surfaceTypeValues,
+			const std::string& type
 		);
 		/// @brief creates a new geoObject
 		GeoObject(
-			json boundaries,
-			std::string lod,
-			std::string type
+			const json& boundaries,
+			const std::string& lod,
+			const std::string& type
 		);
 		/// @brief creates a new empty geoObject
 		GeoObject();
 
 		/// @brief returns the LOD
-		std::string getLoD() { return lod_; }
+		std::string getLoD() const { return lod_; }
 		/// @brief sets the LoD
-		void setLoD(std::string lod) { lod_ = lod; }
+		void setLoD(const std::string& lod) { lod_ = lod; }
 		/// @brief returns the type of the geometry object
-		std::string getType() { return type_; }
+		std::string getType() const { return type_; }
 		/// @brief returns the boundaries of the geoObject in CityJSON format
-		json getBoundaries() { return boundaries_; };
+		json getBoundaries() const { return boundaries_; };
 		/// @brief sets the boundaries of the geoObject
-		void setBoundaries(json boundaries) { boundaries_ = boundaries; }
+		void setBoundaries(const json& boundaries) { boundaries_ = boundaries; }
 		/// @brief returns the surface data in CityJSON fomat
-		json getSurfaceData() { return surfaceData_; }
+		json getSurfaceData() const { return surfaceData_; }
 		/// @brief clears the surface data objects, if clearTypes - true, also the type values will be cleared
 		void clearSurfaceData(bool clearTypes = false);
 		/// @brief adds surface data to geoObject
-		void appendSurfaceData(std::map<std::string, std::string> surfaceData);
+		void appendSurfaceData(const std::map<std::string, std::string>& surfaceData);
 		/// @brief adds surface data to geoObject
-		void appendSurfaceData(std::map <std::string, int> surfaceData);
+		void appendSurfaceData(const std::map <std::string, int>& surfaceData);
 		/// @brief adds surface data to geoObject
-		void appendSurfaceData(std::map <std::string, double> surfaceData);
+		void appendSurfaceData(const std::map <std::string, double>& surfaceData);
 		/// @brief replaces surface data
-		void setSurfaceData(std::vector<json> surfaceData);
+		void setSurfaceData(const std::vector<json>& surfaceData);
 		/// @brief replaces surface data
-		void setSurfaceData(json);
+		void setSurfaceData(const json& surfaceDataJson);
 		/// @brief returns the surface values in CityJSON format
-		json getSurfaceTypeValues() { return surfaceTypeValues_; }
+		json getSurfaceTypeValues() const { return surfaceTypeValues_; }
 		/// @brief set the surface value at a certain indx
 		void setSurfaceTypeValue(int idx, int ref);
 		/// @brief set the surface values
-		void setSurfaceTypeValues(std::vector<int> references);
+		void setSurfaceTypeValues(const std::vector<int>& references);
 		/// @brief append a Surface Type value to the list
 		void appendSurfaceTypeValue(int ref);
 		/// @brief returns the id
-		int getId() { return id_; }
+		int getId() const { return id_; }
 		/// @brief sets the id
 		void setId(int id) { id_ = id; }
 	};
@@ -627,20 +629,20 @@ namespace CJT {
 		);
 
 		/// @brief returns cityObject's name
-		std::string getName() { return name_; }
+		std::string getName() const { return name_; }
 		/// @brief set the name of the cityObject
 		void setName(const std::string& name) { name_ = name; }
 		/// @brief returns cityObject's type
-		Building_Type getType() { return type_; }
+		Building_Type getType() const { return type_; }
 		/// @brief returns a cityObject's type as string
-		std::string getTypeString();
+		std::string getTypeString(); //TODO: implement
 		/// @brief set the type of the cityObject
 		void setType(const Building_Type& type) { type_ = type; }
 
 		/// @brief returns true if the cityobject has one or more attributes
-		bool hasAttributes() { return hasAttributes_; }
+		bool hasAttributes() const { return hasAttributes_; }
 		/// @brief returns the attributes of the cityobject in a json format
-		json getAttributes() { return attributes_; }
+		json getAttributes() const { return attributes_; }
 
 		/// @brief returns the LoD 
 		std::vector<float> getLoD();
@@ -659,14 +661,14 @@ namespace CJT {
 		void clearAttributes();
 
 		/// @brief returns true if object has geometry
-		bool hasGeo() { return hasGeo_; }
+		bool hasGeo() const { return hasGeo_; }
 		/// @brief adds geo object to the cityObject
 		void addGeoObject(const GeoObject& geom);
 		/// @brief returns all geoObjects
 		//std::vector<GeoObject> getGeoObjects() { return geometry_; }
 		std::vector<std::shared_ptr<GeoObject>> getGeoObjectsPtr();
 		/// @brief returns all geoObjects with the supplied LoD
-		std::vector<GeoObject> getGeoObjects(const std::string& lod);
+		std::vector<GeoObject> getGeoObjects(const std::string& lod) const;
 		std::vector<std::shared_ptr<GeoObject>> getGeoObjectsPtr(const std::string& lod);
 
 		/// @brief adds parent child relationship to the CityObject, does also update the parentObject
@@ -688,7 +690,7 @@ namespace CJT {
 		/// @brief removes the child parent relationship from the CityObject, does also update the childObject
 		void removeChild(std::shared_ptr<CityObject> removeableObject);
 		/// @brief returns a list of all the children
-		std::vector<std::string> getChildren() { return childList_; }
+		std::vector<std::string> getChildren() const { return childList_; }
 		/// @brief returns a list of all the children
 		std::vector<std::string>* getChildrenPtr() { return &childList_; }
 		/// @brief sets object geometry
@@ -724,16 +726,16 @@ namespace CJT {
 		bool dumpJson(const std::string& filePath);
 
 		/// @brief returns all cityObjects
-		std::vector<CityObject> getAllCityObject();
+		std::vector<CityObject> getAllCityObject() const;
 		/// @brief returns cityObject based on name
-		bool containsCityObject(const std::string& obName);
-		CityObject getCityObject(const std::string& obName);
+		bool containsCityObject(const std::string& obName) const;
+		CityObject getCityObject(const std::string& obName) const;
 		std::shared_ptr<CityObject> getCityObjectPtr(const std::string& obName);
 		/// @brief returns cityObjects based on name
-		std::vector<CityObject> getCityObject(const std::vector<std::string>& obNameList);
+		std::vector<CityObject> getCityObject(const std::vector<std::string>& obNameList) const;
 		std::vector<std::shared_ptr<CityObject>> getCityObjectPtr(const std::vector<std::string>& obNameList);
 		/// @brief returns cityObjects based on type
-		std::vector<CityObject> getCityObjectTyped(const Building_Type& typeName);
+		std::vector<CityObject> getCityObjectTyped(const Building_Type& typeName) const;
 		std::vector<std::shared_ptr<CityObject>> getCityObjectTypedPtr(const Building_Type& typeName);
 		/// @brief adds a cityObject to the collection
 		void addCityObject(const CityObject& cityObject);
@@ -742,7 +744,7 @@ namespace CJT {
 		/// @brief returns all materials
 		std::vector<std::shared_ptr<MaterialObject>> getMaterialsPtr() { return appearance_->getMaterialsPtr(); }
 		/// @brief returns Materialobject based on idx
-		MaterialObject getMaterial(int idx);
+		MaterialObject getMaterial(int idx) const;
 		MaterialObject* getMaterialPtr(int idx);
 		/// @brief returns a list of materialobjects based on material name
 		//std::vector<MaterialObject> getMaterial(std::string);
@@ -751,12 +753,12 @@ namespace CJT {
 		std::vector<std::shared_ptr<TextureObject>> getTexturesPtr() { return appearance_->getTexuresPtr(); }
  
 		/// @brief get version
-		std::string getVersion() { return *version_; }
+		std::string getVersion() const { return *version_; }
 		/// @brief set version
 		void setVersion(const std::string& version) { version_ = std::make_shared<std::string>(version); }
 
 		/// @brief returns all the vertices that are in the collection
-		const std::vector<CJTPoint> getVerices();
+		std::vector<CJTPoint> getVerices() const;
 		std::shared_ptr<std::vector<CJTPoint>> getVericesPtr();
 		/// @brief adds a vertex to the collection, returns idx location where point is placed
 		int addVertex(const CJTPoint& point, bool checkUnique = false);
@@ -770,13 +772,13 @@ namespace CJT {
 		void CleanVertices();
 
 		/// @brief returns the full metadata
-		metaDataObject getMetaData() { return *metaData_; }
+		metaDataObject getMetaData() const { return *metaData_; }
 		std::shared_ptr<metaDataObject> getMetaDataPtr() { return metaData_; }
 		/// @brief sets the metadata of the collection
 		void setMetaData(const metaDataObject& metaData) { metaData_ = std::make_shared<metaDataObject>(metaData); }
 
 		/// @brief returns the transformation of the collection
-		ObjectTransformation getTransformation() { return *objectTransformation_; }
+		ObjectTransformation getTransformation() const { return *objectTransformation_; }
 		std::shared_ptr<ObjectTransformation> getTransformationPtr() { return objectTransformation_; }
 		/// @brief sets the transfomation object of the collection
 		void setTransformation(ObjectTransformation transformation) { objectTransformation_ = std::make_shared<ObjectTransformation>(transformation); }
