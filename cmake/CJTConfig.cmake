@@ -8,6 +8,8 @@ endif()
 
 if(EXISTS "${PARENT_DIR}/Build")
     set(CJT_LIBRARY_DIR ${PARENT_DIR}/Build)
+elseif(EXISTS "${PARENT_DIR}/build")
+    set(CJT_LIBRARY_DIR ${PARENT_DIR}/build)
 else()
     message(WARNING "CJT library directory not found at expected location")
 endif()

@@ -20,23 +20,25 @@ endif()
 
 # CJT
 # search default locations for config file
-if("${CJT_INCLUDE_DIR}" STREQUAL "")
+if("${CJT_DIR}" STREQUAL "")
     find_path(CJT_DIR CJTConfig.cmake
         PATHS
         ${CMAKE_CURRENT_SOURCE_DIR}/../../cmake/
+        /usr/local/lib/cmake/CJT/
+        /usr/local/share/cmake/CJT/
+        /usr/share/cmake/CJT/
+        NO_DEFAULT_PATH
     )
 endif()
 
 if(CJT_DIR)
     message(STATUS "Found CJT in: ${CJT_DIR}")
+    set(CMAKE_PREFIX_PATH ${CJT_DIR} ${CMAKE_PREFIX_PATH})
+    find_package(CJT REQUIRED)
 else()
     message(ERROR "Unable to find CJT. Specify CJT location manually")
 endif()
 
-if(CJT_DIR)
-    set(CMAKE_PREFIX_PATH ${CJT_DIR} ${CMAKE_PREFIX_PATH})
-endif()
-find_package(CJT)
 
 # Configure C++ compiler's includes dir
 include_directories ( SYSTEM 

@@ -16,6 +16,7 @@ int main()
     In this case the collection is not silenced, so information will be supplied by methods related to the collection.
     This can be disabled halfway by calling the silence() method, and reverted by the unsilence() method
     */
+
     std::string filepath = std::filesystem::current_path().remove_filename().string();
     collection.parseJSON(filepath + "/twobuildings.city.json", false);
 
