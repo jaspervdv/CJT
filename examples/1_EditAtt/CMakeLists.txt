@@ -1,29 +1,50 @@
-cmake_minimum_required (VERSION 3.0.0 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.10)
 
 # Project name
 project (CJTExample1 CXX)
 set(CMAKE_CXX_STANDARD 17)
 
-#nhollman
-find_package(nlohmann_json REQUIRED)
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE "Release")
+endif()
 
-# Tbb
-find_package(tbb REQUIRED NO_DEFAULT_PATH)
+# Nlohmann
+find_package(nlohmann_json CONFIG)
+message(STATUS nlohmann_json)
 
-# OpenCascade
-find_package(OpenCASCADE)
+if(nlohmann_json STREQUAL "")
+    message(FATAL_ERROR "Unable find Open nlohmann package, specify nlohmann_json packaged manually.")
+else()
+    message(STATUS "Found Open nlohmann package in:" ${nlohmann_json_INCLUDE_DIR} ) 
+endif()
 
 # CJT
+# search default locations for config file
+if("${CJT_INCLUDE_DIR}" STREQUAL "")
+    find_path(CJT_DIR CJTConfig.cmake
+        PATHS
+        ${CMAKE_CURRENT_SOURCE_DIR}/../../cmake/
+    )
+endif()
+
+if(CJT_DIR)
+    message(STATUS "Found CJT in: ${CJT_DIR}")
+else()
+    message(ERROR "Unable to find CJT. Specify CJT location manually")
+endif()
+
+if(CJT_DIR)
+    set(CMAKE_PREFIX_PATH ${CJT_DIR} ${CMAKE_PREFIX_PATH})
+endif()
 find_package(CJT)
 
 # Configure C++ compiler's includes dir
-include_directories ( 
-    ${OpenCASCADE_INCLUDE_DIR} 
-    ${CJT_INCLUDE_DIR}    
+include_directories ( SYSTEM 
+${CJT_INCLUDE_DIR}  
+${nlohmann_json_INCLUDE_DIR} 
 )
 
 link_directories(
-    ${OpenCASCADE_LIBRARY_DIR}
     ${CJT_LIBRARY_DIR}
 )
 
@@ -33,17 +54,8 @@ add_executable (${CMAKE_PROJECT_NAME}
 )
 
 # Add linker options
-target_link_libraries(${CMAKE_PROJECT_NAME}
+target_link_libraries(
+${PROJECT_NAME} 
 CJT
-nlohmann_json::nlohmann_json
+nlohmann_json::nlohmann_json 
 )
-
-foreach (LIB ${OpenCASCADE_LIBRARIES})
-    target_link_libraries(${CMAKE_PROJECT_NAME} ${OpenCASCADE_LIBRARY_DIR}/${LIB}.lib)
-endforeach()
-
-
-# Adjust runtime environment
-get_target_property(TBB_BIN  TBB::tbb IMPORTED_LOCATION_RELEASE)
-cmake_path(GET TBB_BIN PARENT_PATH TBB_BINARY_DIR)
-set_property(TARGET ${CMAKE_PROJECT_NAME} PROPERTY VS_DEBUGGER_ENVIRONMENT "PATH=$<$<CONFIG:DEBUG>:${OpenCASCADE_BINARY_DIR}d>$<$<NOT:$<CONFIG:DEBUG>>:${OpenCASCADE_BINARY_DIR}>;%PATH%;$<$<CONFIG:DEBUG>:${TBB_BINARY_DIR}d>$<$<NOT:$<CONFIG:DEBUG>>:${TBB_BINARY_DIR}>")

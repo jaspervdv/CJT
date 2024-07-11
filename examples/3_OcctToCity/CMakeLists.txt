@@ -7,9 +7,6 @@ set(CMAKE_CXX_STANDARD 17)
 #nhollman
 find_package(nlohmann_json REQUIRED)
 
-# Tbb
-find_package(tbb REQUIRED)
-
 # OpenCascade
 if("${OCC_INCLUDE_DIR}" STREQUAL "")
     find_path(OCC_INCLUDE_DIR Standard_Version.hxx
@@ -148,6 +145,23 @@ message(STATUS "Boost include files found in ${Boost_INCLUDE_DIRS}")
 message(STATUS "Boost libraries found in ${Boost_LIBRARY_DIRS}")
 
 # CJT
+# search default locations for config file
+if("${CJT_INCLUDE_DIR}" STREQUAL "")
+    find_path(CJT_DIR CJTConfig.cmake
+        PATHS
+        ${CMAKE_CURRENT_SOURCE_DIR}/../../cmake/
+    )
+endif()
+
+if(CJT_DIR)
+    message(STATUS "Found CJT in: ${CJT_DIR}")
+else()
+    message(ERROR "Unable to find CJT. Specify CJT location manually")
+endif()
+
+if(CJT_DIR)
+    set(CMAKE_PREFIX_PATH ${CJT_DIR} ${CMAKE_PREFIX_PATH})
+endif()
 find_package(CJT)
 
 # Configure C++ compiler's includes dir

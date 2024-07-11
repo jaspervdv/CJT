@@ -11,24 +11,24 @@
 int main()
 {
     // As explained in example 1 a city collection has to be created.
-    CJT::CityCollection collection;
+    std::shared_ptr<CJT::CityCollection> collection = std::make_shared<CJT::CityCollection>();
 
     /*
     As explained in example 1 the city collection can be populated with the parseJSON method. 
     */
     std::string filepath = std::filesystem::current_path().remove_filename().string();
-    collection.parseJSON(filepath + "/twobuildings.city.json", false);
+    collection->parseJSON(filepath + "/twobuildings.city.json", false);
 
     /*
     A kernel object has to be created to be able to convert OpenCASCADE geometry to CityJSON geometry.
     The kernel constructor requires a reference to the city collection object. 
     */
-    CJT::Kernel kernel(&collection);
+    CJT::Kernel kernel(collection);
 
     /*
     An object that is desired for conversion to the OpenCASCADE format has to be isolated, this is explained in example 1
     */
-    CJT::CityObject cityObject1 = collection.getCityObject("Building_1");
+    CJT::CityObject cityObject1 = collection->getCityObject("Building_1");
 
     /*
     The object can be converted to the OpenCASCADE format with the convertToCascade function. This function accepts both a CJT city object or a geo object.
