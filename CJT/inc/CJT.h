@@ -796,7 +796,7 @@ namespace CJT {
 		{
 			if (!overwrite)
 			{
-				std::cout << "key: " + key << " already in attributes of object " + name_ << std::endl;
+				//std::cout << "key: " + key << " already in attributes of object " + name_ << std::endl;
 				return;
 			}
 			attributes_[key] = value;

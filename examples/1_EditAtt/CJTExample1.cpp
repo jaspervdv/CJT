@@ -16,8 +16,16 @@ int main()
     In this case the collection is not silenced, so information will be supplied by methods related to the collection.
     This can be disabled halfway by calling the silence() method, and reverted by the unsilence() method
     */
+#ifdef _WIN32 
     std::string filepath = std::filesystem::current_path().remove_filename().string();
+#endif // _WIN32
+
+#ifdef __linux__
+    std::string filepath = std::filesystem::current_path().string();
+#endif // linux
+
     collection.parseJSON(filepath + "/twobuildings.city.json", false);
+
 
     /*
     A collection is populated by city objects, to change an attribute a city object has to be accessed.
