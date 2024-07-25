@@ -678,6 +678,8 @@ namespace CJT {
 
 	void Kernel::correctFaceDirection(std::vector<std::shared_ptr<EdgeCollection>> edgeCollectionList)
 	{
+		double buffer = 0.05;
+		// if single surface the surface should always be orentated to the positive Z
 		if (edgeCollectionList.size() == 1)
 		{
 			std::shared_ptr<EdgeCollection> groundCollection = edgeCollectionList[0];
@@ -687,9 +689,12 @@ namespace CJT {
 			return;
 		}
 
-		// index surfaces
+		// index surfaces and find highest surface
 		bgi::rtree<Value, bgi::rstar<treeDepth>> spatialIndex;
-		
+		int topSurfaceIndx = 0;
+		double highestZ = -999999;
+
+		std::vector<bg::model::box<BoostPoint3D>> boundingBoxCollection;
 		for (int i = 0; i < edgeCollectionList.size(); i++)
 		{
 			// make bbox of every surface
@@ -700,28 +705,88 @@ namespace CJT {
 			gp_Pnt urr = bbox.CornerMax();
 
 			bg::model::box<BoostPoint3D> boostbbox(
-				{ lll.X(), lll.Y(), lll.Z() }, { urr.X(), urr.Y(), urr.Z() }
+				{ lll.X() - buffer, lll.Y() - buffer, lll.Z() - buffer }, { urr.X() + buffer, urr.Y() + buffer, urr.Z() + buffer }
 			);
 			spatialIndex.insert(std::make_pair(boostbbox, i));
+			boundingBoxCollection.emplace_back(boostbbox);
+
+			double currentZ = urr.Z();
+			if (highestZ < currentZ)
+			{
+				double zNomalCompo = edgeCollectionList[i]->getNormal().Z();
+				if (abs(zNomalCompo) < 0.05) { continue; }
+
+				highestZ = currentZ;
+				topSurfaceIndx = i;
+			}
 		}
 
-		// correct normals
-		int startingIndx = 0;
-		double height = -999999999;
-		double count = 0;
-		for (int i = 0; i < edgeCollectionList.size(); i++)
+		//orientate the highest surface
+		std::shared_ptr<EdgeCollection> topSurface = edgeCollectionList[topSurfaceIndx];
+		if (topSurface->getNormal().Z() < 0) { topSurface->flipFace(); }
+
+		//correct rest of the normals by growing from this face
+		std::vector evalList(edgeCollectionList.size(), 0);
+		evalList[topSurfaceIndx] = 1;
+		std::vector<int> bufferList;
+		bufferList.emplace_back(topSurfaceIndx);
+
+		while (true)
 		{
-			TopoDS_Face currenFace = edgeCollectionList[i]->getOriginalFace();
-			GProp_GProps props;
-			BRepGProp::SurfaceProperties(currenFace, props);
-
-
-			startingIndx = i;
-			int intersectionCount = countNormalIntersections(*edgeCollectionList[i], edgeCollectionList, spatialIndex);
-			if (intersectionCount % 2 != 0)
+			std::vector<int> tempBufferList;
+			for (int edgeCollectionIdx : bufferList)
 			{
-				edgeCollectionList[i]->flipFace();
+				std::shared_ptr<EdgeCollection> currentEdgeCollection = edgeCollectionList[edgeCollectionIdx];
+				bg::model::box<BoostPoint3D> currenBBox = boundingBoxCollection[edgeCollectionIdx];
+
+				std::vector<Value> qResult;
+				qResult.clear();
+				spatialIndex.query(
+					bgi::intersects(
+						currenBBox
+					),
+					std::back_inserter(qResult)
+				);
+
+				for(Value neighbourCollectionValue : qResult)
+				{
+					int otherIdx = neighbourCollectionValue.second;
+
+					if (evalList[otherIdx] == 1) { continue; }
+					evalList[otherIdx] = 1;
+
+					std::shared_ptr<EdgeCollection> otherEdgeCollection = edgeCollectionList[otherIdx];
+
+					//find matching edge
+					bool found = false;
+					for (std::shared_ptr<Edge> currentEdge : currentEdgeCollection->getEdges())
+					{
+						for (std::shared_ptr<Edge> otherEdge : otherEdgeCollection->getEdges())
+						{
+							// correct orientation
+							if (currentEdge->getStart().IsEqual(otherEdge->getEnd(), 1e-6) &&
+								currentEdge->getEnd().IsEqual(otherEdge->getStart(), 1e-6))
+							{
+								found = true;
+								break;
+							}
+							// wrong orientation
+							if (currentEdge->getStart().IsEqual(otherEdge->getStart(), 1e-6) &&
+								currentEdge->getEnd().IsEqual(otherEdge->getEnd(), 1e-6))
+							{
+								otherEdgeCollection->flipFace();
+								found = true;
+								break;
+							}
+						}
+						if (found) { break; }
+					}
+					tempBufferList.emplace_back(otherIdx);
+				}
+				bufferList = tempBufferList;
+				tempBufferList.clear();
 			}
+			if (!bufferList.size()) { break; }
 		}
 	}
 
