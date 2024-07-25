@@ -751,9 +751,7 @@ namespace CJT {
 				for(Value neighbourCollectionValue : qResult)
 				{
 					int otherIdx = neighbourCollectionValue.second;
-
-					if (evalList[otherIdx] == 1) { continue; }
-					evalList[otherIdx] = 1;
+					if (evalList[otherIdx] == 1) { continue; }				
 
 					std::shared_ptr<EdgeCollection> otherEdgeCollection = edgeCollectionList[otherIdx];
 
@@ -781,11 +779,15 @@ namespace CJT {
 						}
 						if (found) { break; }
 					}
+					if (!found) { continue; }
+					evalList[otherIdx] = 1;
 					tempBufferList.emplace_back(otherIdx);
 				}
-				bufferList = tempBufferList;
-				tempBufferList.clear();
 			}
+			bufferList.clear();
+			bufferList = tempBufferList;
+			tempBufferList.clear();
+
 			if (!bufferList.size()) { break; }
 		}
 	}
