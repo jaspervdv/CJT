@@ -115,9 +115,9 @@ namespace CJT {
 		static const int treeDepth = 25;
 
 		int findTopEdgeCollection(const std::vector<std::shared_ptr<EdgeCollection>>& edgeCollectionList);
-		int countNormalIntersections(const EdgeCollection& currentCollection, const std::vector<std::shared_ptr<EdgeCollection>>& edgeCollectionList, const bgi::rtree<Value, bgi::rstar<treeDepth>>& spatialIndex);
 
 		void correctFaceDirection(std::vector<std::shared_ptr<EdgeCollection>> edgeCollectionList);
+
 		bool checkIfInit();
 
 	public:

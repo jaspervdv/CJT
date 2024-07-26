@@ -580,102 +580,6 @@ namespace CJT {
 		return highestCollectionIdx;
 	}
 
-	int Kernel::countNormalIntersections(const EdgeCollection& currentCollection, const std::vector<std::shared_ptr<EdgeCollection>>& edgeCollectionList, const bgi::rtree<Value, bgi::rstar<treeDepth>>& spatialIndex)
-	{
-		if (currentCollection.isInner()) { return -1; }
-
-		// get a point on the surface face
-		TopoDS_Face currentface = currentCollection.getOriginalFace();
-		gp_Vec normal = currentCollection.getNormal();
-
-		int maxGuesses = 33;
-
-		gp_Pnt lll(999999, 999999, 999999);
-		gp_Pnt urr(-999999, -999999, -999999);
-
-		for (TopExp_Explorer vertexExp(currentface, TopAbs_VERTEX); vertexExp.More(); vertexExp.Next()) {
-			TopoDS_Vertex vertex = TopoDS::Vertex(vertexExp.Current());
-			gp_Pnt p = BRep_Tool::Pnt(vertex);
-			if (p.X() < lll.X()) { lll.SetX(p.X()); }
-			if (p.Y() < lll.Y()) { lll.SetY(p.Y()); }
-			if (p.Z() < lll.Z()) { lll.SetZ(p.Z()); }
-			if (p.X() > urr.X()) { urr.SetX(p.X()); }
-			if (p.Y() > urr.Y()) { urr.SetY(p.Y()); }
-			if (p.Z() > urr.Z()) { urr.SetZ(p.Z()); }
-		}
-		// Generate a random point on the face
-		std::random_device rd;
-		std::mt19937 gen(rd());
-
-		std::uniform_real_distribution<> xDistr(lll.X(), urr.X());
-		std::uniform_real_distribution<> yDistr(lll.Y(), urr.Y());
-		std::uniform_real_distribution<> zDistr(lll.Z(), urr.Z());
-
-		gp_Pnt randomPoint;
-		bool isOnFace = false;
-		int itt = 0;
-		while (!isOnFace) {
-			randomPoint.SetXYZ(gp_XYZ(xDistr(gen), yDistr(gen), zDistr(gen)));
-
-			BRepExtrema_DistShapeShape distanceCalc(currentface, BRepBuilderAPI_MakeVertex(randomPoint));
-			distanceCalc.Perform();
-
-			randomPoint = distanceCalc.PointOnShape1(1);
-			isOnFace = true;
-
-			if (!isOnFace) { continue; }
-
-			for (TopExp_Explorer wireExp(currentface, TopAbs_WIRE); wireExp.More(); wireExp.Next()) {
-				TopoDS_Wire theWire = TopoDS::Wire(wireExp.Current());
-
-				BRepExtrema_DistShapeShape distanceWireCalc(theWire, BRepBuilderAPI_MakeVertex(randomPoint));
-				distanceWireCalc.Perform();
-
-				if (distanceWireCalc.Value() < 0.01)
-				{
-					isOnFace = false;
-				}
-			}
-			if (itt == maxGuesses) { break; } // TODO: prevent hitting this
-			itt++;
-		}
-		int intersectionCount = 0;
-		if (normal.Magnitude() == 0)
-		{
-			return -1;
-		}
-		TopoDS_Edge evalEdge = BRepBuilderAPI_MakeEdge(randomPoint, randomPoint.Translated(normal.Multiplied(100)));
-
-		Bnd_Box bbox;
-		BRepBndLib::Add(evalEdge, bbox);
-
-		gp_Pnt EvalEdgelll = bbox.CornerMin();
-		gp_Pnt EvalEdgeurr = bbox.CornerMax();
-
-		bg::model::box<BoostPoint3D> boostbbox(
-			{ EvalEdgelll.X(), EvalEdgelll.Y(), EvalEdgelll.Z() }, { EvalEdgeurr.X(), EvalEdgeurr.Y(), EvalEdgeurr.Z() }
-		);
-
-		std::vector<Value> qResult;
-		qResult.clear();
-		spatialIndex.query(bgi::intersects(boostbbox), std::back_inserter(qResult));
-
-		for (size_t i = 0; i < qResult.size(); i++)
-		{
-			TopoDS_Face intersectionFace = edgeCollectionList[qResult[i].second]->getOriginalFace();
-			if (currentface.IsEqual(intersectionFace)) { continue;  }
-
-			BRepExtrema_DistShapeShape distanceCalc(
-				intersectionFace,
-				evalEdge);
-
-			if (!distanceCalc.IsDone()) { continue; } // TODO: find alternatives if not done
-			if (distanceCalc.Value() < 1e-6) { intersectionCount++; }
-		}
-
-		return intersectionCount;
-	}
-
 	void Kernel::correctFaceDirection(std::vector<std::shared_ptr<EdgeCollection>> edgeCollectionList)
 	{
 		double buffer = 0.05;
@@ -779,9 +683,74 @@ namespace CJT {
 						}
 						if (found) { break; }
 					}
-					if (!found) { continue; }
-					evalList[otherIdx] = 1;
-					tempBufferList.emplace_back(otherIdx);
+					if (found) 
+					{
+						evalList[otherIdx] = 1;
+						tempBufferList.emplace_back(otherIdx);
+					}
+					 //Inner ring processing 1
+					for (std::shared_ptr<EdgeCollection> currentInnerRing : currentEdgeCollection->getInnerRings())
+					{
+						for (std::shared_ptr<Edge> currentEdge : currentInnerRing->getEdges())
+						{
+							for (std::shared_ptr<Edge> otherEdge : otherEdgeCollection->getEdges())
+							{
+								// correct orientation
+								if (currentEdge->getStart().IsEqual(otherEdge->getEnd(), 1e-6) &&
+									currentEdge->getEnd().IsEqual(otherEdge->getStart(), 1e-6))
+								{
+									found = true;
+									break;
+								}
+								// wrong orientation
+								if (currentEdge->getStart().IsEqual(otherEdge->getStart(), 1e-6) &&
+									currentEdge->getEnd().IsEqual(otherEdge->getEnd(), 1e-6))
+								{
+									otherEdgeCollection->flipFace();
+									found = true;
+									break;
+								}
+							}
+							if (found) { break; }
+						}
+					}
+					if (found)
+					{
+						evalList[otherIdx] = 1;
+						tempBufferList.emplace_back(otherIdx);
+					}
+
+					// inner ring processing 2
+					for (std::shared_ptr<Edge> currentEdge : currentEdgeCollection->getEdges())
+					{
+						for (std::shared_ptr<EdgeCollection> otherInnerRing : otherEdgeCollection->getInnerRings())
+						{
+							for (std::shared_ptr<Edge> otherEdge : otherInnerRing->getEdges())
+							{
+								// correct orientation
+								if (currentEdge->getStart().IsEqual(otherEdge->getEnd(), 1e-6) &&
+									currentEdge->getEnd().IsEqual(otherEdge->getStart(), 1e-6))
+								{
+									found = true;
+									break;
+								}
+								// wrong orientation
+								if (currentEdge->getStart().IsEqual(otherEdge->getStart(), 1e-6) &&
+									currentEdge->getEnd().IsEqual(otherEdge->getEnd(), 1e-6))
+								{
+									otherEdgeCollection->flipFace();
+									found = true;
+									break;
+								}
+							}
+							if (found) { break; }
+						}
+					}
+					if (found)
+					{
+						evalList[otherIdx] = 1;
+						tempBufferList.emplace_back(otherIdx);
+					}
 				}
 			}
 			bufferList.clear();
