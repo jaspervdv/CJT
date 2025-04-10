@@ -39,7 +39,7 @@ typedef bg::model::point<double, 3, bg::cs::cartesian> BoostPoint3D;
 typedef std::pair<bg::model::box<BoostPoint3D>, int> Value;
 
 namespace CJT {
-	class Edge 
+	class Edge
 	{
 	private:
 		gp_Pnt sPoint_;
@@ -61,12 +61,12 @@ namespace CJT {
 		void reverse();
 	};
 
-	class EdgeCollection 
+	class EdgeCollection
 	{
 	private:
 		std::vector<std::shared_ptr<Edge>> ring_;
 		std::vector<std::shared_ptr<EdgeCollection>>  innerRingList_;
-		gp_Vec normal_ = gp_Vec(0,0,1);
+		gp_Vec normal_ = gp_Vec(0, 0, 1);
 		TopoDS_Face originalFace_;
 		bool isInner_ = false;
 	public:
@@ -95,7 +95,7 @@ namespace CJT {
 		/// @brief get if ring is inner ring
 		bool isInner() const { return isInner_; }
 		/// @brief sets the original face
-		void setOriginalFace(const TopoDS_Face& face) { originalFace_ = face;}
+		void setOriginalFace(const TopoDS_Face& face) { originalFace_ = face; }
 		/// @brief get the original face geometry
 		TopoDS_Face getOriginalFace() const { return originalFace_; }
 		/// @brief orders the edges by connecting the Endpoint to the Startpoint of the next edge, creating an continuous loop
@@ -104,7 +104,7 @@ namespace CJT {
 		void flipFace();
 	};
 
-	class Kernel 
+	class Kernel
 	{
 	private:
 		double fprecision = 0;

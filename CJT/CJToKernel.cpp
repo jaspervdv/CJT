@@ -115,7 +115,7 @@ namespace CJT {
 
 		for (int i = 0; i < pointList.size(); i++)
 		{
-			if (i == idx){ continue; }
+			if (i == idx) { continue; }
 			double localDistance = basePoint.Distance(pointList.at(i));
 			if (localDistance > distance)
 			{
@@ -133,14 +133,14 @@ namespace CJT {
 		gp_Pnt p1 = pointList[p1Idx];
 		gp_Pnt p2 = pointList[p2Idx];
 
-		gp_Lin lineF (p1, gp_Vec(p1, p2));
-		gp_Lin lineB (p1, gp_Vec(p2, p1));
+		gp_Lin lineF(p1, gp_Vec(p1, p2));
+		gp_Lin lineB(p1, gp_Vec(p2, p1));
 
 		TopoDS_Edge edge = BRepBuilderAPI_MakeEdge(p1, p2);
 
 		for (int i = 0; i < pointList.size(); i++)
 		{
-			if (i == p1Idx || i == p2Idx){ continue; }
+			if (i == p1Idx || i == p2Idx) { continue; }
 
 			gp_Pnt currentPoint = pointList[i];
 			double localDistanceF = lineF.Distance(currentPoint);
@@ -180,7 +180,7 @@ namespace CJT {
 	}
 
 
-	std::vector<gp_Pnt> intPoint2GpPoint(const std::vector<int> &pointIdxList, const std::vector<CJTPoint> &cityVerts) {
+	std::vector<gp_Pnt> intPoint2GpPoint(const std::vector<int>& pointIdxList, const std::vector<CJTPoint>& cityVerts) {
 		std::vector<gp_Pnt> oPointList;
 		for (size_t i = 0; i < pointIdxList.size(); i++)
 		{
@@ -287,143 +287,29 @@ namespace CJT {
 		int backupIdx3 = 0;
 		bool found = false;
 
-		if (isInner_ == false)
+
+		TopLoc_Location loc;
+		Handle(Poly_Triangulation) tri = BRep_Tool::Triangulation(originalFace_, loc);
+
+		if (tri.IsNull()) { return; }
+
+		int counter = tri->NbTriangles();
+		for (int i = 0; i < counter; i++)
 		{
-			TopLoc_Location loc;
-			Handle(Poly_Triangulation) tri = BRep_Tool::Triangulation(originalFace_, loc);
+			int idx = i + 1;
+			Poly_Triangle triangle = tri->Triangle(idx);
 
-			if (tri.IsNull()) { return; }
+			int n1, n2, n3;
+			triangle.Get(n1, n2, n3);
 
-			int counter = tri->NbTriangles();
-			for (int i = 0; i < counter; i++)
-			{
-				int idx = i + 1;
-				Poly_Triangle triangle = tri->Triangle(idx);
+			gp_Pnt p1 = tri->Node(n1).Transformed(loc);
+			gp_Pnt p2 = tri->Node(n2).Transformed(loc);
+			gp_Pnt p3 = tri->Node(n3).Transformed(loc);
 
-				int n1, n2, n3;
-				triangle.Get(n1, n2, n3);
+			gp_Pnt pc = getMiddlePoint(p1, p2, p3);
 
-				gp_Pnt p1 = tri->Node(n1).Transformed(loc);
-				gp_Pnt p2 = tri->Node(n2).Transformed(loc);
-				gp_Pnt p3 = tri->Node(n3).Transformed(loc);
-
-				gp_Pnt pc = getMiddlePoint(p1, p2, p3);
-
-				double distance = BRepExtrema_DistShapeShape(originalFace_, BRepBuilderAPI_MakeVertex(pc)).Value();
-				if (distance > 0.001) { continue; }
-				for (size_t j = 0; j < ring_.size(); j++)
-				{
-					std::shared_ptr<Edge> edge = ring_[j];
-
-					if (edge->getStart().IsEqual(p1, 0.01) && edge->getEnd().IsEqual(p2, 0.01) ||
-						edge->getStart().IsEqual(p2, 0.01) && edge->getEnd().IsEqual(p3, 0.01) ||
-						edge->getStart().IsEqual(p3, 0.01) && edge->getEnd().IsEqual(p1, 0.01) // correct orientation
-						)
-					{
-						normal_ = calculateNormal(p1, p2, p3, true);
-						return;
-					}
-					else if (edge->getStart().IsEqual(p2, 0.01) && edge->getEnd().IsEqual(p1, 0.01) ||
-						edge->getStart().IsEqual(p3, 0.01) && edge->getEnd().IsEqual(p2, 0.01) ||
-						edge->getStart().IsEqual(p1, 0.01) && edge->getEnd().IsEqual(p3, 0.01) // reversed orientation
-						)
-					{
-						normal_ = calculateNormal(p1, p2, p3, true).Reversed();
-						return;
-					}
-				}
-
-			}
-			std::cout << "not found" << std::endl;
-			//TODO: find a fix when there is no normal found
-		}
-		else if (isInner_ == true)
-		{
-			double distance = 99999999;
-			TopoDS_Vertex measurePoint = BRepBuilderAPI_MakeVertex(startPoints[0]);
-			TopoDS_Wire originalWire;
-			for (TopExp_Explorer explorer(originalFace_, TopAbs_WIRE); explorer.More(); explorer.Next())
-			{
-				const TopoDS_Wire& wire = TopoDS::Wire(explorer.Current());
-				double distanceRing = BRepExtrema_DistShapeShape(wire, measurePoint).Value();
-
-				if (distance > distanceRing)
-				{
-					distance = distanceRing;
-					originalWire = wire;
-				}
-			}
-
-			bool large = false;
-
-			for (int i = 0; i < startPoints.size(); i++) //TODO change this to inner ring normal computation
-			{
-				p1 = startPoints[i];
-				for (int j = 1; j < startPoints.size(); j++)
-				{
-					if (i >= j) { continue; }
-					p2 = startPoints[j];
-					for (int k = 2; k < startPoints.size(); k++)
-					{
-						if (j >= k) { continue; }
-						p3 = startPoints[k];
-
-						bool found = false;
-
-						if (startPoints.size() >= 4)
-						{	
-							// compute distance from face (if not >0 triangle is presumably outside of inner ring)
-							gp_Pnt pc = getMiddlePoint(p1, p2, p3);
-
-							double distc = BRepExtrema_DistShapeShape(originalFace_, BRepBuilderAPI_MakeVertex(pc)).Value();
-							if (distc < 0.0001) { continue; }
-							// compute if any edge of triangle has overlap with edge to correctly find orientation
-
-							int hits = 0;
-							BRepExtrema_DistShapeShape h1(originalWire, BRepBuilderAPI_MakeVertex(p1));
-							BRepExtrema_DistShapeShape h2(originalWire, BRepBuilderAPI_MakeVertex(p2));
-							BRepExtrema_DistShapeShape h3(originalWire, BRepBuilderAPI_MakeVertex(p3));
-
-							if (h1.Value() < 1e-6) { hits++;}
-							if (h2.Value() < 1e-6) { hits++;}
-							if (h3.Value() < 1e-6) { hits++;}
-							if (hits <= 1)  { continue;  }
-							found = true;
-						}
-
-						if (!found) { continue; }
-
-						// compute area of the triangle
-						gp_Vec v1(p2.X() - p1.X(), p2.Y() - p1.Y(), p2.Z() - p1.Z());
-						gp_Vec v2(p3.X() - p1.X(), p3.Y() - p1.Y(), p3.Z() - p1.Z());
-						gp_Vec normal = calculateNormal(p1, p2, p3);
-						double area = normal.Magnitude() * 0.5;
-						if (area > 0.01)
-						{
-							backupIdx1 = i;
-							backupIdx2 = j;
-							backupIdx3 = k;
-							large = true;
-							break;
-						}
-
-						if (area > bigArea)
-						{
-							bigArea = area;
-							backupIdx1 = i;
-							backupIdx2 = j;
-							backupIdx3 = k;
-						}
-					}
-					if (large) { break; }
-				}
-				if (large) { break; }
-			}
-
-			p1 = startPoints[backupIdx1];
-			p2 = startPoints[backupIdx2];
-			p3 = startPoints[backupIdx3];
-
+			double distance = BRepExtrema_DistShapeShape(originalFace_, BRepBuilderAPI_MakeVertex(pc)).Value();
+			if (distance > 0.001) { continue; }
 			for (size_t j = 0; j < ring_.size(); j++)
 			{
 				std::shared_ptr<Edge> edge = ring_[j];
@@ -433,20 +319,39 @@ namespace CJT {
 					edge->getStart().IsEqual(p3, 0.01) && edge->getEnd().IsEqual(p1, 0.01) // correct orientation
 					)
 				{
-					normal_ = calculateNormal(p1, p2, p3, true);
-					return;
+					if (!isInner_)
+					{
+						normal_ = calculateNormal(p1, p2, p3, true);
+						return;
+					}
+					else
+					{
+						normal_ = calculateNormal(p1, p2, p3, true).Reversed();
+						return;
+					}
+
 				}
 				else if (edge->getStart().IsEqual(p2, 0.01) && edge->getEnd().IsEqual(p1, 0.01) ||
 					edge->getStart().IsEqual(p3, 0.01) && edge->getEnd().IsEqual(p2, 0.01) ||
 					edge->getStart().IsEqual(p1, 0.01) && edge->getEnd().IsEqual(p3, 0.01) // reversed orientation
 					)
 				{
-					normal_ = calculateNormal(p1, p2, p3, true).Reversed();
-					return;
+					if (!isInner_)
+					{
+						normal_ = calculateNormal(p1, p2, p3, true).Reversed();
+						return;
+					}
+					else
+					{
+						normal_ = calculateNormal(p1, p2, p3, true);
+						return;
+					}
 				}
 			}
-			return;
+
 		}
+		std::cout << "not found" << std::endl;
+		//TODO: find a fix when there is no normal found
 	}
 
 	void EdgeCollection::orderEdges()
@@ -505,7 +410,7 @@ namespace CJT {
 						break;
 					}
 				}
-			}	
+			}
 		}
 		ring_ = cleanedList;
 		computeNormal();
@@ -526,9 +431,9 @@ namespace CJT {
 		normal_.Reverse();
 		for (size_t i = 0; i < ring_.size(); i++) { ring_[i]->reverse(); }
 		std::reverse(ring_.begin(), ring_.end());
-		for (size_t i = 0; i < innerRingList_.size(); i++) 
-		{ 
-			innerRingList_[i]->flipFace(); 
+		for (size_t i = 0; i < innerRingList_.size(); i++)
+		{
+			innerRingList_[i]->flipFace();
 		}
 	}
 
@@ -604,7 +509,7 @@ namespace CJT {
 			// make bbox of every surface
 			Bnd_Box bbox;
 			BRepBndLib::Add(edgeCollectionList[i]->getOriginalFace(), bbox);
-			
+
 			gp_Pnt lll = bbox.CornerMin();
 			gp_Pnt urr = bbox.CornerMax();
 
@@ -652,10 +557,10 @@ namespace CJT {
 					std::back_inserter(qResult)
 				);
 
-				for(Value neighbourCollectionValue : qResult)
+				for (Value neighbourCollectionValue : qResult)
 				{
 					int otherIdx = neighbourCollectionValue.second;
-					if (evalList[otherIdx] == 1) { continue; }				
+					if (evalList[otherIdx] == 1) { continue; }
 
 					std::shared_ptr<EdgeCollection> otherEdgeCollection = edgeCollectionList[otherIdx];
 
@@ -683,12 +588,12 @@ namespace CJT {
 						}
 						if (found) { break; }
 					}
-					if (found) 
+					if (found)
 					{
 						evalList[otherIdx] = 1;
 						tempBufferList.emplace_back(otherIdx);
 					}
-					 //Inner ring processing 1
+					//Inner ring processing 1
 					for (std::shared_ptr<EdgeCollection> currentInnerRing : currentEdgeCollection->getInnerRings())
 					{
 						for (std::shared_ptr<Edge> currentEdge : currentInnerRing->getEdges())
@@ -796,13 +701,13 @@ namespace CJT {
 			std::vector<gp_Pnt> oPointList = intPoint2GpPoint(currentIntFace.outerRing_, cityVerts);
 			TopoDS_Wire topoWire = makeRingWire(oPointList);
 
-			if (topoWire.IsNull()) { 
+			if (topoWire.IsNull()) {
 				success = false;
-				continue; 
+				continue;
 			}
 
 			TopoDS_Face topoFace = BRepBuilderAPI_MakeFace(topoWire).Face();
-	
+
 			if (topoFace.IsNull())
 			{
 				gp_Pnt basePoint = oPointList[0];
@@ -833,7 +738,7 @@ namespace CJT {
 					TopoDS_Wire innerWire = makeRingWire(iPointList);
 
 					if (innerWire.IsNull()) { continue; }
-					
+
 					BRepBuilderAPI_MakeFace faceCreator(topoFace, innerWire);
 
 					if (faceCreator.Error() != BRepBuilderAPI_FaceDone) { continue; }
@@ -842,7 +747,7 @@ namespace CJT {
 				}
 			}
 
-			if (topoFace.IsNull()) 
+			if (topoFace.IsNull())
 			{
 				success = false;
 				break;
@@ -878,7 +783,7 @@ namespace CJT {
 
 	std::vector<TopoDS_Shape> Kernel::convertToCascade(CityObject& cityObject) {
 		std::vector<TopoDS_Shape> shapeList;
-		
+
 		if (!checkIfInit()) { return shapeList; }
 
 		std::vector<std::shared_ptr<GeoObject>> geoObjectList = cityObject.getGeoObjectsPtr();
@@ -918,8 +823,8 @@ namespace CJT {
 		else if (shape.ShapeType() == 2) { geomType = "Solid"; }
 		else if (shape.ShapeType() == 3 || shape.ShapeType() == 4) { geomType = "MultiSurface"; }
 		else if (shape.ShapeType() == 0) { geomType = "MultiSurface"; }
-		else 
-		{ 
+		else
+		{
 			std::cout << "Kernel does not regonize geo type" << std::endl;
 			throw std::exception();
 		}
@@ -931,12 +836,12 @@ namespace CJT {
 		TopExp_Explorer expl;
 		BRepMesh_IncrementalMesh(shape, 0.001);
 
-		for (expl.Init(shape, TopAbs_FACE); expl.More(); expl.Next()) 
-		{ 
+		for (expl.Init(shape, TopAbs_FACE); expl.More(); expl.Next())
+		{
 			TopoDS_Face face = TopoDS::Face(expl.Current());
 			faceList.emplace_back(face);
-		} 
-		
+		}
+
 		for (size_t i = 0; i < faceList.size(); i++)
 		{
 
@@ -944,12 +849,12 @@ namespace CJT {
 			int c = 0;
 			gp_Pnt lP;
 			for (expl.Init(faceList[i], TopAbs_VERTEX); expl.More(); expl.Next())
-			{	
+			{
 				TopoDS_Vertex vertex = TopoDS::Vertex(expl.Current());
 				gp_Pnt p = BRep_Tool::Pnt(vertex);
-				
-				if (c % 2 == 1) 
-				{ 
+
+				if (c % 2 == 1)
+				{
 					// TODO: fix the jump that is present here
 					//if (p.Distance(lP) > fprecision)
 					{
@@ -975,7 +880,7 @@ namespace CJT {
 		for (size_t i = 0; i < uniqueVerts.size(); i++)
 		{
 			const auto& currectPoint = uniqueVerts[i];
-			cjtUniquePoints.emplace_back( CJTPoint(currectPoint.X(), currectPoint.Y(), currectPoint.Z()));
+			cjtUniquePoints.emplace_back(CJTPoint(currectPoint.X(), currectPoint.Y(), currectPoint.Z()));
 			uniquePoints.emplace_back(currectPoint);
 		}
 		std::vector<int> pointLocation = cityCollection_->addVertex(cjtUniquePoints, true);
@@ -991,7 +896,7 @@ namespace CJT {
 			// get outer ring
 			std::vector<gp_Pnt> startPointCollection = currentCollection.getStartPoints();
 			std::vector<int> idxList;
-			
+
 			for (size_t j = 0; j < startPointCollection.size(); j++)
 			{
 				for (size_t k = 0; k < uniquePoints.size(); k++)
@@ -1001,7 +906,7 @@ namespace CJT {
 						idxList.emplace_back(pointLocation[k]);
 					}
 				}
-				
+
 			}
 			ShapeCollection.emplace_back(idxList);
 
