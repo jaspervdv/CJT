@@ -78,8 +78,12 @@ namespace CJT {
 		void setEdges(const std::vector<std::shared_ptr<Edge>>& edgeList) { ring_ = edgeList; }
 		/// @brief adds an Edge object to the outer ring
 		void addEdge(std::shared_ptr<Edge> edge) { ring_.emplace_back(edge); }
+		/// @brief adds the wire
+		void addWire(const TopoDS_Wire& theWire, bool isInner = false);
 		/// @brief returns the start points of every Edge object in the outer ring
 		std::vector<gp_Pnt> getStartPoints() const;
+		/// @brief returns the points of every Edge object in the outer ring
+		std::vector<gp_Pnt> getPoints() const;
 		/// @brief adds an Edgecollection representing an inner ring 
 		void addInnerRing(std::shared_ptr<EdgeCollection> innerRing) { innerRingList_.emplace_back(innerRing); }
 		/// @brief returns true if the normal has a positive Z direction

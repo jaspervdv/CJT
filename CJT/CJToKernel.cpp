@@ -2,6 +2,7 @@
 #include "inc/CJToKernel.h"
 #include <BRepGProp.hxx>
 #include <gp_Lin.hxx>
+#include <BRepTools.hxx>
 
 namespace CJT {
 
@@ -246,11 +247,68 @@ namespace CJT {
 	}
 
 
+	void EdgeCollection::addWire(const TopoDS_Wire& theWire, bool isInner)
+	{
+		if (isInner)
+		{
+			std::shared_ptr<EdgeCollection> innerCollection = std::make_shared<EdgeCollection>(EdgeCollection());
+			innerCollection->setIsInner();
+			innerCollection->setOriginalFace(originalFace_);
+			innerCollection->addWire(theWire);
+
+			if (!innerCollection->getNormal().IsOpposite(normal_, 1e-6))
+			{
+				innerCollection->flipFace();
+			}
+			addInnerRing(innerCollection);
+			return;
+		}
+
+		int c = 0;
+		gp_Pnt lP;
+		for (TopExp_Explorer expl(theWire, TopAbs_VERTEX); expl.More(); expl.Next())
+		{
+			TopoDS_Vertex vertex = TopoDS::Vertex(expl.Current());
+			gp_Pnt p = BRep_Tool::Pnt(vertex);
+
+			if (c % 2 == 1)
+			{
+				// TODO: fix the jump that is present here
+				//if (p.Distance(lP) > fprecision)
+				{
+					std::shared_ptr<Edge> collectedEdge = std::make_shared<Edge>(Edge(lP, p));
+					addEdge(collectedEdge);
+				}
+			}
+			lP = p;
+			c++;
+		}
+		orderEdges();
+		return;
+	}
+
 	std::vector<gp_Pnt> EdgeCollection::getStartPoints() const
 	{
 		std::vector<gp_Pnt> startPoints;
 		for (size_t i = 0; i < ring_.size(); i++) { startPoints.emplace_back(ring_[i]->getStart()); }
 		return startPoints;
+	}
+
+	std::vector<gp_Pnt> EdgeCollection::getPoints() const
+	{
+		std::vector<gp_Pnt> pointList;
+		for (const std::shared_ptr<CJT::Edge>& currentEdge : ring_)
+		{
+			pointList.emplace_back(currentEdge->getStart());
+		}
+		for (const std::shared_ptr<EdgeCollection>& innerRing : innerRingList_)
+		{
+			for (const gp_Pnt& innerPoints : innerRing->getPoints())
+			{
+				pointList.emplace_back(innerPoints);
+			}
+		}
+		return pointList;
 	}
 
 	bool EdgeCollection::hasPositiveNormal() const
@@ -306,10 +364,6 @@ namespace CJT {
 			gp_Pnt p2 = tri->Node(n2).Transformed(loc);
 			gp_Pnt p3 = tri->Node(n3).Transformed(loc);
 
-			gp_Pnt pc = getMiddlePoint(p1, p2, p3);
-
-			double distance = BRepExtrema_DistShapeShape(originalFace_, BRepBuilderAPI_MakeVertex(pc)).Value();
-			if (distance > 0.001) { continue; }
 			for (size_t j = 0; j < ring_.size(); j++)
 			{
 				std::shared_ptr<Edge> edge = ring_[j];
@@ -352,6 +406,7 @@ namespace CJT {
 		}
 		std::cout << "not found" << std::endl;
 		//TODO: find a fix when there is no normal found
+		return;
 	}
 
 	void EdgeCollection::orderEdges()
@@ -362,68 +417,32 @@ namespace CJT {
 		std::vector<std::shared_ptr<Edge>> cleanedList;
 		while (falsePresent != 0)
 		{
-			if (currentEdge->isProcessed())
+			if (currentEdge->isProcessed()) { break; }
+			currentEdge->setIsProcessed();
+			falsePresent--;
+
+			cleanedList.emplace_back(currentEdge);
+			gp_Pnt p2 = currentEdge->getEnd();
+
+			for (size_t i = 0; i < ring_.size(); i++)
 			{
-				if (!isInner_)
+				if (ring_[i] == currentEdge) { continue; }
+
+				if (isEqual(p2, ring_[i]->getStart()))
 				{
-					std::shared_ptr<EdgeCollection> innerRing = std::make_shared<EdgeCollection>(EdgeCollection());
-					innerRing->setOriginalFace(originalFace_);
-					for (size_t i = 0; i < ring_.size(); i++)
-					{
-						if (ring_[i]->isProcessed() == false)
-						{
-							std::shared_ptr<Edge> tempEdge = ring_[i];
-							innerRing->addEdge(tempEdge);
-						}
-					}
-					innerRing->setIsInner();
-					innerRing->orderEdges();
-					addInnerRing(innerRing);
-					falsePresent = static_cast<int>(falsePresent - innerRing->getEdges().size());
-				}
-				else {
+					currentEdge = ring_[i];
 					break;
 				}
-			}
-
-			if (!currentEdge->isProcessed())
-			{
-				currentEdge->setIsProcessed();
-				falsePresent--;
-
-				cleanedList.emplace_back(currentEdge);
-				gp_Pnt p2 = currentEdge->getEnd();
-
-				for (size_t i = 0; i < ring_.size(); i++)
+				else if (isEqual(p2, ring_[i]->getEnd()))
 				{
-					if (ring_[i] == currentEdge) { continue; }
-
-					if (isEqual(p2, ring_[i]->getStart()))
-					{
-						currentEdge = ring_[i];
-						break;
-					}
-					else if (isEqual(p2, ring_[i]->getEnd()))
-					{
-						ring_[i]->reverse();
-						currentEdge = ring_[i];
-						break;
-					}
+					ring_[i]->reverse();
+					currentEdge = ring_[i];
+					break;
 				}
 			}
 		}
 		ring_ = cleanedList;
 		computeNormal();
-
-		if (innerRingList_.size() == 0) { return; }
-		for (size_t i = 0; i < innerRingList_.size(); i++)
-		{
-			gp_Vec otherNormal = innerRingList_[i]->normal_;
-			if (otherNormal.IsEqual(normal_, 1e-6, 1e-6))
-			{
-				innerRingList_[i]->flipFace();
-			}
-		}
 	}
 
 	void EdgeCollection::flipFace()
@@ -831,46 +850,34 @@ namespace CJT {
 
 		// mapping of the verts and get unique verts 
 		std::vector<gp_Pnt> uniqueVerts;
-		std::vector<TopoDS_Face> faceList;
+
 		std::vector<std::shared_ptr<EdgeCollection>> edgeCollectionList;
-		TopExp_Explorer expl;
 		BRepMesh_IncrementalMesh(shape, 0.001);
 
-		for (expl.Init(shape, TopAbs_FACE); expl.More(); expl.Next())
+		for (TopExp_Explorer faceExpl(shape, TopAbs_FACE); faceExpl.More(); faceExpl.Next())
 		{
-			TopoDS_Face face = TopoDS::Face(expl.Current());
-			faceList.emplace_back(face);
-		}
-
-		for (size_t i = 0; i < faceList.size(); i++)
-		{
+			TopoDS_Face currentFace = TopoDS::Face(faceExpl.Current());
+			TopoDS_Wire outerWire = BRepTools::OuterWire(currentFace);
 
 			std::shared_ptr<EdgeCollection> edgeCollection = std::make_shared<EdgeCollection>(EdgeCollection());
-			int c = 0;
-			gp_Pnt lP;
-			for (expl.Init(faceList[i], TopAbs_VERTEX); expl.More(); expl.Next())
+			edgeCollection->setOriginalFace(currentFace);
+			edgeCollection->addWire(outerWire);
+			
+			for (TopExp_Explorer wireExpl(currentFace, TopAbs_WIRE); wireExpl.More(); wireExpl.Next())
 			{
-				TopoDS_Vertex vertex = TopoDS::Vertex(expl.Current());
-				gp_Pnt p = BRep_Tool::Pnt(vertex);
-
-				if (c % 2 == 1)
-				{
-					// TODO: fix the jump that is present here
-					//if (p.Distance(lP) > fprecision)
-					{
-						if (!isPointInList(lP, uniqueVerts)) { uniqueVerts.emplace_back(lP); }
-						if (!isPointInList(p, uniqueVerts)) { uniqueVerts.emplace_back(p); }
-
-						std::shared_ptr<Edge> collectedEdge = std::make_shared<Edge>(Edge(lP, p));
-						edgeCollection->addEdge(collectedEdge);
-					}
-				}
-				lP = p;
-				c++;
+				TopoDS_Wire currentWire = TopoDS::Wire(wireExpl.Current());
+				if (currentWire.IsEqual(outerWire)) { continue; }
+				edgeCollection->addWire(currentWire, true);
 			}
-			edgeCollection->setOriginalFace(faceList[i]);
-			edgeCollection->orderEdges();
+
+			for (const gp_Pnt& p : edgeCollection->getPoints())
+			{
+				if (!isPointInList(p, uniqueVerts)) {
+					uniqueVerts.emplace_back(p); 
+				}
+			}
 			edgeCollectionList.emplace_back(edgeCollection);
+
 		}
 		correctFaceDirection(edgeCollectionList);
 
