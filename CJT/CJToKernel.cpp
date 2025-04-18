@@ -4,7 +4,24 @@
 #include <gp_Lin.hxx>
 #include <BRepTools.hxx>
 
+#include <unordered_set>
+
 namespace CJT {
+	// Hash and equality functions for gp_Pnt
+	struct gp_Pnt_Hash {
+		std::size_t operator()(const gp_Pnt& p) const {
+			std::size_t h1 = std::hash<double>()(p.X());
+			std::size_t h2 = std::hash<double>()(p.Y());
+			std::size_t h3 = std::hash<double>()(p.Z());
+			return h1 ^ (h2 << 1) ^ (h3 << 2);
+		}
+	};
+
+	struct gp_Pnt_Equal {
+		bool operator()(const gp_Pnt& a, const gp_Pnt& b) const {
+			return a.IsEqual(b, 1e-6);  // Comparing points with a small tolerance
+		}
+	};
 
 	struct IntFace {
 		std::vector<int> outerRing_;
@@ -849,7 +866,7 @@ namespace CJT {
 		}
 
 		// mapping of the verts and get unique verts 
-		std::vector<gp_Pnt> uniqueVerts;
+		std::unordered_map<const gp_Pnt, int, gp_Pnt_Hash, gp_Pnt_Equal> pointToIndex;
 
 		std::vector<std::shared_ptr<EdgeCollection>> edgeCollectionList;
 		BRepMesh_IncrementalMesh(shape, 0.001);
@@ -872,9 +889,7 @@ namespace CJT {
 
 			for (const gp_Pnt& p : edgeCollection->getPoints())
 			{
-				if (!isPointInList(p, uniqueVerts)) {
-					uniqueVerts.emplace_back(p); 
-				}
+				pointToIndex.emplace(p, -1);
 			}
 			edgeCollectionList.emplace_back(edgeCollection);
 
@@ -882,15 +897,12 @@ namespace CJT {
 		correctFaceDirection(edgeCollectionList);
 
 		// find or add the unique verts to the collection
-		std::vector<CJTPoint> cjtUniquePoints;
-		std::vector<gp_Pnt> uniquePoints;
-		for (size_t i = 0; i < uniqueVerts.size(); i++)
+		for (const auto& [currectPoint, indx] : pointToIndex)
 		{
-			const auto& currectPoint = uniqueVerts[i];
-			cjtUniquePoints.emplace_back(CJTPoint(currectPoint.X(), currectPoint.Y(), currectPoint.Z()));
-			uniquePoints.emplace_back(currectPoint);
+			int loc = cityCollection_->addVertex(CJTPoint(currectPoint.X(), currectPoint.Y(), currectPoint.Z()), true);
+			pointToIndex[currectPoint] = loc;
 		}
-		std::vector<int> pointLocation = cityCollection_->addVertex(cjtUniquePoints, true);
+		
 
 		// from opencascade data to json
 		json boundaries;
@@ -904,16 +916,12 @@ namespace CJT {
 			std::vector<gp_Pnt> startPointCollection = currentCollection.getStartPoints();
 			std::vector<int> idxList;
 
-			for (size_t j = 0; j < startPointCollection.size(); j++)
+			for (const gp_Pnt& currentPoint : startPointCollection)
 			{
-				for (size_t k = 0; k < uniquePoints.size(); k++)
-				{
-					if (isEqual(startPointCollection[j], uniquePoints[k]))
-					{
-						idxList.emplace_back(pointLocation[k]);
-					}
+				auto it = pointToIndex.find(currentPoint);
+				if (it != pointToIndex.end()) {
+					idxList.emplace_back(it->second);
 				}
-
 			}
 			ShapeCollection.emplace_back(idxList);
 
@@ -925,16 +933,14 @@ namespace CJT {
 				std::shared_ptr<EdgeCollection> currentInnerCollection = innerRingsCollection[j];
 				std::vector<gp_Pnt> innerStartPointCollection = currentInnerCollection->getStartPoints();
 				std::vector<int> innerIdxList;
-				for (size_t k = 0; k < innerStartPointCollection.size(); k++)
+
+				for (const gp_Pnt& currentPoint : innerStartPointCollection)
 				{
-					//printPoint(innerStartPointCollection[k]);
-					for (size_t l = 0; l < uniquePoints.size(); l++)
-					{
-						if (isEqual(innerStartPointCollection[k], uniquePoints[l]))
-						{
-							innerIdxList.emplace_back(pointLocation[l]);
-						}
+					auto it = pointToIndex.find(currentPoint);
+					if (it != pointToIndex.end()) {
+						innerIdxList.emplace_back(it->second);
 					}
+
 				}
 				ShapeCollection.emplace_back(innerIdxList);
 			}
