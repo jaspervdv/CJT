@@ -97,6 +97,7 @@ int main()
     {
         geoObject->setLoD("2.2");
     }
+
     collection.dumpJson(filepath + "/twobuildings_exported_5.city.json");
 }
 

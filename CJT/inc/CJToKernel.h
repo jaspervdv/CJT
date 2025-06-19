@@ -35,6 +35,9 @@
 namespace bg = boost::geometry;
 namespace bgi = boost::geometry::index;
 
+#ifndef CJTK_CJTK_H
+#define CJTK_CJTK_H
+
 typedef bg::model::point<double, 3, bg::cs::cartesian> BoostPoint3D;
 typedef std::pair<bg::model::box<BoostPoint3D>, int> Value;
 
@@ -137,3 +140,4 @@ namespace CJT {
 		GeoObject convertToJSON(const TopoDS_Shape& shape, std::string lod, bool trustedSolid = false);
 	};
 }
+#endif // CJTK_CJTK_H

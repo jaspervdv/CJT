@@ -5,18 +5,19 @@ namespace CJT
 {
 	using json = nlohmann::json;
 
-	json updateVerts(json* boundaries, std::map<int, int>* correctingIdxMap, int depth) {
+	json CityCollection::updateVerts(json* boundaries, int depth) {
 		if (depth != 0) { 
 			for (json::iterator obb = boundaries->begin(); obb != boundaries->end(); ++obb)
 			{
 				json* subvalue = &obb.value();
-				updateVerts(subvalue, correctingIdxMap, depth - 1);
+				updateVerts(subvalue, depth - 1);
 			}
 			return *boundaries;
 		}
 		else {
-				*boundaries = json(correctingIdxMap->at((int)*boundaries));
-				return *boundaries;
+			CJTPoint currentCoord = indx2VerticesMap_->at((int)*boundaries);
+			int currentCorrectIdx = vertices2IndxMap_->at(currentCoord);
+			return json(currentCorrectIdx);
 		}
 		return {};
 	}
@@ -277,6 +278,13 @@ namespace CJT
 		return { xScale_ , yScale_, zScale_ };
 	}
 
+	void ObjectTransformation::setScale(double scale)
+	{
+		xScale_ = scale;
+		yScale_ = scale;
+		zScale_ = scale;
+	}
+
 	bool MaterialObject::checkArrayValidity(const std::array<float, 3>& a) const
 	{
 		for (size_t i = 0; i < a.size(); i++)
@@ -450,6 +458,15 @@ namespace CJT
 		int textIdx = (int) textures_.size();
 		obb.setIdx(textIdx);
 		textures_.emplace_back(std::make_shared<TextureObject>(obb));
+	}
+
+	bool CJTPoint::isEqual(const CJTPoint& other, const double& precision) const
+	{
+		if (abs(x_ - other.getX()) > precision) { return false; }
+		if (abs(y_ - other.getY()) > precision) { return false; }
+		if (abs(z_ - other.getZ()) > precision) { return false; }
+
+		return true;
 	}
 
 	bool CJTPoint::operator!=(CJTPoint other) const
@@ -1037,17 +1054,22 @@ namespace CJT
 		if (loc != -1) { otherParentList->erase(otherParentList->begin() + loc); }
 	}
 
-	std::vector<CJTPoint> CityCollection::fetchPoints(const json& pointJson)
+	void CityCollection::fetchPoints(const json& pointJson)
 	{
-		std::vector<CJTPoint> vertList;
 		std::array<double, 3> scaler = objectTransformation_->getScale();
 
 		for (auto point = pointJson.begin(); point != pointJson.end(); ++point)
 		{
 			auto coord = point.value();
-			vertList.emplace_back(CJTPoint((double) coord[0] * scaler[0], (double) coord[1] * scaler[1], (double) coord[2] * scaler[2]));
+			CJTPoint currentCJP = CJTPoint((double)coord[0] * scaler[0], (double)coord[1] * scaler[1], (double)coord[2] * scaler[2]);
+
+			indx2VerticesMap_->emplace(static_cast<int>(indx2VerticesMap_->size()), currentCJP);
+			if (vertices2IndxMap_->find(currentCJP) == vertices2IndxMap_->end())
+			{
+				vertices2IndxMap_->emplace(currentCJP, static_cast<int>(vertices2IndxMap_->size()));
+			}
 		}
-		return vertList;
+		return;
 	}
 
 	std::map<std::string, std::shared_ptr<CityObject>> CityCollection::fetchCityObjects(const json& cityObjects)
@@ -1202,11 +1224,12 @@ namespace CJT
 
 		// get complete list of all the present vertices
 		objectTransformation_ = std::make_shared<ObjectTransformation>(fetchTransformation(completeData["transform"]));
-		vertices_ = std::make_shared<std::vector<CJTPoint>>(fetchPoints(completeData["vertices"]));
+		fetchPoints(completeData["vertices"]);
+		//TODO: fix this
 
 		if (!isSilent_)
 		{
-			std::cout << "Loaded " << vertices_->size() << " vertices" << std::endl;
+			std::cout << "Loaded " << indx2VerticesMap_->size() << " vertices of which " << vertices2IndxMap_->size() << " unique vertices" << std::endl;
 		}
 
 		cityObjects_ = fetchCityObjects(completeData["CityObjects"]);
@@ -1215,8 +1238,6 @@ namespace CJT
 		{
 			std::cout << "Loaded " << cityObjects_.size() << " City Objects" << std::endl;
 		}
-
-		std::cout << "click" << std::endl;
 
 		appearance_ = std::make_shared<AppearanceObject>(fetchAppearance(completeData["appearance"]));
 
@@ -1228,7 +1249,7 @@ namespace CJT
 
 		if (!isSilent_)
 		{
-			if (vertices_->size() != 0 && cityObjects_.size() != 0)
+			if (vertices2IndxMap_->size() != 0 && cityObjects_.size() != 0)
 			{
 				std::cout << "JSON Loaded succesfully" << std::endl;
 			}
@@ -1300,9 +1321,9 @@ namespace CJT
 		newFile.emplace(transformer);
 
 		// offload vertices
-		std::vector<std::array<int, 3>> vertList;
+		std::vector<std::array<int, 3>> vertList(indx2VerticesMap_->size());
 
-		for (CJT::CJTPoint currentVert : *vertices_)
+		for (const auto& [indx, currentVert] : *indx2VerticesMap_)
 		{
 			std::array<double, 3> unscaledCoords = currentVert.getCoordinates();
 			std::array<int, 3> scaledCoords;
@@ -1311,8 +1332,7 @@ namespace CJT
 			{
 				scaledCoords[j] = round(unscaledCoords[j] / scalingdata[j]);
 			}
-
-			vertList.emplace_back(scaledCoords);
+			vertList[indx] = scaledCoords;
 		}
 		newFile.emplace("vertices", vertList);
 
@@ -1589,47 +1609,31 @@ namespace CJT
 
 	std::vector<CJTPoint> CityCollection::getVerices() const
 	{
-		return *vertices_;
+		std::vector<CJTPoint> pointList;
+		pointList.reserve(indx2VerticesMap_->size());
+		for (size_t i = 0; i < indx2VerticesMap_->size(); i++)
+		{
+			pointList.emplace_back(indx2VerticesMap_->at(i));
+		}
+		return pointList;
 	}
-
-	std::shared_ptr<std::vector<CJTPoint>> CityCollection::getVericesPtr()
-	{
-		return vertices_;
-	}
-
 
 	int CityCollection::addVertex(const CJTPoint& point, bool unique)
 	{
-		double scaleX = objectTransformation_->getScale()[0];
-		double scaleY = objectTransformation_->getScale()[1];
-		double scaleZ = objectTransformation_->getScale()[2];
-
-		CJTPoint p = point;
-
-		int location = -1;
-		if (unique)
+		auto it = vertices2IndxMap_->find(point);
+		if (it != vertices2IndxMap_->end())
 		{
-			int i = 0;
-			for (std::vector<CJT::CJTPoint>::iterator it = vertices_->begin(); it != vertices_->end(); ++it) 
-			{
-				CJTPoint otherPoint = *it;
+			if (abs(point.getX() - it->first.getX()) > precision) { it->first.print(); std::cout << "\n"; }
+			if (abs(point.getY() - it->first.getY()) > precision) { it->first.print(); std::cout << "\n"; }
+			if (abs(point.getZ() - it->first.getZ()) > precision) { it->first.print(); std::cout << "\n"; }
 
-				if (std::abs(p.getX() - otherPoint.getX()) <= scaleX &&
-					std::abs(p.getY() - otherPoint.getY()) <= scaleY &&
-					std::abs(p.getZ() - otherPoint.getZ()) <= scaleZ)
-				{
-					location = i;
-					break;
-				}
-				i++;
-			}
+			return it->second;
 		}
-		if (location == -1)
-		{
-			location = static_cast<int>(vertices_->size());
-			vertices_->emplace_back(point);
-			return location;
-		}
+		int location = static_cast<int>(vertices2IndxMap_->size());
+		
+		vertices2IndxMap_->emplace(point, location);
+		indx2VerticesMap_->emplace(static_cast<int>(indx2VerticesMap_->size()), point);
+
 		return location;
 	}
 
@@ -1652,69 +1656,14 @@ namespace CJT
 			std::cout << "Culling duplicated vertices" << std::endl;
 		}
 
-		// remove dups and make map that maps the correcting locations
-		std::map<int, int> correctingIdxMap;
-		std::vector<CJTPoint> correctedvertices;
-		int correctionAmount = 0;
-		int i = 0;
-
-		double scaleX = objectTransformation_->getScale()[0];
-		double scaleY = objectTransformation_->getScale()[1];;
-		double scaleZ = objectTransformation_->getScale()[2];;
-
-		for (std::vector<CJT::CJTPoint>::iterator it = vertices_->begin(); it != vertices_->end(); ++it)
+		if (indx2VerticesMap_->size() == vertices2IndxMap_->size())
 		{
-			int j = 0;
-			int doubleIdx = -1;
-			bool found = false;
-			CJTPoint currentPoint =*it;
-
-			for (std::vector<CJTPoint>::iterator it = correctedvertices.begin(); it != correctedvertices.end(); ++it )
-			{
-				CJTPoint otherPoint = *it;
-
-				if (std::abs(currentPoint.getX() - otherPoint.getX()) <= scaleX &&
-					std::abs(currentPoint.getY() - otherPoint.getY()) <= scaleY &&
-					std::abs(currentPoint.getZ() - otherPoint.getZ()) <= scaleZ)
-				{
-					found = true;
-					doubleIdx = j;
-					break;
-				}
-				j++;
-			}
-			if (!found)
-			{
-				correctedvertices.emplace_back(currentPoint);
-				correctingIdxMap.emplace(i, i - correctionAmount);
-				
-			}
-			else {
-				
-				correctingIdxMap.emplace(i, doubleIdx);
-				correctionAmount++;
-			}
-			i++;
+			std::cout << "no dubs to be corrected" << std::endl;
+			return;
 		}
 
-		if (!isSilent_)
-		{
-			// correct geo references
-			if (correctedvertices.size() == vertices_->size())
-			{
-				std::cout << "No duplicate vertices found" << std::endl;
-				return;
-			}
-
-
-			std::cout << "Reduced vertices count from: " << vertices_->size() << ", to: " << correctedvertices.size() << std::endl;
-			std::cout << "Correcting vertices referencing" << std::endl;
-		}
-
-		//delete vertices_;
-		vertices_ = std::make_shared<std::vector<CJTPoint>>(correctedvertices);
-		//correctedvertices = nullptr;
-
+		// using the indx2vert and vert2indx map translate the indx to the compressed one
+		
 		for (auto obb = cityObjects_.begin(); obb != cityObjects_.end(); ++obb)
 		{
 			CityObject currentCityObject = *obb->second;
@@ -1732,17 +1681,22 @@ namespace CJT
 
 				if (geoType == "MultiSurface")
 				{
-					currentGeoObject->setBoundaries(updateVerts(&boundaries, &correctingIdxMap, 3));
-				}	
+					currentGeoObject->setBoundaries(updateVerts(&boundaries, 3));
+				}
 
 				if (geoType == "Solid")
 				{
-					currentGeoObject->setBoundaries(updateVerts(&boundaries, &correctingIdxMap, 4));
+					currentGeoObject->setBoundaries(updateVerts(&boundaries, 4));
 				}
 			}
-			//TODO: check this
-			//currentCityObject.setGeo(curentGeoObjects);
 			cityObjects_[obb->first] = std::make_shared<CityObject>(currentCityObject);
+		}
+
+		indx2VerticesMap_->clear();
+		indx2VerticesMap_->reserve(vertices2IndxMap_->size());
+		for (const auto& [vert, indx] : *vertices2IndxMap_)
+		{
+			indx2VerticesMap_->emplace(indx, vert);
 		}
 
 		if (!isSilent_)
@@ -1753,18 +1707,15 @@ namespace CJT
 
 	void CityCollection::cullUnreferencedVerices()
 	{
-
 		if (!isSilent_)
 		{
 			std::cout << "===========================" << std::endl;
 			std::cout << "Culling unreferenced vertices" << std::endl;
 		}
-
-		std::vector<bool> vertreference;
-
-		for (std::vector<CJT::CJTPoint>::iterator it = vertices_->begin(); it != vertices_->end(); ++it)
-		{
-			vertreference.emplace_back(false);
+		// a list that counts the occurances of coords
+		PointMap pointOccuranceMap = *vertices2IndxMap_;
+		for (auto& [key, value] : pointOccuranceMap) {
+			value = 0;
 		}
 
 		for (auto obb = cityObjects_.begin(); obb != cityObjects_.end(); ++obb)
@@ -1775,105 +1726,58 @@ namespace CJT
 
 			std::vector<std::shared_ptr<GeoObject>> curentGeoObjects = currentCityObject.getGeoObjectsPtr();
 
-			for (std::shared_ptr<GeoObject> currentGeoObject : curentGeoObjects)
+			for (size_t i = 0; i < curentGeoObjects.size(); i++)
 			{
+				std::shared_ptr<GeoObject> currentGeoObject = curentGeoObjects[i];
 				json boundaries = currentGeoObject->getBoundaries();
+				std::vector<int> indxList = getFlatVerts(boundaries);
 
-				std::string geoType = currentGeoObject->getType();
-				std::vector<int> referencesIdx;
-
-				referencesIdx = getFlatVerts(boundaries);
-
-				for (size_t j = 0; j < referencesIdx.size(); j++)
+				for (int indx : indxList)
 				{
-					vertreference[referencesIdx[j]] = true;
+					CJTPoint currentPoint = indx2VerticesMap_->at(indx);
+					pointOccuranceMap[currentPoint] = 1;
 				}
 			}
 		}
 
-		std::map<int, int> correctingIdxMap;;
-		int correctionAmount = 0;
-		int currentAmount = 0;
-		std::vector<CJTPoint> correctedvertices;
-
-		for (std::vector<bool>::iterator it = vertreference.begin(); it != vertreference.end(); ++it)
+		bool process = false;
+		for (const auto& [key, value] : pointOccuranceMap)
 		{
-			if (*it == false)
-			{
-				correctionAmount++;
+			if (value == 0) 
+			{ 
+				process = true;
+				break;
 			}
-			else
-			{
-				correctedvertices.emplace_back(vertices_->at(currentAmount)); //TODO: check this
-				correctingIdxMap.emplace(currentAmount, currentAmount - correctionAmount);
-			}
-			currentAmount++;
 		}
 
-		if (correctingIdxMap.size() == 0)
+		if (!process)
 		{
+			if (!isSilent_)
+			{
+				std::cout << "No unreferenced vertices to correct" << std::endl;
+			}
 			return;
 		}
 
-		if (!isSilent_)
+		vertices2IndxMap_->clear();
+		int counter = 0;
+		for (const auto& [key, value] : pointOccuranceMap)
 		{
-			if (correctionAmount == 0)
-			{
-				std::cout << "No unreferenced vertices found" << std::endl;
-			}
-			else {
-				std::cout << correctionAmount << " unreferenced vertices found" << std::endl;
-				std::cout << "Correcting vertices referencing" << std::endl;
-			}
-			
-		}
-
-		// correct geo references
-		if (correctedvertices.size() == vertices_-> size()) { return; }
-
-		vertices_ = std::make_shared<std::vector<CJTPoint>>(correctedvertices);
-		//correctedvertices = nullptr;
-
-		for (auto obb = cityObjects_.begin(); obb != cityObjects_.end(); ++obb)
-		{
-			CityObject currentCityObject = *obb->second;
-
-			if (!currentCityObject.hasGeo()) { continue; }
-
-			std::vector<std::shared_ptr<GeoObject>> curentGeoObjects = currentCityObject.getGeoObjectsPtr();
-
-			for (std::shared_ptr<GeoObject> currentGeoObject : curentGeoObjects)
-			{
-				json boundaries = currentGeoObject->getBoundaries();
-
-				std::string geoType = currentGeoObject->getType();
-
-				if (geoType == "MultiSurface")
-				{
-					currentGeoObject->setBoundaries(updateVerts(&boundaries, &correctingIdxMap, 3));
-				}
-
-				if (geoType == "Solid")
-				{
-					updateVerts(&boundaries, &correctingIdxMap, 4);
-					currentGeoObject->setBoundaries(updateVerts(&boundaries, &correctingIdxMap, 4));
-				}
-			}
-			//TODO: check this
-			//currentCityObject.setGeo(curentGeoObjects);
-			cityObjects_[obb->first] = std::make_shared<CityObject>(currentCityObject);
+			if (value == 0) { continue; }
+			vertices2IndxMap_->emplace(key, counter);
+			counter++;
 		}
 
 		if (!isSilent_)
 		{
 			std::cout << "Succesfully corrected" << std::endl;
 		}
+
 	}
 
 	void CityCollection::CleanVertices()
 	{
 		cullUnreferencedVerices();
-		std::cout << "reached" << std::endl;
 		cullDuplicatedVerices();
 	}
 

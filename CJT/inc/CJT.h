@@ -8,12 +8,16 @@
 
 #include <nlohmann/json.hpp>
 
+#ifndef CJT_CJT_H
+#define CJT_CJT_H
+
 namespace CJT {
 
-	using json = nlohmann::json;
-	
+	using json = nlohmann::json;	
 	// Forward Declaration
-	//class CityCollection;
+	//class CJTPoint;
+
+	inline double precision = 1e-6;
 
 	/// @brief enum class representing the possible building types
 	enum class Building_Type
@@ -198,9 +202,32 @@ namespace CJT {
 		void print() const;
 
 		/// @brief evaluates the x, y, z coordinates to see if points are not equal
+		bool isEqual(const CJTPoint& other, const double& precision) const;
+
 		bool operator!= (CJTPoint other) const;
 		/// @brief evaluates if the sum of the x, y, z coordinates is smaller 
 		bool operator< (CJTPoint other) const;
+
+		CJTPoint(const CJTPoint&) = default;
+		CJTPoint(CJTPoint&&) = default;
+		CJTPoint& operator=(const CJTPoint&) = default;
+		CJTPoint& operator=(CJTPoint&&) = default;
+	};
+
+
+	struct cjt_Pnt_Hash {
+		std::size_t operator()(const CJTPoint& p) const {
+			std::size_t h1 = std::hash<double>()(static_cast<int64_t>(std::round(p.getX() * 1/precision)));
+			std::size_t h2 = std::hash<double>()(static_cast<int64_t>(std::round(p.getY() * 1/precision)));
+			std::size_t h3 = std::hash<double>()(static_cast<int64_t>(std::round(p.getZ() * 1/precision)));
+			return h1 ^ (h2 << 1) ^ (h3 << 2);
+		}
+	};
+
+	struct cjt_Pnt_Equal {
+		bool operator()(const CJTPoint& a, const CJTPoint& b) const {
+			return a.isEqual(b, precision);  // Comparing points with a small tolerance
+		}
 	};
 
 	class ObjectTransformation
@@ -231,8 +258,8 @@ namespace CJT {
 		/// @brief returns an array for size 3 representing the scaling
 		std::array<double, 3> getScale() const;
 		/// @brief set a unifrom scale
-		void setScale(double scale) { xScale_ = scale; yScale_ = scale; zScale_ = scale; }
-		/// @brief set scale
+		void setScale(double scale);
+		/// @brief set scale 
 		void setScale(const std::array<double, 3>& scaleArray) { xScale_ = scaleArray[0]; yScale_ = scaleArray[1]; zScale_ = scaleArray[2]; }
 	};
 
@@ -701,10 +728,18 @@ namespace CJT {
 	class CityCollection 
 	{
 	private:
-		std::map<std::string, std::shared_ptr<CityObject>> cityObjects_ = {};
-		std::shared_ptr<std::vector<CJTPoint>> vertices_ = std::make_shared<std::vector<CJTPoint>>();
-		std::shared_ptr<std::string> version_ = std::make_shared<std::string>("");
+		using PointMap = std::unordered_map<CJTPoint, int, cjt_Pnt_Hash, cjt_Pnt_Equal>;
+		using idxMap = std::unordered_map<int, CJTPoint>;
 
+		std::map<std::string, std::shared_ptr<CityObject>> cityObjects_ = {};
+		
+		// map of unique points to indx (only used to test for dublication
+		std::shared_ptr<PointMap> vertices2IndxMap_ = std::make_shared<PointMap>();
+
+		// map of unique ind to point (used for processes)
+		std::shared_ptr<idxMap> indx2VerticesMap_ = std::make_shared<idxMap>();
+		
+		std::shared_ptr<std::string> version_ = std::make_shared<std::string>("");
 		std::shared_ptr<metaDataObject> metaData_ = std::make_shared<metaDataObject>(metaDataObject());
 		std::shared_ptr<ObjectTransformation> objectTransformation_= std::make_shared< ObjectTransformation>(ObjectTransformation(1));
 		std::shared_ptr<AppearanceObject> appearance_ = std::make_shared<AppearanceObject>(AppearanceObject());
@@ -714,9 +749,11 @@ namespace CJT {
 		bool isValid(const json& jsonData);
 
 		ObjectTransformation fetchTransformation(const json& transJson);
-		std::vector<CJTPoint> fetchPoints(const json& pointJson);
+		void fetchPoints(const json& pointJson);
 		std::map<std::string, std::shared_ptr<CityObject>> fetchCityObjects(const json& cityObjects);
 		AppearanceObject fetchAppearance(const json& AppearanceJson);
+
+		json updateVerts(json* boundaries, int depth);
 
 	public:
 		/// @brief read a cityJSON file
@@ -759,7 +796,6 @@ namespace CJT {
 
 		/// @brief returns all the vertices that are in the collection
 		std::vector<CJTPoint> getVerices() const;
-		std::shared_ptr<std::vector<CJTPoint>> getVericesPtr();
 		/// @brief adds a vertex to the collection, returns idx location where point is placed
 		int addVertex(const CJTPoint& point, bool checkUnique = false);
 		///@brief adds a collection of vertices to the collection, returns idx location where points are placed
@@ -814,3 +850,4 @@ namespace CJT {
 		}
 	}
 }
+#endif // CJT_CJT_H

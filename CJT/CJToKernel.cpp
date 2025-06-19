@@ -19,7 +19,7 @@ namespace CJT {
 
 	struct gp_Pnt_Equal {
 		bool operator()(const gp_Pnt& a, const gp_Pnt& b) const {
-			return a.IsEqual(b, 1e-6);  // Comparing points with a small tolerance
+			return a.IsEqual(b, precision);  // Comparing points with a small tolerance
 		}
 	};
 
@@ -351,18 +351,6 @@ namespace CJT {
 
 	void EdgeCollection::computeNormal() // creates a unitvector for the face normal
 	{
-		std::vector<gp_Pnt> startPoints = getStartPoints();
-		gp_Pnt p1 = startPoints[0];
-		gp_Pnt p2 = startPoints[1];
-		gp_Pnt p3 = startPoints[2];
-
-		double bigArea = 0;
-		int backupIdx1 = 0;
-		int backupIdx2 = 0;
-		int backupIdx3 = 0;
-		bool found = false;
-
-
 		TopLoc_Location loc;
 		Handle(Poly_Triangulation) tri = BRep_Tool::Triangulation(originalFace_, loc);
 
@@ -385,38 +373,36 @@ namespace CJT {
 			{
 				std::shared_ptr<Edge> edge = ring_[j];
 
-				if (edge->getStart().IsEqual(p1, 0.01) && edge->getEnd().IsEqual(p2, 0.01) ||
-					edge->getStart().IsEqual(p2, 0.01) && edge->getEnd().IsEqual(p3, 0.01) ||
-					edge->getStart().IsEqual(p3, 0.01) && edge->getEnd().IsEqual(p1, 0.01) // correct orientation
+				if (edge->getStart().IsEqual(p1, 1e-4) && edge->getEnd().IsEqual(p2, 1e-4) ||
+					edge->getStart().IsEqual(p2, 1e-4) && edge->getEnd().IsEqual(p3, 1e-4) ||
+					edge->getStart().IsEqual(p3, 1e-4) && edge->getEnd().IsEqual(p1, 1e-4) // correct orientation
 					)
 				{
 					if (!isInner_)
 					{
 						normal_ = calculateNormal(p1, p2, p3, true);
-						return;
 					}
 					else
 					{
 						normal_ = calculateNormal(p1, p2, p3, true).Reversed();
-						return;
 					}
+					return;
 
 				}
-				else if (edge->getStart().IsEqual(p2, 0.01) && edge->getEnd().IsEqual(p1, 0.01) ||
-					edge->getStart().IsEqual(p3, 0.01) && edge->getEnd().IsEqual(p2, 0.01) ||
-					edge->getStart().IsEqual(p1, 0.01) && edge->getEnd().IsEqual(p3, 0.01) // reversed orientation
+				if (edge->getStart().IsEqual(p2, 1e-4) && edge->getEnd().IsEqual(p1, 1e-4) ||
+					edge->getStart().IsEqual(p3, 1e-4) && edge->getEnd().IsEqual(p2, 1e-4) ||
+					edge->getStart().IsEqual(p1, 1e-4) && edge->getEnd().IsEqual(p3, 1e-4) // reversed orientation
 					)
 				{
 					if (!isInner_)
 					{
 						normal_ = calculateNormal(p1, p2, p3, true).Reversed();
-						return;
 					}
 					else
 					{
 						normal_ = calculateNormal(p1, p2, p3, true);
-						return;
 					}
+					return;
 				}
 			}
 
@@ -892,21 +878,17 @@ namespace CJT {
 				pointToIndex.emplace(p, -1);
 			}
 			edgeCollectionList.emplace_back(edgeCollection);
-
 		}
 		correctFaceDirection(edgeCollectionList);
-
 		// find or add the unique verts to the collection
 		for (const auto& [currectPoint, indx] : pointToIndex)
 		{
 			int loc = cityCollection_->addVertex(CJTPoint(currectPoint.X(), currectPoint.Y(), currectPoint.Z()), true);
 			pointToIndex[currectPoint] = loc;
 		}
-		
 
 		// from opencascade data to json
 		json boundaries;
-
 		for (size_t i = 0; i < edgeCollectionList.size(); i++)
 		{
 			json ShapeCollection;
@@ -921,6 +903,7 @@ namespace CJT {
 				auto it = pointToIndex.find(currentPoint);
 				if (it != pointToIndex.end()) {
 					idxList.emplace_back(it->second);
+					continue;
 				}
 			}
 			ShapeCollection.emplace_back(idxList);
@@ -939,8 +922,8 @@ namespace CJT {
 					auto it = pointToIndex.find(currentPoint);
 					if (it != pointToIndex.end()) {
 						innerIdxList.emplace_back(it->second);
+						continue;
 					}
-
 				}
 				ShapeCollection.emplace_back(innerIdxList);
 			}
@@ -957,7 +940,6 @@ namespace CJT {
 		{
 			return GeoObject(boundaries, lod, geomType);
 		}
-
 		return GeoObject(boundaries, lod, geomType); // TODO: add more types
 	}
 }
