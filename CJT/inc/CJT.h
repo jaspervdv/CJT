@@ -599,6 +599,8 @@ namespace CJT {
 		void appendSurfaceData(const std::map <std::string, int>& surfaceData);
 		/// @brief adds surface data to geoObject
 		void appendSurfaceData(const std::map <std::string, double>& surfaceData);
+		/// @brief adds surface data to geoObject
+		void appendSurfaceData(const nlohmann::json& surfaceData);
 		/// @brief replaces surface data
 		void setSurfaceData(const std::vector<json>& surfaceData);
 		/// @brief replaces surface data
@@ -680,6 +682,9 @@ namespace CJT {
 		/// @brief adds multiple attributes of the same type to the cityObject
 		template <typename T>
 		void addAttribute(const std::map<std::string, T>& keyValueList, bool overwrite = false);
+		/// @brief adds multiple attributes to the cityObject
+		void addAttributes(const nlohmann::json& attributes, bool overwrite = false);
+
 		/// @brief removes attribute with given keyName
 		void removeAttribute(const std::string& keyName);
 		/// @brief removes attribute with given keyName

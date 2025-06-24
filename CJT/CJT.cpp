@@ -745,6 +745,26 @@ namespace CJT
 		surfaceData_.emplace_back(surfaceData);
 	}
 
+	void GeoObject::appendSurfaceData(const nlohmann::json& surfaceData)
+	{
+		surfaceData_.emplace_back(surfaceData);
+	}
+
+	void GeoObject::setSurfaceData(const std::vector<json>& surfaceData)
+	{
+		surfaceData_.clear();
+		for (const json& jsonObject : surfaceData)
+		{
+			surfaceData_.emplace_back(jsonObject);
+		}
+		return;
+	}
+
+	void GeoObject::setSurfaceData(const json& surfaceDataJson)
+	{
+		surfaceData_ = surfaceDataJson;
+	}
+
 	void GeoObject::setSurfaceTypeValue(int idx, int ref) {
 		if (type_ == "Solid")
 		{
@@ -915,6 +935,14 @@ namespace CJT
 		std::sort(loDList.begin(), loDList.end());
 
 		return loDList;
+	}
+
+	void CityObject::addAttributes(const nlohmann::json& attributes, bool overwrite)
+	{
+		for (auto pair = attributes.begin(); pair != attributes.end(); ++pair)
+		{
+			addAttribute(pair.key(), pair.value(), overwrite);
+		}
 	}
 
 	void CityObject::removeAttribute(const std::string& keyName)
