@@ -1684,7 +1684,7 @@ namespace CJT
 			std::cout << "Culling duplicated vertices" << std::endl;
 		}
 
-		if (indx2VerticesMap_->size() == vertices2IndxMap_->size())
+		if (indx2VerticesMap_->size() == vertices2IndxMap_->size() && !isSilent_)
 		{
 			std::cout << "no dubs to be corrected" << std::endl;
 			return;

@@ -828,6 +828,11 @@ namespace CJT {
 		void silence() { isSilent_ = true; }
 		/// @brief returns object to start printing information about processes
 		void unSilence() { isSilent_ = false; }
+
+		// sets the precision of the instance
+		void setPrecision(double p) { precision = p; }
+		// gets the precision of the intance
+		double getPrecision() { return precision; }
 	};
 
 	template<typename T>
