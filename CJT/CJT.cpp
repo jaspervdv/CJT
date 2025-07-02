@@ -10,7 +10,7 @@ namespace CJT
 			for (json::iterator obb = boundaries->begin(); obb != boundaries->end(); ++obb)
 			{
 				json* subvalue = &obb.value();
-				updateVerts(subvalue, depth - 1);
+				*subvalue = updateVerts(subvalue, depth - 1);
 			}
 			return *boundaries;
 		}
@@ -18,6 +18,39 @@ namespace CJT
 			CJTPoint currentCoord = indx2VerticesMap_->at((int)*boundaries);
 			int currentCorrectIdx = vertices2IndxMap_->at(currentCoord);
 			return json(currentCorrectIdx);
+		}
+		return {};
+	}
+
+	json CityCollection::cullRepeatingVerts(json* boundaries, int depth)
+	{
+		if (depth != 1) {
+			for (json::iterator obb = boundaries->begin(); obb != boundaries->end(); ++obb)
+			{
+				json* subvalue = &obb.value();
+				*subvalue = cullRepeatingVerts(subvalue, depth - 1);
+			}
+			return *boundaries;
+		}
+		else {
+			std::vector<int> correctedVertList;
+			for (size_t i = 0; i < boundaries->size(); i++)
+			{
+				int currentVertIdx = boundaries->at(i);
+				int nextVertIdx = boundaries->at(0);
+
+				if (i + 1 != boundaries->size())
+				{
+					nextVertIdx = boundaries->at(i + 1);
+				}
+
+				if (currentVertIdx != nextVertIdx)
+				{
+					correctedVertList.emplace_back(currentVertIdx);
+				}
+			}
+			if (correctedVertList.size() < 3) { return {}; }
+			return json(correctedVertList);
 		}
 		return {};
 	}
@@ -1803,10 +1836,41 @@ namespace CJT
 
 	}
 
+	void CityCollection::cullRepeatingVertices()
+	{
+		for (auto obb = cityObjects_.begin(); obb != cityObjects_.end(); ++obb)
+		{
+			CityObject currentCityObject = *obb->second;
+
+			if (!currentCityObject.hasGeo()) { continue; }
+
+			std::vector<std::shared_ptr<GeoObject>> curentGeoObjects = currentCityObject.getGeoObjectsPtr();
+
+			for (size_t i = 0; i < curentGeoObjects.size(); i++)
+			{
+				std::shared_ptr<GeoObject> currentGeoObject = curentGeoObjects[i];
+				json boundaries = currentGeoObject->getBoundaries();
+				std::string geoType = currentGeoObject->getType();
+
+				if (geoType == "MultiSurface")
+				{
+					currentGeoObject->setBoundaries(cullRepeatingVerts(&boundaries, 3));
+				}
+
+				if (geoType == "Solid")
+				{
+					currentGeoObject->setBoundaries(cullRepeatingVerts(&boundaries, 4));
+				}
+				cityObjects_[obb->first] = std::make_shared<CityObject>(currentCityObject);
+			}
+		}
+	}
+
 	void CityCollection::CleanVertices()
 	{
 		cullUnreferencedVerices();
 		cullDuplicatedVerices();
+		cullRepeatingVertices();
 	}
 
 	//*/

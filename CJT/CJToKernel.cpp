@@ -355,7 +355,6 @@ namespace CJT {
 		Handle(Poly_Triangulation) tri = BRep_Tool::Triangulation(originalFace_, loc);
 
 		if (tri.IsNull()) { return; }
-
 		int counter = tri->NbTriangles();
 		for (int i = 0; i < counter; i++)
 		{

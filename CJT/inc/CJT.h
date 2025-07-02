@@ -760,6 +760,8 @@ namespace CJT {
 
 		json updateVerts(json* boundaries, int depth);
 
+		json cullRepeatingVerts(json* boundaries, int depth);
+
 	public:
 		/// @brief read a cityJSON file
 		bool parseJSON(const std::string& filePath, bool silent);
@@ -809,6 +811,8 @@ namespace CJT {
 		void cullDuplicatedVerices();
 		/// @brief removes unreferenced vertices in collection, only use this completely before or completely after geometry altering
 		void cullUnreferencedVerices();
+		/// @brief removes verts that are repeating in a ring
+		void cullRepeatingVertices();
 		/// @brief cleans the vertex list in collection, only use this completely before or completely after geometry altering
 		void CleanVertices();
 
