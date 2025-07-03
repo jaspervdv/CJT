@@ -760,7 +760,9 @@ namespace CJT {
 
 		json updateVerts(json* boundaries, int depth);
 
-		json cullRepeatingVerts(json* boundaries, int depth);
+		void cullRepeatingVerts(json* boundaries, std::vector<int>& eliminatedFaces);
+
+		void updateIdx2VertMap();
 
 	public:
 		/// @brief read a cityJSON file

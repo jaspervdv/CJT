@@ -22,41 +22,126 @@ namespace CJT
 		return {};
 	}
 
-	json CityCollection::cullRepeatingVerts(json* boundaries, int depth)
+	void CityCollection::cullRepeatingVerts(json* boundaries, std::vector<int>& eliminatedFaces)
 	{
-		if (depth != 1) {
+		// check if face list
+		if (!boundaries->at(0).is_array()) { return; }
+		if (boundaries->at(0).empty()) { return; }
+
+		if (!boundaries->at(0).at(0).is_array()) { return; }
+		if (boundaries->at(0).at(0).empty()) { return; }
+
+		if (!boundaries->at(0).at(0).at(0).is_number())
+		{
 			for (json::iterator obb = boundaries->begin(); obb != boundaries->end(); ++obb)
 			{
 				json* subvalue = &obb.value();
-				*subvalue = cullRepeatingVerts(subvalue, depth - 1);
+				cullRepeatingVerts(subvalue, eliminatedFaces);
 			}
-			return *boundaries;
+			return;
 		}
-		else {
-			std::vector<int> correctedVertList;
-			for (size_t i = 0; i < boundaries->size(); i++)
+
+		//is face list
+		int num = 0;
+		for (json::iterator obb = boundaries->begin(); obb != boundaries->end(); ++obb)
+		{
+			json* faceObject = &obb.value();
+			json correctedFace;
+
+			for (json::iterator ringObb = faceObject->begin(); ringObb != faceObject->end(); ++ringObb)
 			{
-				int currentVertIdx = boundaries->at(i);
-				int nextVertIdx = boundaries->at(0);
+				json* ringObject = &ringObb.value();
 
-				if (i + 1 != boundaries->size())
+				std::vector<int> correctedVertList;
+
+				bool isOuter = true;
+				for (size_t i = 0; i < ringObject->size(); i++)
 				{
-					nextVertIdx = boundaries->at(i + 1);
+					int currentVertIdx = ringObject->at(i);
+					int nextVertIdx = ringObject->at(0);
+
+					if (i + 1 != ringObject->size())
+					{
+						nextVertIdx = ringObject->at(i + 1);
+					}
+
+					if (currentVertIdx != nextVertIdx)
+					{
+						correctedVertList.emplace_back(currentVertIdx);
+					}
 				}
 
-				if (currentVertIdx != nextVertIdx)
+				if (correctedVertList.size() < 3)
 				{
-					correctedVertList.emplace_back(currentVertIdx);
+					if (isOuter == true)
+					{
+						eliminatedFaces.emplace_back(num);
+					}
+					break;
+				}
+				else
+				{
+					correctedFace.emplace_back(correctedVertList);
+				}
+				isOuter = false;
+			}
+			num++;
+			*faceObject = correctedFace;
+		}
+
+		std::reverse(eliminatedFaces.begin(), eliminatedFaces.end());
+		for (int delInd : eliminatedFaces)
+		{
+			boundaries->erase(delInd);
+		}
+		return;
+	}
+
+	void CityCollection::updateIdx2VertMap()
+	{
+		// using the indx2vert and vert2indx map translate the indx to the compressed one
+		for (auto obb = cityObjects_.begin(); obb != cityObjects_.end(); ++obb)
+		{
+			CityObject currentCityObject = *obb->second;
+
+			if (!currentCityObject.hasGeo()) { continue; }
+
+			std::vector<std::shared_ptr<GeoObject>> curentGeoObjects = currentCityObject.getGeoObjectsPtr();
+
+			for (size_t i = 0; i < curentGeoObjects.size(); i++)
+			{
+				std::shared_ptr<GeoObject> currentGeoObject = curentGeoObjects[i];
+				json boundaries = currentGeoObject->getBoundaries();
+
+				std::string geoType = currentGeoObject->getType();
+
+				if (geoType == "MultiSurface")
+				{
+					currentGeoObject->setBoundaries(updateVerts(&boundaries, 3));
+				}
+
+				if (geoType == "Solid")
+				{
+					currentGeoObject->setBoundaries(updateVerts(&boundaries, 4));
 				}
 			}
-			if (correctedVertList.size() < 3) { return {}; }
-			return json(correctedVertList);
+			cityObjects_[obb->first] = std::make_shared<CityObject>(currentCityObject);
 		}
-		return {};
+
+		indx2VerticesMap_->clear();
+		indx2VerticesMap_->reserve(vertices2IndxMap_->size());
+		for (const auto& [vert, indx] : *vertices2IndxMap_)
+		{
+			indx2VerticesMap_->emplace(indx, vert);
+		}
+		return;
 	}
 
 	std::vector<int> getFlatVerts(const json& boundaries) {
 		std::vector<int> collection;
+
+		if (boundaries.empty()) { return collection; }
+
 		if (boundaries[0].type() == json::value_t::number_unsigned || boundaries[0].type() == json::value_t::number_integer)
 		{
 			for (json boundary : boundaries)
@@ -1723,42 +1808,7 @@ namespace CJT
 			return;
 		}
 
-		// using the indx2vert and vert2indx map translate the indx to the compressed one
-		
-		for (auto obb = cityObjects_.begin(); obb != cityObjects_.end(); ++obb)
-		{
-			CityObject currentCityObject = *obb->second;
-
-			if (!currentCityObject.hasGeo()) { continue; }
-
-			std::vector<std::shared_ptr<GeoObject>> curentGeoObjects = currentCityObject.getGeoObjectsPtr();
-
-			for (size_t i = 0; i < curentGeoObjects.size(); i++)
-			{
-				std::shared_ptr<GeoObject> currentGeoObject = curentGeoObjects[i];
-				json boundaries = currentGeoObject->getBoundaries();
-
-				std::string geoType = currentGeoObject->getType();
-
-				if (geoType == "MultiSurface")
-				{
-					currentGeoObject->setBoundaries(updateVerts(&boundaries, 3));
-				}
-
-				if (geoType == "Solid")
-				{
-					currentGeoObject->setBoundaries(updateVerts(&boundaries, 4));
-				}
-			}
-			cityObjects_[obb->first] = std::make_shared<CityObject>(currentCityObject);
-		}
-
-		indx2VerticesMap_->clear();
-		indx2VerticesMap_->reserve(vertices2IndxMap_->size());
-		for (const auto& [vert, indx] : *vertices2IndxMap_)
-		{
-			indx2VerticesMap_->emplace(indx, vert);
-		}
+		updateIdx2VertMap();
 
 		if (!isSilent_)
 		{
@@ -1829,6 +1879,8 @@ namespace CJT
 			counter++;
 		}
 
+		updateIdx2VertMap();
+
 		if (!isSilent_)
 		{
 			std::cout << "Succesfully corrected" << std::endl;
@@ -1852,15 +1904,21 @@ namespace CJT
 				json boundaries = currentGeoObject->getBoundaries();
 				std::string geoType = currentGeoObject->getType();
 
-				if (geoType == "MultiSurface")
+				std::vector<int> eleminatedFace;
+				cullRepeatingVerts(&boundaries, eleminatedFace);
+
+				if (!eleminatedFace.empty())
 				{
-					currentGeoObject->setBoundaries(cullRepeatingVerts(&boundaries, 3));
+					std::vector<int> surfaceTypeValues = currentGeoObject->getSurfaceTypeValues();
+
+					for (int elemFaceInd : eleminatedFace)
+					{
+						surfaceTypeValues.erase(surfaceTypeValues.begin() + elemFaceInd);
+					}
+					currentGeoObject->setSurfaceTypeValues(surfaceTypeValues);
 				}
 
-				if (geoType == "Solid")
-				{
-					currentGeoObject->setBoundaries(cullRepeatingVerts(&boundaries, 4));
-				}
+				currentGeoObject->setBoundaries(boundaries);
 				cityObjects_[obb->first] = std::make_shared<CityObject>(currentCityObject);
 			}
 		}
@@ -1868,9 +1926,9 @@ namespace CJT
 
 	void CityCollection::CleanVertices()
 	{
-		cullUnreferencedVerices();
 		cullDuplicatedVerices();
 		cullRepeatingVertices();
+		cullUnreferencedVerices();
 	}
 
 	//*/

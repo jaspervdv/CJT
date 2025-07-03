@@ -406,7 +406,8 @@ namespace CJT {
 			}
 
 		}
-		std::cout << "not found" << std::endl;
+		//std::cout << "not found" << std::endl;
+
 		//TODO: find a fix when there is no normal found
 		return;
 	}
