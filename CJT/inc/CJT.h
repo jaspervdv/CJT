@@ -15,7 +15,7 @@ namespace CJT {
 
 	using json = nlohmann::json;	
 	// Forward Declaration
-	//class CJTPoint;
+	class CJTPoint;
 
 	inline double precision = 1e-6;
 
@@ -178,6 +178,25 @@ namespace CJT {
 		~PoC_type_Map() {}
 	};
 
+	class CJTVector
+	{
+	private:
+		double x_;
+		double y_;
+		double z_;
+	public:
+		explicit CJTVector(double x, double y, double z) { x_ = x; y_ = y; z_ = z; }
+		explicit CJTVector(const CJTPoint& other);
+
+		double getX() const { return x_; }
+		double getY() const { return y_; }
+		double getZ() const { return z_; }
+
+		bool isParallel(const CJTVector& otherVector) const;
+
+		double magnitude() const;
+	};
+
 	class CJTPoint
 	{
 	private:
@@ -207,6 +226,8 @@ namespace CJT {
 		bool operator!= (CJTPoint other) const;
 		/// @brief evaluates if the sum of the x, y, z coordinates is smaller 
 		bool operator< (CJTPoint other) const;
+
+		CJTPoint operator- (CJTPoint other) const;
 
 		CJTPoint(const CJTPoint&) = default;
 		CJTPoint(CJTPoint&&) = default;
@@ -762,6 +783,8 @@ namespace CJT {
 
 		void cullRepeatingVerts(json* boundaries, std::vector<int>& eliminatedFaces);
 
+		void eliminateZeroAreaVerts(json* boundaries, std::vector<int>& eliminatedFaces);
+
 		void updateIdx2VertMap();
 
 	public:
@@ -815,6 +838,8 @@ namespace CJT {
 		void cullUnreferencedVerices();
 		/// @brief removes verts that are repeating in a ring
 		void cullRepeatingVertices();
+		/// @brief cleans rind and vertex list in the collection if rings (partially) collapsed into no area
+		void cullCollapesedRings();
 		/// @brief cleans the vertex list in collection, only use this completely before or completely after geometry altering
 		void CleanVertices();
 
