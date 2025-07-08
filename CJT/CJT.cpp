@@ -2041,7 +2041,17 @@ namespace CJT
 
 				if (!eleminatedFace.empty())
 				{
-					std::vector<int> surfaceTypeValues = currentGeoObject->getSurfaceTypeValues();
+					std::vector<int> surfaceTypeValues;
+					if (currentGeoObject->getType() == "Solid")
+					{
+						surfaceTypeValues = currentGeoObject->getSurfaceTypeValues()[0].get<std::vector<int>>();
+					}
+					else
+					{
+						surfaceTypeValues = currentGeoObject->getSurfaceTypeValues().get<std::vector<int>>();
+					}
+					if (surfaceTypeValues.empty()) { continue; }
+
 
 					for (int elemFaceInd : eleminatedFace)
 					{
@@ -2059,14 +2069,10 @@ namespace CJT
 
 	void CityCollection::CleanVertices()
 	{
-		std::cout << "1" << std::endl;
 		cullDuplicatedVerices();
-		std::cout << "2" << std::endl;
 		cullRepeatingVertices();
-		std::cout << "3" << std::endl;
 		//cullCollapesedRings();
 		cullUnreferencedVerices();
-		std::cout << "4" << std::endl;
 	}
 	//*/
 }
