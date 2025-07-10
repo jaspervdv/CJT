@@ -779,7 +779,7 @@ namespace CJT {
 		std::map<std::string, std::shared_ptr<CityObject>> fetchCityObjects(const json& cityObjects);
 		AppearanceObject fetchAppearance(const json& AppearanceJson);
 
-		json updateVerts(json* boundaries, int depth);
+		json updateVerts(json* boundaries);
 
 		void cullRepeatingVerts(json* boundaries, std::vector<int>& eliminatedFaces);
 

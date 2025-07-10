@@ -123,7 +123,7 @@ namespace CJT {
 
 		int findTopEdgeCollection(const std::vector<std::shared_ptr<EdgeCollection>>& edgeCollectionList);
 
-		void correctFaceDirection(std::vector<std::shared_ptr<EdgeCollection>> edgeCollectionList);
+		void correctFaceDirection(std::vector<std::shared_ptr<EdgeCollection>> edgeCollectionList, bool isHorizonal);
 
 		bool checkIfInit();
 
@@ -137,7 +137,7 @@ namespace CJT {
 		std::vector<TopoDS_Shape> convertToCascade(CityObject& cityObject);
 
 		/// @brief places the shape into the internalized cityObject as geoObject, the geoobject itself is not placed in the cityObject!
-		GeoObject convertToJSON(const TopoDS_Shape& shape, std::string lod, bool trustedSolid = false);
+		GeoObject convertToJSON(const TopoDS_Shape& shape, std::string lod, bool trustedSolid = false, bool isHorizonal = false);
 	};
 }
 #endif // CJTK_CJTK_H

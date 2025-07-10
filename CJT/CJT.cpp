@@ -5,21 +5,27 @@ namespace CJT
 {
 	using json = nlohmann::json;
 
-	json CityCollection::updateVerts(json* boundaries, int depth) {
-		if (depth != 0) { 
+	json CityCollection::updateVerts(json* boundaries) {
+
+		if (boundaries->is_array())
+		{
+			if (boundaries->size() < 1)
+			{
+				return *boundaries;
+			}
+
 			for (json::iterator obb = boundaries->begin(); obb != boundaries->end(); ++obb)
 			{
 				json* subvalue = &obb.value();
-				*subvalue = updateVerts(subvalue, depth - 1);
+				*subvalue = updateVerts(subvalue);
 			}
 			return *boundaries;
 		}
-		else {
-			CJTPoint currentCoord = indx2VerticesMap_->at((int)*boundaries);
-			int currentCorrectIdx = vertices2IndxMap_->at(currentCoord);
-			return json(currentCorrectIdx);
-		}
-		return {};
+		if (!boundaries->is_number_integer()) { return {}; }
+
+		CJTPoint currentCoord = indx2VerticesMap_->at((int)*boundaries);
+		int currentCorrectIdx = vertices2IndxMap_->at(currentCoord);
+		return json(currentCorrectIdx);
 	}
 
 	void CityCollection::cullRepeatingVerts(json* boundaries, std::vector<int>& eliminatedFaces)
@@ -169,16 +175,7 @@ namespace CJT
 				json boundaries = currentGeoObject->getBoundaries();
 
 				std::string geoType = currentGeoObject->getType();
-
-				if (geoType == "MultiSurface")
-				{
-					currentGeoObject->setBoundaries(updateVerts(&boundaries, 3));
-				}
-
-				if (geoType == "Solid")
-				{
-					currentGeoObject->setBoundaries(updateVerts(&boundaries, 4));
-				}
+				currentGeoObject->setBoundaries(updateVerts(&boundaries));
 			}
 			cityObjects_[obb->first] = std::make_shared<CityObject>(currentCityObject);
 		}
@@ -1008,6 +1005,11 @@ namespace CJT
 		else {
 			surfaceTypeValues_.emplace_back(ref);
 		}
+	}
+
+	void GeoObject::FlipFacesToPositiveZ()
+	{
+		
 	}
 
 
@@ -1996,6 +1998,8 @@ namespace CJT
 				if (!eleminatedFace.empty())
 				{
 					std::vector<int> surfaceTypeValues;
+					if (currentGeoObject->getSurfaceTypeValues().is_null()) { continue; }
+
 					if (currentGeoObject->getType() == "Solid")
 					{
 						surfaceTypeValues = currentGeoObject->getSurfaceTypeValues()[0].get<std::vector<int>>();
@@ -2006,7 +2010,6 @@ namespace CJT
 					}
 					if (surfaceTypeValues.empty()) { continue; }
  					
-
 					for (int elemFaceInd : eleminatedFace)
 					{
 						surfaceTypeValues.erase(surfaceTypeValues.begin() + elemFaceInd);
