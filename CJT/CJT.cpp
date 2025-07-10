@@ -1007,12 +1007,6 @@ namespace CJT
 		}
 	}
 
-	void GeoObject::FlipFacesToPositiveZ()
-	{
-		
-	}
-
-
 	bool CityCollection::isValid(const json& jsonData) {
 		// TODO add validator library
 		if (!jsonData.contains("CityObjects") || !jsonData.contains("version") || !jsonData.contains("transform") || !jsonData.contains("vertices"))

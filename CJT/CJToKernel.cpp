@@ -507,11 +507,11 @@ namespace CJT {
 		return highestCollectionIdx;
 	}
 
-	void Kernel::correctFaceDirection(std::vector<std::shared_ptr<EdgeCollection>> edgeCollectionList, bool horizontal)
+	void Kernel::correctFaceDirection(std::vector<std::shared_ptr<EdgeCollection>> edgeCollectionList, bool isHorizonal)
 	{
 		double buffer = 0.05;
 		// if single surface the surface should always be orentated to the positive Z
-		if (edgeCollectionList.size() == 1 || horizontal)
+		if (edgeCollectionList.size() == 1 || isHorizonal)
 		{
 			for (const std::shared_ptr<EdgeCollection>& groundCollection : edgeCollectionList)
 			{
@@ -838,7 +838,7 @@ namespace CJT {
 	}
 
 
-	GeoObject Kernel::convertToJSON(const TopoDS_Shape& shape, std::string lod, bool trustedSolid, bool horizonal)
+	GeoObject Kernel::convertToJSON(const TopoDS_Shape& shape, std::string lod, bool trustedSolid, bool isHorizonal)
 	{
 		std::string geomType = "";
 
@@ -880,7 +880,7 @@ namespace CJT {
 			}
 			edgeCollectionList.emplace_back(edgeCollection);
 		}
-		correctFaceDirection(edgeCollectionList, horizonal);
+		correctFaceDirection(edgeCollectionList, isHorizonal);
 		// find or add the unique verts to the collection
 		for (const auto& [currectPoint, indx] : pointToIndex)
 		{
