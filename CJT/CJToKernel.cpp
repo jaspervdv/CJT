@@ -7,12 +7,16 @@
 #include <unordered_set>
 
 namespace CJT {
+	double roundDoubleToPrecision(double value, double precision) {
+		return std::round(value / precision) * precision;
+	}
+
 	// Hash and equality functions for gp_Pnt
 	struct gp_Pnt_Hash {
 		std::size_t operator()(const gp_Pnt& p) const {
-			std::size_t h1 = std::hash<double>()(p.X());
-			std::size_t h2 = std::hash<double>()(p.Y());
-			std::size_t h3 = std::hash<double>()(p.Z());
+			std::size_t h1 = std::hash<double>()(roundDoubleToPrecision(p.X(), precision));
+			std::size_t h2 = std::hash<double>()(roundDoubleToPrecision(p.Y(), precision));
+			std::size_t h3 = std::hash<double>()(roundDoubleToPrecision(p.Z(), precision));
 			return h1 ^ (h2 << 1) ^ (h3 << 2);
 		}
 	};
@@ -843,9 +847,9 @@ namespace CJT {
 		std::string geomType = "";
 
 		if (trustedSolid) { geomType = "Solid"; }
-		else if (shape.ShapeType() == 2) { geomType = "Solid"; }
-		else if (shape.ShapeType() == 3 || shape.ShapeType() == 4) { geomType = "MultiSurface"; }
-		else if (shape.ShapeType() == 0) { geomType = "MultiSurface"; }
+		else if (shape.ShapeType() == TopAbs_SOLID) { geomType = "Solid"; }
+		else if (shape.ShapeType() == TopAbs_SHELL || shape.ShapeType() == TopAbs_FACE) { geomType = "MultiSurface"; }
+		else if (shape.ShapeType() == TopAbs_COMPOUND) { geomType = "MultiSurface"; } //TODO: this should be smarter
 		else
 		{
 			std::cout << "Kernel does not regonize geo type" << std::endl;
@@ -873,7 +877,6 @@ namespace CJT {
 				if (currentWire.IsEqual(outerWire)) { continue; }
 				edgeCollection->addWire(currentWire, true);
 			}
-
 			for (const gp_Pnt& p : edgeCollection->getPoints())
 			{
 				pointToIndex.emplace(p, -1);

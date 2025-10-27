@@ -31,6 +31,9 @@ namespace CJT
 	void CityCollection::cullRepeatingVerts(json* boundaries, std::vector<int>& eliminatedFaces)
 	{
 		// check if face list
+		if (!boundaries->is_array()) { return; }
+		if (boundaries->empty()) { return; }
+
 		if (!boundaries->at(0).is_array()) { return; }
 		if (boundaries->at(0).empty()) { return; }
 
