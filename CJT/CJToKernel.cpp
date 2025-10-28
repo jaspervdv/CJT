@@ -3,6 +3,7 @@
 #include <BRepGProp.hxx>
 #include <gp_Lin.hxx>
 #include <BRepTools.hxx>
+#include <BRepTools_WireExplorer.hxx>
 
 #include <unordered_set>
 
@@ -287,24 +288,30 @@ namespace CJT {
 
 		int c = 0;
 		gp_Pnt lP;
-		for (TopExp_Explorer expl(theWire, TopAbs_VERTEX); expl.More(); expl.Next())
+		
+		for (BRepTools_WireExplorer expl(theWire); expl.More(); expl.Next()) 
 		{
-			TopoDS_Vertex vertex = TopoDS::Vertex(expl.Current());
-			gp_Pnt p = BRep_Tool::Pnt(vertex);
+			TopoDS_Edge currentEdge = TopoDS::Edge(expl.Current());
 
-			if (c % 2 == 1)
+			TopExp_Explorer vertExpl(currentEdge, TopAbs_VERTEX);
+			TopoDS_Vertex currentVertex = TopoDS::Vertex(vertExpl.Current());
+
+			if (!vertExpl.More()) { continue; }
+			vertExpl.Next();
+			TopoDS_Vertex nextVertex = TopoDS::Vertex(vertExpl.Current());
+
+			gp_Pnt currentPoint = BRep_Tool::Pnt(currentVertex);
+			gp_Pnt nextPoint = BRep_Tool::Pnt(nextVertex);
+
+			if (currentEdge.Orientation() == TopAbs_REVERSED)
 			{
-				// TODO: fix the jump that is present here
-				//if (p.Distance(lP) > fprecision)
-				{
-					std::shared_ptr<Edge> collectedEdge = std::make_shared<Edge>(Edge(lP, p));
-					addEdge(collectedEdge);
-				}
+				std::swap(currentPoint, nextPoint);
 			}
-			lP = p;
-			c++;
+
+			std::shared_ptr<Edge> collectedEdge = std::make_shared<Edge>(Edge(currentPoint, nextPoint));
+			addEdge(collectedEdge);
 		}
-		orderEdges();
+		computeNormal();
 		return;
 	}
 
@@ -355,64 +362,25 @@ namespace CJT {
 
 	void EdgeCollection::computeNormal() // creates a unitvector for the face normal
 	{
-		TopLoc_Location loc;
-		Handle(Poly_Triangulation) tri = BRep_Tool::Triangulation(originalFace_, loc);
-
-		if (tri.IsNull()) { return; }
-		int counter = tri->NbTriangles();
-		for (int i = 0; i < counter; i++)
+		std::vector<gp_Pnt> pointList;
+		for (const std::shared_ptr<Edge>& currentEdge : ring_)
 		{
-			int idx = i + 1;
-			Poly_Triangle triangle = tri->Triangle(idx);
-
-			int n1, n2, n3;
-			triangle.Get(n1, n2, n3);
-
-			gp_Pnt p1 = tri->Node(n1).Transformed(loc);
-			gp_Pnt p2 = tri->Node(n2).Transformed(loc);
-			gp_Pnt p3 = tri->Node(n3).Transformed(loc);
-
-			for (size_t j = 0; j < ring_.size(); j++)
-			{
-				std::shared_ptr<Edge> edge = ring_[j];
-
-				if (edge->getStart().IsEqual(p1, 1e-4) && edge->getEnd().IsEqual(p2, 1e-4) ||
-					edge->getStart().IsEqual(p2, 1e-4) && edge->getEnd().IsEqual(p3, 1e-4) ||
-					edge->getStart().IsEqual(p3, 1e-4) && edge->getEnd().IsEqual(p1, 1e-4) // correct orientation
-					)
-				{
-					if (!isInner_)
-					{
-						normal_ = calculateNormal(p1, p2, p3, true);
-					}
-					else
-					{
-						normal_ = calculateNormal(p1, p2, p3, true).Reversed();
-					}
-					return;
-
-				}
-				if (edge->getStart().IsEqual(p2, 1e-4) && edge->getEnd().IsEqual(p1, 1e-4) ||
-					edge->getStart().IsEqual(p3, 1e-4) && edge->getEnd().IsEqual(p2, 1e-4) ||
-					edge->getStart().IsEqual(p1, 1e-4) && edge->getEnd().IsEqual(p3, 1e-4) // reversed orientation
-					)
-				{
-					if (!isInner_)
-					{
-						normal_ = calculateNormal(p1, p2, p3, true).Reversed();
-					}
-					else
-					{
-						normal_ = calculateNormal(p1, p2, p3, true);
-					}
-					return;
-				}
-			}
-
+			pointList.emplace_back(currentEdge->getStart());
 		}
-		//std::cout << "not found" << std::endl;
 
-		//TODO: find a fix when there is no normal found
+		gp_Vec normal(0, 0, 0);
+		if (pointList.size() < 3) { return; }
+
+		for (size_t i = 0; i < pointList.size(); ++i) { // compute normal with newell's method
+			const gp_Pnt& p0 = pointList[i];
+			const gp_Pnt& p1 = pointList[(i + 1) % pointList.size()];
+			normal.SetX(normal.X() + (p0.Y() - p1.Y()) * (p0.Z() + p1.Z()));
+			normal.SetY(normal.Y() + (p0.Z() - p1.Z()) * (p0.X() + p1.X()));
+			normal.SetZ(normal.Z() + (p0.X() - p1.X()) * (p0.Y() + p1.Y()));
+		}
+
+		if (normal.Magnitude() < precision) { return; }
+		normal_ = normal.Normalized();
 		return;
 	}
 
@@ -864,6 +832,7 @@ namespace CJT {
 
 		for (TopExp_Explorer faceExpl(shape, TopAbs_FACE); faceExpl.More(); faceExpl.Next())
 		{
+	
 			TopoDS_Face currentFace = TopoDS::Face(faceExpl.Current());
 			TopoDS_Wire outerWire = BRepTools::OuterWire(currentFace);
 
