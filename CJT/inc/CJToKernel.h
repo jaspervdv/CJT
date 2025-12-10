@@ -31,6 +31,7 @@
 #include <BRepGProp.hxx>
 #include <BRepBndLib.hxx>
 #include <GeomLProp_SLProps.hxx>
+#include <mutex>
 
 namespace bg = boost::geometry;
 namespace bgi = boost::geometry::index;
@@ -118,6 +119,9 @@ namespace CJT {
 		int idCounter_ = 10000;
 		std::map<int, TopoDS_Shape* > internalizedObjectMap_;
 		std::shared_ptr<CityCollection> cityCollection_;
+
+		std::mutex meshingMutex_;
+		std::mutex cityObjectAcessMutex_;
 
 		static const int treeDepth = 25;
 

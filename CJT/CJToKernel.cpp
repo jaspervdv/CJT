@@ -434,6 +434,7 @@ namespace CJT {
 
 	Kernel::Kernel(const std::shared_ptr<CityCollection>& cityCollection)
 	{
+		std::lock_guard<std::mutex> faceLock(cityObjectAcessMutex_);
 		fprecision = cityCollection->getTransformation().getScale()[0];
 		cityCollection_ = cityCollection;
 	}
@@ -684,7 +685,10 @@ namespace CJT {
 
 		// construct facelist
 		std::vector<IntFace> faceIntList = getSurfaceIdx(geoObject.getBoundaries());
+		
+		cityObjectAcessMutex_.lock();
 		std::vector<CJTPoint> cityVerts = cityCollection_->getVerices();
+		cityObjectAcessMutex_.unlock();
 
 		BRep_Builder brepBuilder;
 		BRepBuilderAPI_Sewing brepSewer;
@@ -828,7 +832,9 @@ namespace CJT {
 		std::unordered_map<const gp_Pnt, int, gp_Pnt_Hash, gp_Pnt_Equal> pointToIndex;
 
 		std::vector<std::shared_ptr<EdgeCollection>> edgeCollectionList;
+		meshingMutex_.lock();
 		BRepMesh_IncrementalMesh(shape, 0.001);
+		meshingMutex_.unlock();
 
 		for (TopExp_Explorer faceExpl(shape, TopAbs_FACE); faceExpl.More(); faceExpl.Next())
 		{
@@ -854,11 +860,13 @@ namespace CJT {
 		}
 		correctFaceDirection(edgeCollectionList, isHorizonal);
 		// find or add the unique verts to the collection
+		cityObjectAcessMutex_.lock();
 		for (const auto& [currectPoint, indx] : pointToIndex)
 		{
 			int loc = cityCollection_->addVertex(CJTPoint(currectPoint.X(), currectPoint.Y(), currectPoint.Z()), true);
 			pointToIndex[currectPoint] = loc;
 		}
+		cityObjectAcessMutex_.unlock();
 
 		// from opencascade data to json
 		json boundaries;
