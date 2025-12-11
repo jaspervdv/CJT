@@ -1,6 +1,7 @@
 #include "inc/CJT.h"
 #include "inc/CJToKernel.h"
 #include <BRepGProp.hxx>
+#include <Bnd_Box.hxx>
 #include <gp_Lin.hxx>
 #include <BRepTools.hxx>
 #include <BRepTools_WireExplorer.hxx>
