@@ -839,7 +839,6 @@ namespace CJT {
 
 		for (TopExp_Explorer faceExpl(shape, TopAbs_FACE); faceExpl.More(); faceExpl.Next())
 		{
-	
 			TopoDS_Face currentFace = TopoDS::Face(faceExpl.Current());
 			TopoDS_Wire outerWire = BRepTools::OuterWire(currentFace);
 
@@ -859,6 +858,11 @@ namespace CJT {
 			}
 			edgeCollectionList.emplace_back(edgeCollection);
 		}
+		if (edgeCollectionList.empty())
+		{
+			throw std::exception("Edgelist can not be made");
+		}
+
 		correctFaceDirection(edgeCollectionList, isHorizonal);
 		// find or add the unique verts to the collection
 		cityObjectAcessMutex_.lock();
